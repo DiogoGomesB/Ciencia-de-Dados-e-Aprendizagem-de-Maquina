@@ -28,14 +28,20 @@ Segundo o cronograma oficial do projeto, a Sprint 1 entrega **RFC, coleta bruta,
 
 ## Problema
 
-* **Evento a prever:** ocorrência de condição de qualidade do ar inadequada em Mogi das Cruzes/SP.
-* **Usuário da decisão:** *(a definir no RFC — ex.: gestor de saúde pública / cidadão que decide restringir atividade externa)*.
-* **Horizonte:** *(a definir — ex.: prever condição inadequada em D+1, a partir dos dados disponíveis até o instante da previsão)*.
+Evento a prever: ocorrência de condição de qualidade do ar inadequada em Mogi das Cruzes/SP.
+Usuário da decisão: (a definir no RFC — ex.: gestor de saúde pública / cidadão que decide restringir atividade externa).
+Horizonte: (a definir — ex.: prever condição inadequada em D+1, a partir dos dados disponíveis até o instante da previsão).
 
-**Classe positiva:** *(pendente — depende do limiar de referência a adotar: IQA/CETESB ou índice da OMS)*
-**Custo priorizado (FN ou FP):** *(pendente — discutir explicitamente no RFC o custo de um falso negativo, não apenas citá-lo)*
+Classe positiva: definida pela ultrapassagem dos padrões legais de qualidade do ar, consolidados no Índice de Qualidade do Ar (IQAr) [1, 2]. Neste projeto:
 
-> Os três itens acima ainda não foram escritos no RFC (`docs/RFC.md`), que ainda não existe no repositório. Sem RFC formal, a Sprint 1 não está encerrada.
+0 — qualidade do ar adequada (IQAr até 100)
+1 — qualidade do ar inadequada (IQAr na faixa 101–199, categoria "Inadequada" do IQAr)
+
+Custo priorizado (FN ou FP): falso negativo (FN) — o modelo prever "adequada" quando a hora seguinte é, de fato, inadequada. É o erro mais crítico porque o modelo deixaria de antecipar uma piora real da qualidade do ar. (discussão completa a detalhar no RFC)
+
+Horizonte, evento e unidade de análise já definidos (ver acima). Falta apenas formalizar tudo isso em docs/RFC.md, que ainda não existe no repositório — sem RFC formal, a Sprint 1 não está encerrada.
+
+Referências [1] FURG — Dissertação/monografia sobre padrões de qualidade do ar: https://sistemas.furg.br/sistemas/sab/arquivos/bdtd/0000010377.pdf [2] SANTOS, C. M. dos. UnB, 2011 — Índice de Qualidade do Ar: https://repositorio.unb.br/bitstream/10482/10977/1/2011_CleideMouradosSantos.pdf
 
 ---
 

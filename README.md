@@ -28,9 +28,9 @@ Segundo o cronograma oficial do projeto, a Sprint 1 entrega **RFC, coleta bruta,
 
 ## Problema
 
-* **Evento a prever:** ocorrência de condição de qualidade do ar inadequada em Mogi das Cruzes/SP.
+* **Evento a prever:** a qualidade do ar em Mogi das Cruzes/SP estará **inadequada na próxima hora**.
 * **Usuário da decisão:** *(a definir no RFC — ex.: gestor de saúde pública / cidadão que decide restringir atividade externa)*.
-* **Horizonte:** *(a definir — ex.: prever condição inadequada em D+1, a partir dos dados disponíveis até o instante da previsão)*.
+* **Horizonte:** **1 hora à frente** — a previsão feita no instante *t* usa dados disponíveis até *t* para prever a condição em *t+1h*.
 
 **Classe positiva:** definida pela ultrapassagem dos padrões legais de qualidade do ar, consolidados no **Índice de Qualidade do Ar (IQAr)** [1, 2]. Neste projeto:
 - `0` — qualidade do ar **adequada** (IQAr até 100)

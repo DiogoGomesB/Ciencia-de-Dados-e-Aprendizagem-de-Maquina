@@ -32,7 +32,7 @@ A qualidade do ar é um fator relevante para o meio ambiente e para a saúde pú
 
 | Pergunta | Resposta |
 |---|---|
-| Qual evento será previsto? Prever se a qualidade do ar no ponto de referência da Universidade Braz Cubas, em Mogi das Cruzes/SP, estará inadequada uma hora à frente. | |
+| Qual evento será previsto? | Prever se a qualidade do ar no ponto de referência da Universidade Braz Cubas, em Mogi das Cruzes/SP, estará inadequada uma hora à frente. |
 | Como será definida a classe positiva? *(provisória na Sprint 1; limiar formal na Sprint 2, com base no treino)* Classe 1: qualidade do ar inadequada. Classe 0: qualidade do ar adequada. O limiar que determinará formalmente quando a qualidade do ar será considerada inadequada será definido na Sprint 2, após a análise e preparação dos dados. | |
 | Qual é o horizonte da previsão? 1 hora à frente. | |
 | Qual é a unidade de análise (o que representa cada linha do dataset)? Cada linha representa uma observação horária do ponto geográfico de referência da Universidade Braz Cubas, contendo dados de qualidade do ar e variáveis meteorológicas correspondentes àquele horário. | |

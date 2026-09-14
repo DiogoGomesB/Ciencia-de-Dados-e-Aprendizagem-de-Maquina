@@ -32,10 +32,10 @@ A qualidade do ar é um fator relevante para o meio ambiente e para a saúde pú
 
 | Pergunta | Resposta |
 |---|---|
-| Qual evento será previsto? | Prever se a qualidade do ar no ponto de referência da Universidade Braz Cubas, em Mogi das Cruzes/SP, estará inadequada uma hora à frente. |
-| Como será definida a classe positiva? *(provisória na Sprint 1; limiar formal na Sprint 2, com base no treino)* Classe 1: qualidade do ar inadequada. Classe 0: qualidade do ar adequada. O limiar que determinará formalmente quando a qualidade do ar será considerada inadequada será definido na Sprint 2, após a análise e preparação dos dados. | |
-| Qual é o horizonte da previsão? 1 hora à frente. | |
-| Qual é a unidade de análise (o que representa cada linha do dataset)? Cada linha representa uma observação horária do ponto geográfico de referência da Universidade Braz Cubas, contendo dados de qualidade do ar e variáveis meteorológicas correspondentes àquele horário. | |
+| Qual evento será previsto? |Prever se a qualidade do ar no ponto de referência da Universidade Braz Cubas, em Mogi das Cruzes/SP, estará inadequada uma hora à frente. |
+| Como será definida a classe positiva?  |*(provisória na Sprint 1; limiar formal na Sprint 2, com base no treino)* Classe 1: qualidade do ar inadequada. Classe 0: qualidade do ar adequada. O limiar que determinará formalmente quando a qualidade do ar será considerada inadequada será definido na Sprint 2, após a análise e preparação dos dados. |
+| Qual é o horizonte da previsão? |1 hora à frente. |
+| Qual é a unidade de análise (o que representa cada linha do dataset)?  |Cada linha representa uma observação horária do ponto geográfico de referência da Universidade Braz Cubas, contendo dados de qualidade do ar e variáveis meteorológicas correspondentes àquele horário. |
 
 ---
 
@@ -43,10 +43,10 @@ A qualidade do ar é um fator relevante para o meio ambiente e para a saúde pú
 
 | Pergunta | Resposta |
 |---|---|
-| Recorte geográfico (cidade/região) ou cultura e municípios (Trilha C) | |
-| Período histórico considerado | |
-| O que está **dentro** do escopo deste projeto | |
-| O que está **fora** de escopo (explicitamente não será feito) | |
+| Recorte geográfico (cidade/região) ou cultura e municípios (Trilha C) |O projeto será delimitado ao município de Mogi das Cruzes/SP, utilizando como referência um único ponto geográfico localizado na Universidade Braz Cubas, nas coordenadas aproximadas de latitude -23.514561 e longitude -46.186832. O ponto será utilizado como referência para as observações e não terá como objetivo representar toda a cidade.|
+| Período histórico considerado |O período final ainda será definido. Inicialmente foi utilizado o intervalo de 01/01/2025 a 31/01/2025, porém o grupo pretende ampliar o histórico para um período maior, de acordo com a cobertura temporal compatível e a disponibilidade dos dados nas APIs utilizadas.|
+| O que está **dentro** do escopo deste projeto |Coleta e integração de dados de qualidade do ar e meteorológicos; organização e limpeza dos dados; análise da qualidade da base; definição da variável-alvo; criação de características para a previsão de uma hora à frente; desenvolvimento, treinamento e avaliação de modelos de classificação nas etapas posteriores do projeto.|
+| O que está **fora** de escopo (explicitamente não será feito) |Representar a qualidade do ar de toda a cidade por meio de vários pontos de monitoramento; realizar previsões para outras cidades ou regiões; desenvolver um sistema de monitoramento em tempo real; criar um aplicativo ou serviço de produção para emissão de alertas; realizar implantação em ambiente produtivo.|
 
 > Trilha C: **uma única cultura** e municípios de escala comparável. Declarar também o N esperado (municípios × safras): a produtividade do IBGE é em geral anual; N pequeno limita modelos complexos.
 
@@ -55,19 +55,21 @@ A qualidade do ar é um fator relevante para o meio ambiente e para a saúde pú
 ## 5. Usuários e decisão apoiada
 
 Quem usaria o alerta gerado por este projeto? Que decisão concreta essa pessoa/instituição tomaria com base nele?
+Em um possível cenário de utilização, o alerta poderia ser utilizado por instituições de ensino, órgãos públicos ou equipes responsáveis pelo acompanhamento ambiental e da qualidade do ar. A partir da previsão de uma possível condição inadequada para a próxima hora, esses usuários poderiam acompanhar a situação com maior atenção e avaliar a necessidade de comunicar ou orientar a população sobre a piora prevista.
+No contexto deste projeto acadêmico, o alerta será utilizado principalmente para demonstrar a aplicação de Ciência de Dados e Aprendizagem de Máquina na previsão de qualidade do ar, não constituindo um sistema oficial de alerta à população.
 
 ---
 
 ## 6. Dados e fontes
 
-Resumo de alto nível. O detalhe (unidade, resolução, medido vs. modelado, códigos IBGE) vai no `Dicionário de Dados`.
+O projeto utilizará duas fontes principais da Open-Meteo. A primeira fornece dados horários relacionados à qualidade do ar e à concentração de poluentes. A segunda fornece dados meteorológicos horários que serão utilizados para caracterizar as condições atmosféricas associadas às observações.
 
 | Fonte | O que fornece | Papel no projeto (feature / alvo / ambos) |
 |---|---|---|
-| | | |
-| | | |
+|Open-Meteo Air Quality API |Dados horários de qualidade do ar, incluindo concentrações de poluentes como PM10, PM2.5, monóxido de carbono, dióxido de nitrogênio, dióxido de enxofre e ozônio.|Features e base para definição do alvo|
+|Open-Meteo Weather API |Dados meteorológicos horários, como temperatura, umidade relativa, precipitação, velocidade do vento e pressão atmosférica. |Features|
 
-**Link para o dicionário de dados do projeto:**
+**Link para o dicionário de dados do projeto: a definir**
 
 ---
 
@@ -75,10 +77,12 @@ Resumo de alto nível. O detalhe (unidade, resolução, medido vs. modelado, có
 
 | Tipo de erro | O que significa no contexto do projeto | Custo/consequência |
 |---|---|---|
-| Falso negativo | | |
-| Falso positivo | | |
+| Falso negativo |O modelo prevê que a qualidade do ar estará adequada, mas uma hora depois a condição é inadequada. |Pode deixar de identificar antecipadamente uma possível piora da qualidade do ar, reduzindo a utilidade do alerta e dificultando uma ação preventiva. |
+| Falso positivo |O modelo prevê que a qualidade do ar estará inadequada, mas uma hora depois a condição permanece adequada. |Pode gerar um alerta desnecessário, causando preocupação ou ações que não seriam necessárias. |
 
 Qual erro é mais grave para este problema, e por quê? Isso orienta a métrica da classe positiva (em geral recall) **e o limiar de decisão da Sprint 5** — o modelo devolve probabilidade; o ponto de corte é decisão de produto.
+
+Erro mais grave: o falso negativo, pois significa que o modelo não identificou uma situação de qualidade do ar inadequada que deveria ser antecipada. Por esse motivo, o projeto dará atenção especial ao recall da classe positiva (1) nas etapas de avaliação. O limiar de decisão será definido posteriormente, com base nos resultados da validação.
 
 ---
 
@@ -90,29 +94,59 @@ Caminho planejado, sem escolher algoritmo:
 
 Dashboard de visualização, se houver na mostra final, é extra: não há sprint numerada de deploy neste projeto.
 
+O projeto seguirá um fluxo composto pela coleta e integração dos dados de qualidade do ar e meteorológicos, seguido pelas etapas de limpeza, análise, definição da variável-alvo, criação das características e desenvolvimento de modelos de classificação. As decisões relacionadas ao processamento dos dados, features, modelos e critérios de avaliação serão definidas e refinadas nas sprints seguintes, conforme os resultados das análises realizadas.
+
 ---
 
 ## 9. Riscos e limitações conhecidas
 
-- (ex.: dados modelados em vez de medidos, série histórica curta, N pequeno na Trilha C, desbalanceamento, API instável)
+- Os dados utilizados pela API de qualidade do ar podem ser estimados por modelos atmosféricos, não representando necessariamente uma medição realizada exatamente no ponto da Universidade Braz Cubas.
+- A quantidade de dados disponível dependerá da cobertura histórica compatível entre as APIs utilizadas.
+- O projeto utiliza um único ponto geográfico de referência, portanto os resultados não devem ser generalizados automaticamente para todo o município de Mogi das Cruzes.
+- Podem existir dados ausentes, duplicados ou valores inconsistentes, que deverão ser identificados e tratados durante as etapas de preparação e análise.
+- Existe a possibilidade de desbalanceamento entre as classes adequada e inadequada após a definição do limiar, o que será verificado nas etapas seguintes.
+- A disponibilidade dos dados depende do funcionamento e da estabilidade das APIs utilizadas para a coleta.
+- O histórico utilizado pode não representar todas as condições atmosféricas possíveis, limitando a capacidade de generalização dos resultados.
 
 ---
 
 ## 10. Critérios de sucesso
 
-Como o grupo vai saber, ao final, que a solução é útil? (ex.: recall mínimo na classe positiva **no teste**, no limiar escolhido; model card preenchido; dicionário alinhado ao modelo)
+A solução será considerada útil ao final do projeto caso seja capaz de prever situações de qualidade do ar inadequada com desempenho satisfatório no conjunto de teste, dando atenção especial à capacidade de identificar corretamente a classe positiva.
+
+Além do desempenho do modelo, serão considerados como critérios de sucesso:
+
+    definição e justificativa da variável-alvo e do seu limiar;
+    utilização de dados corretamente integrados, tratados e documentados;
+    ausência de vazamento de informações futuras;
+    avaliação do modelo por métricas adequadas, com atenção especial ao recall da classe positiva;
+    documentação dos resultados, limitações e decisões tomadas;
+    dicionário de dados atualizado e alinhado às variáveis utilizadas pelo modelo;
+    preenchimento do model card e disponibilização do artefato final do pipeline.
+
+O valor mínimo de desempenho esperado será definido nas etapas de validação, após a análise dos dados e dos resultados dos modelos de referência.
 
 ---
 
 ## 11. Alternativas consideradas *(opcional)*
 
-Outras definições de problema, recorte ou fonte que o grupo avaliou e descartou, com o motivo.
+Não preenchido nesta versão.
 
 ---
 
 ## 12. Perguntas em aberto
 
 Pontos que dependem da EDA da Sprint 2 (limiar do alvo, janelas) ou do lift da Sprint 4.
+
+Qual será o período histórico final utilizado, considerando a cobertura compatível das APIs e a qualidade dos dados disponíveis?
+Qual será o limiar utilizado para definir a classe positiva, classificando a qualidade do ar como inadequada?
+Quais variáveis e características apresentarão maior relação com a ocorrência de qualidade do ar inadequada?
+Será necessário utilizar janelas ou defasagens temporais para melhorar a representação das condições anteriores?
+Como ficará a distribuição entre as classes 0 e 1 após a definição do alvo?
+Quais características poderão ser utilizadas sem causar vazamento de informações futuras?
+Quais abordagens de modelagem apresentarão melhor desempenho e qual será o ganho obtido em relação aos modelos de referência?
+
+Essas questões serão respondidas progressivamente nas sprints seguintes, principalmente a partir da análise exploratória dos dados, dos experimentos de modelagem e da comparação dos resultados.
 
 ---
 

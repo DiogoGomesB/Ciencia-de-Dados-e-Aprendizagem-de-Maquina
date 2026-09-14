@@ -1,1 +1,17 @@
-a adicionar
+# Coleta de dados (Etapa 3 - Coleta_Dados.py)
+requests>=2.31.0
+ 
+# Configuracao (Etapa 8 - config/params.yaml, fora do codigo)
+PyYAML>=6.0
+ 
+# Transformacao e integracao das fontes (Etapa 4 - DataFrames, pd.to_datetime, merge)
+pandas>=2.0.0
+numpy>=1.24.0
+ 
+# Visualizacao inicial (Etapa 5 - analise de qualidade dos dados)
+matplotlib>=3.7.0
+seaborn>=0.12.0
+ 
+# Notebook do guia (Etapa 7 - Guia_Alunos_APIs_Trilhas_B_C.ipynb)
+jupyter>=1.0.0
+ 

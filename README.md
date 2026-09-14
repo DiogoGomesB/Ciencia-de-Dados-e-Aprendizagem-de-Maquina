@@ -5,7 +5,7 @@
 **Equipe:** Davi Gama dos Santos (33121079) · Diogo Gomes Barbosa (35866276) · Eudenis de Souza Vieira (32751621) · Gabriel Januário Alves (35609991) · João Pedro Barreto da Silva (33297185)
 **Repositório / board:** [DiogoGomesB/Ciencia-de-Dados-e-Aprendizagem-de-Maquina](https://github.com/DiogoGomesB/Ciencia-de-Dados-e-Aprendizagem-de-Maquina)
 
-> ⚠️ Até o momento, os commits partiram apenas de Diogo Gomes e Davi Gama. A contribuição individual dos demais integrantes precisa ficar registrada (commits próprios e/ou diário de sprint).
+> ⚠️ Até o momento, os commits partiram apenas de Diogo Gomes Barbosa e Davi Gama dos Santos. A contribuição individual dos demais integrantes precisa ficar registrada (commits próprios e/ou diário de sprint).
 
 ---
 
@@ -28,20 +28,21 @@ Segundo o cronograma oficial do projeto, a Sprint 1 entrega **RFC, coleta bruta,
 
 ## Problema
 
-Evento a prever: ocorrência de condição de qualidade do ar inadequada em Mogi das Cruzes/SP.
-Usuário da decisão: (a definir no RFC — ex.: gestor de saúde pública / cidadão que decide restringir atividade externa).
-Horizonte: (a definir — ex.: prever condição inadequada em D+1, a partir dos dados disponíveis até o instante da previsão).
+* **Evento a prever:** ocorrência de condição de qualidade do ar inadequada em Mogi das Cruzes/SP.
+* **Usuário da decisão:** *(a definir no RFC — ex.: gestor de saúde pública / cidadão que decide restringir atividade externa)*.
+* **Horizonte:** *(a definir — ex.: prever condição inadequada em D+1, a partir dos dados disponíveis até o instante da previsão)*.
 
-Classe positiva: definida pela ultrapassagem dos padrões legais de qualidade do ar, consolidados no Índice de Qualidade do Ar (IQAr) [1, 2]. Neste projeto:
+**Classe positiva:** definida pela ultrapassagem dos padrões legais de qualidade do ar, consolidados no **Índice de Qualidade do Ar (IQAr)** [1, 2]. Neste projeto:
+- `0` — qualidade do ar **adequada** (IQAr até 100)
+- `1` — qualidade do ar **inadequada** (IQAr na faixa **101–199**, categoria "Inadequada" do IQAr)
 
-0 — qualidade do ar adequada (IQAr até 100)
-1 — qualidade do ar inadequada (IQAr na faixa 101–199, categoria "Inadequada" do IQAr)
+**Custo priorizado (FN ou FP):** falso negativo (FN) — o modelo prever "adequada" quando a hora seguinte é, de fato, inadequada. É o erro mais crítico porque o modelo deixaria de antecipar uma piora real da qualidade do ar. *(discussão completa a detalhar no RFC)*
 
-Custo priorizado (FN ou FP): falso negativo (FN) — o modelo prever "adequada" quando a hora seguinte é, de fato, inadequada. É o erro mais crítico porque o modelo deixaria de antecipar uma piora real da qualidade do ar. (discussão completa a detalhar no RFC)
+> Horizonte, evento e unidade de análise já definidos (ver acima). Falta apenas formalizar tudo isso em `docs/RFC.md`, que ainda não existe no repositório — sem RFC formal, a Sprint 1 não está encerrada.
 
-Horizonte, evento e unidade de análise já definidos (ver acima). Falta apenas formalizar tudo isso em docs/RFC.md, que ainda não existe no repositório — sem RFC formal, a Sprint 1 não está encerrada.
-
-Referências [1] FURG — Dissertação/monografia sobre padrões de qualidade do ar: https://sistemas.furg.br/sistemas/sab/arquivos/bdtd/0000010377.pdf [2] SANTOS, C. M. dos. UnB, 2011 — Índice de Qualidade do Ar: https://repositorio.unb.br/bitstream/10482/10977/1/2011_CleideMouradosSantos.pdf
+**Referências**
+[1] FURG — Dissertação/monografia sobre padrões de qualidade do ar: https://sistemas.furg.br/sistemas/sab/arquivos/bdtd/0000010377.pdf
+[2] SANTOS, C. M. dos. UnB, 2011 — Índice de Qualidade do Ar: https://repositorio.unb.br/bitstream/10482/10977/1/2011_CleideMouradosSantos.pdf
 
 ---
 
@@ -65,8 +66,10 @@ Notebooks: 01 → 05 *(ainda não criados — ver [Estrutura do repositório](#e
 
 | Fonte | Papel | Resolução | Medido ou modelado | Período |
 |---|---|---|---|---|
-| Open-Meteo Air Quality API ([docs](https://open-meteo.com/en/docs/air-quality-api)) | Qualidade do ar | Horária | Modelado (CAMS) | 01/01/2025 – 31/01/2025 *(a estender)* |
-| Open-Meteo Historical Weather API ([docs](https://open-meteo.com/en/docs/historical-weather-api)) | Clima | Horária | Reanálise (ERA5/ERA5-Land/ECMWF IFS) | 01/01/2025 – 31/01/2025 *(a estender)* |
+| Open-Meteo Air Quality API ([docs](https://open-meteo.com/en/docs/air-quality-api)) | Qualidade do ar | Horária (dado nativo global 3/3h, interpolado) | Modelado (CAMS Global, fora da Europa) | 31/08/2022 – 31/08/2026 |
+| Open-Meteo Historical Weather API ([docs](https://open-meteo.com/en/docs/historical-weather-api)) | Clima | Horária | Reanálise (ERA5/ERA5-Land/ECMWF IFS) | 31/08/2022 – 31/08/2026 |
+
+⚠️ O período foi definido pela cobertura da fonte mais restritiva (Air Quality, domínio global disponível só a partir de agosto/2022). A Historical Weather API cobre desde 1940, mas o período foi igualado ao da qualidade do ar para manter as duas fontes no mesmo intervalo. **Pendente:** validar empiricamente que a Air Quality API retorna dado não nulo em todo esse intervalo para as coordenadas do projeto, antes da recoleta oficial (Etapa 3).
 
 * **Unidade de análise:** 1 linha = 1 hora, no ponto de coleta (-23.514561, -46.186832 · Mogi das Cruzes/SP · `America/Sao_Paulo`). *(proposta — confirmar no RFC)*
 * **N após o merge:** *(pendente — merge ainda não foi feito)*
@@ -111,7 +114,7 @@ Arquitetura-alvo (conforme padrão do projeto) — **ainda não implementada int
 ```text
 projeto-trilha-b/
 ├── README.md
-├── requirements.txt                 
+├── requirements.txt                 # a criar
 ├── config/
 │   └── params.yaml                  # a criar (hoje: dentro do .py de coleta)
 ├── data/
@@ -154,7 +157,7 @@ projeto-trilha-b/
 * [ ] Criar `requirements.txt`.
 * [ ] Tratar exceções de rede (`try/except requests.RequestException`) e inspecionar `status_code`/`headers`/`Content-Type`/`resposta.url` antes de qualquer transformação.
 * [ ] Nomear a cidade e o recorte geográfico no RFC (feito neste README: Mogi das Cruzes/SP).
-* [ ] Avaliar estender o período coletado além de 1 mês (histórico atual: 01/01/2025–31/01/2025).
+* [ ] Validar empiricamente a cobertura real da Air Quality API no novo período (31/08/2022–31/08/2026) antes da recoleta oficial — histórico anterior era 01/01/2025–31/01/2025, insuficiente.
 * [ ] Garantir contribuição individual de todos os integrantes registrada (commits e/ou diário de sprint).
 
 **Lembrete:** limpeza, EDA e engenharia de atributos **não** entram na Sprint 1 — só a partir da Sprint 2, sobre dado já limpo.

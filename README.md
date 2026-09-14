@@ -114,7 +114,7 @@ Arquitetura-alvo (conforme padrão do projeto) — **ainda não implementada int
 ```text
 projeto-trilha-b/
 ├── README.md
-├── requirements.txt                 # a criar
+├── requirements.txt                 
 ├── config/
 │   └── params.yaml                  # a criar (hoje: dentro do .py de coleta)
 ├── data/

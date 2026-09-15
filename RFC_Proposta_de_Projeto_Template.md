@@ -164,5 +164,5 @@ Essas questões serão respondidas progressivamente nas sprints seguintes, princ
 
 | Versão | Data | Autor | O que mudou |
 |---|---|---|---|
-| v0.1 |15/09/2026 | Diogo Gomese Davi | Primeira versão do RFC (Sprint 1) |
+| v0.1 |15/09/2026 | Diogo Gomes e Davi Gama | Primeira versão do RFC (Sprint 1) |
 | | | | |

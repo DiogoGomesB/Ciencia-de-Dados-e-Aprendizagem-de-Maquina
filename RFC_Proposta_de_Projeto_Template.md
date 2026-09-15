@@ -42,7 +42,7 @@ A qualidade do ar é um fator relevante para o meio ambiente e para a saúde pú
 | Pergunta | Resposta |
 |---|---|
 | Recorte geográfico (cidade/região) ou cultura e municípios (Trilha C) |O projeto será delimitado ao município de Mogi das Cruzes/SP, utilizando como referência um único ponto geográfico localizado na Universidade Braz Cubas, nas coordenadas aproximadas de latitude -23.514561 e longitude -46.186832. O ponto será utilizado como referência para as observações e não terá como objetivo representar toda a cidade.|
-| Período histórico considerado |O período final ainda será definido. Inicialmente foi utilizado o intervalo de 01/01/2025 a 31/01/2025, porém o grupo pretende ampliar o histórico para um período maior, de acordo com a cobertura temporal compatível e a disponibilidade dos dados nas APIs utilizadas.|
+| Período histórico considerado |**31/08/2022 a 31/08/2026.** O período inicial (01/01/2025 a 31/01/2025) foi descartado por ser insuficiente como histórico. O novo intervalo foi definido pela cobertura da fonte mais restritiva: a Open-Meteo Air Quality API só oferece dado consistente para pontos fora da Europa (domínio CAMS Global) a partir de agosto/2022; a Historical Weather API cobre desde 1940 e não é o fator limitante. **Pendente:** validar empiricamente, antes da recoleta, que a Air Quality API retorna dado não nulo em todo o intervalo para as coordenadas do projeto.|
 | O que está *dentro* do escopo deste projeto |Coleta e integração de dados de qualidade do ar e meteorológicos; organização e limpeza dos dados; análise da qualidade da base; definição da variável-alvo; criação de características para a previsão de uma hora à frente; desenvolvimento, treinamento e avaliação de modelos de classificação nas etapas posteriores do projeto.|
 | O que está *fora* de escopo (explicitamente não será feito) |Representar a qualidade do ar de toda a cidade por meio de vários pontos de monitoramento; realizar previsões para outras cidades ou regiões; desenvolver um sistema de monitoramento em tempo real; criar um aplicativo ou serviço de produção para emissão de alertas; realizar implantação em ambiente produtivo.|
 
@@ -60,7 +60,7 @@ No contexto deste projeto acadêmico, o alerta será utilizado principalmente pa
 
 ## 6. Dados e fontes
 
-O projeto utilizará duas fontes principais da Open-Meteo. A primeira fornece dados horários relacionados à qualidade do ar e à concentração de poluentes. A segunda fornece dados meteorológicos horários que serão utilizados para caracterizar as condições atmosféricas associadas às observações.
+O projeto utilizará duas fontes principais da Open-Meteo, ambas cobrindo o período de **31/08/2022 a 31/08/2026**. A primeira fornece dados horários relacionados à qualidade do ar e à concentração de poluentes. A segunda fornece dados meteorológicos horários que serão utilizados para caracterizar as condições atmosféricas associadas às observações.
 
 | Fonte | O que fornece | Papel no projeto (feature / alvo / ambos) |
 |---|---|---|
@@ -99,7 +99,8 @@ O projeto seguirá um fluxo composto pela coleta e integração dos dados de qua
 ## 9. Riscos e limitações conhecidas
 
 - Os dados utilizados pela API de qualidade do ar podem ser estimados por modelos atmosféricos, não representando necessariamente uma medição realizada exatamente no ponto da Universidade Braz Cubas.
-- A quantidade de dados disponível dependerá da cobertura histórica compatível entre as APIs utilizadas.
+- Para o ponto do projeto (fora da Europa), a Air Quality API usa o domínio CAMS Global, cuja resolução nativa do modelo é de 3 em 3 horas; os valores horários intermediários são interpolados pela própria API, não são observações independentes.
+- O histórico de qualidade do ar só está disponível de forma consistente a partir de agosto/2022 para a região do projeto — isso já define o teto do período histórico utilizável, independentemente da cobertura mais longa da API de clima (desde 1940).
 - O projeto utiliza um único ponto geográfico de referência, portanto os resultados não devem ser generalizados automaticamente para todo o município de Mogi das Cruzes.
 - Podem existir dados ausentes, duplicados ou valores inconsistentes, que deverão ser identificados e tratados durante as etapas de preparação e análise.
 - Existe a possibilidade de desbalanceamento entre as classes adequada e inadequada após a definição do limiar, o que será verificado nas etapas seguintes.
@@ -136,7 +137,7 @@ Não preenchido nesta versão.
 
 Pontos que dependem da EDA da Sprint 2 (limiar do alvo, janelas) ou do lift da Sprint 4.
 
-Qual será o período histórico final utilizado, considerando a cobertura compatível das APIs e a qualidade dos dados disponíveis?
+~~Qual será o período histórico final utilizado, considerando a cobertura compatível das APIs e a qualidade dos dados disponíveis?~~ **Respondida (Sprint 1):** 31/08/2022 a 31/08/2026, limitado pela Air Quality API. Falta apenas a validação empírica de que não há lacunas de dado nulo nesse intervalo.
 Qual será o limiar utilizado para definir a classe positiva, classificando a qualidade do ar como inadequada?
 Quais variáveis e características apresentarão maior relação com a ocorrência de qualidade do ar inadequada?
 Será necessário utilizar janelas ou defasagens temporais para melhorar a representação das condições anteriores?
@@ -165,4 +166,4 @@ Essas questões serão respondidas progressivamente nas sprints seguintes, princ
 | Versão | Data | Autor | O que mudou |
 |---|---|---|---|
 | v0.1 |15/09/2026 | Diogo Gomes e Davi Gama | Primeira versão do RFC (Sprint 1) |
-| | | | |
+| v0.2 |14/09/2026 | Davi Gama e Diogo Gomes | Período histórico definido: 31/08/2022–31/08/2026 (seções 4, 6, 9, 12), substituindo o intervalo provisório de 01/01/2025–31/01/2025. |

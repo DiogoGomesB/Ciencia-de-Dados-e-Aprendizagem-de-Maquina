@@ -1,195 +1,168 @@
-# Qualidade do Ar Inadequada — Mogi das Cruzes/SP
-
-**Disciplina:** Ciência de Dados e Aprendizado de Máquina
-**Trilha:** B — Qualidade do ar inadequada
-**Equipe:** Davi Gama dos Santos (33121079) · Diogo Gomes Barbosa (35866276) · Eudenis de Souza Vieira (32751621) · Gabriel Januário Alves (35609991) · João Pedro Barreto da Silva (33297185)
-**Repositório / board:** [DiogoGomesB/Ciencia-de-Dados-e-Aprendizagem-de-Maquina](https://github.com/DiogoGomesB/Ciencia-de-Dados-e-Aprendizagem-de-Maquina)
-
-> ⚠️ Até o momento, os commits partiram apenas de Diogo Gomes Barbosa, Davi Gama dos Santos. A contribuição individual dos demais integrantes precisa ficar registrada (commits próprios e/ou diário de sprint).
-
----
-
-## Status atual — Sprint 1 (17/08–17/09)
-
-Segundo o cronograma oficial do projeto, a Sprint 1 entrega **RFC, coleta bruta, merge e `data/raw`** (limpeza, EDA e features ficam para a Sprint 2 — não se antecipa nada disso aqui).
-
-| Entrega da Sprint 1 | Situação |
+| Campo | Valor |
 |---|---|
-| RFC (`docs/RFC.md`) | ☐ Não iniciado |
-| Dicionário de dados v0.1 | ☐ Não iniciado |
-| Coleta bruta das duas fontes | ☒ Feito (`Coleta_Dados.py`) |
-| `data/raw` com o bruto de cada API | ☒ Feito (`air_quality_raw.json`, `weather_raw.json`) |
-| Merge das duas fontes | ☐ **Não feito** — pendência crítica antes do fim da Sprint 1 |
-| `config` fora do código | ☒ Feito |
+| *Título* | Previsão da Qualidade do Ar Inadequada em Na Região da Faculdade UBC |
+| *Trilha* | B — Qualidade do ar inadequada |
+| *Equipe* | Davi Gama dos Santos - 33121079, Diogo Gomes Barbosa	- 35866276, Eudenis de Souza Vieira - 32751621, Gabriel Januário Alves - 35609991, João Pedro Barreto da Silva - 33297185 |
+| *Autores* | Davi Gama dos Santos, Diogo Gomes Barbosa, Eudenis de Souza Vieira, Gabriel Januário Alves e João Pedro Barreto da Silva |
+| *Status* | Em revisão |
+| *Data* | 15/09/2026 |
+| *Sprint de referência* | 1 |
 
-⚠️ **Repositório ainda não migrado para a arquitetura mínima do projeto** (seção [Estrutura do repositório](#estrutura-do-repositório)): faltam `config/params.yaml`, `notebooks/`, `docs/RFC.md`, `docs/Dicionario_de_Dados.md`, `docs/sprints/`, `requirements.txt` e a pasta `data/` com `raw/interim/processed`.
-
----
-
-## Problema
-
-* **Evento a prever:** a qualidade do ar em Mogi das Cruzes/SP estará **inadequada na próxima hora**.
-* **Usuário da decisão:** *(a definir no RFC — ex.: gestor de saúde pública / cidadão que decide restringir atividade externa)*.
-* **Horizonte:** **1 hora à frente** — a previsão feita no instante *t* usa dados disponíveis até *t* para prever a condição em *t+1h*.
-
-**Classe positiva:** definida pela ultrapassagem dos padrões legais de qualidade do ar, consolidados no **Índice de Qualidade do Ar (IQAr)** [1, 2]. Neste projeto:
-- `0` — qualidade do ar **adequada** (IQAr até 100)
-- `1` — qualidade do ar **inadequada** (IQAr na faixa **101–199**, categoria "Inadequada" do IQAr)
-
-**Custo priorizado (FN ou FP):** falso negativo (FN) — o modelo prever "adequada" quando a hora seguinte é, de fato, inadequada. É o erro mais crítico porque o modelo deixaria de antecipar uma piora real da qualidade do ar. *(discussão completa a detalhar no RFC)*
-
-> Horizonte, evento e unidade de análise já definidos (ver acima). Falta apenas formalizar tudo isso em `docs/RFC.md`, que ainda não existe no repositório — sem RFC formal, a Sprint 1 não está encerrada.
-
-**Referências**
-[1] FURG — Dissertação/monografia sobre padrões de qualidade do ar: https://sistemas.furg.br/sistemas/sab/arquivos/bdtd/0000010377.pdf
-[2] SANTOS, C. M. dos. UnB, 2011 — Índice de Qualidade do Ar: https://repositorio.unb.br/bitstream/10482/10977/1/2011_CleideMouradosSantos.pdf
+> Um RFC ("Request for Comments") é um documento curto que formaliza uma proposta antes de ela ser executada, para que o time (e quem revisa) concorde com o problema e o escopo antes de investir tempo em código. Aqui, ele reúne o canvas de kickoff numa proposta legível por alguém de fora do grupo. Algoritmo (Random Forest, XGBoost, etc.) *não* se escolhe neste documento.
 
 ---
 
-## Como reproduzir
+## 1. Resumo (TL;DR)
 
-```bash
-python -m venv .venv
-.venv\Scripts\activate
-pip install -r requirements.txt
-```
-
-⚠️ `requirements.txt` ainda não existe no repositório — precisa ser criado com as dependências atuais (`requests`; e, a partir da Sprint 2, `pandas`, etc.).
-
-Configuração: `config/params.yaml` — nada de coordenadas, cidade ou datas hard-coded no código. *(Hoje o `config` está montado dentro do próprio `Coleta_Dados.py`; precisa migrar para `config/params.yaml`.)*
-
-Notebooks: 01 → 05 *(ainda não criados — ver [Estrutura do repositório](#estrutura-do-repositório))*.
+O projeto prevê a qualidade do ar no ponto de referência da Universidade Braz Cubas, em Mogi das Cruzes/SP, com horizonte de uma hora à frente. 
+A proposta é voltada principalmente ao contexto acadêmico, demonstrando como dados de qualidade do ar e meteorológicos podem ser utilizados para antecipar situações de qualidade do ar inadequada. 
+O objetivo é identificar possíveis episódios de piora com antecedência, contribuindo para o acompanhamento e prevenção de impactos relacionados à qualidade do ar.
 
 ---
 
-## Dados
+## 2. Contexto e motivação
 
-| Fonte | Papel | Resolução | Medido ou modelado | Período |
-|---|---|---|---|---|
-| Open-Meteo Air Quality API ([docs](https://open-meteo.com/en/docs/air-quality-api)) | Qualidade do ar | Horária (dado nativo global 3/3h, interpolado) | Modelado (CAMS Global, fora da Europa) | 31/08/2022 – 31/08/2026 |
-| Open-Meteo Historical Weather API ([docs](https://open-meteo.com/en/docs/historical-weather-api)) | Clima | Horária | Reanálise (ERA5/ERA5-Land/ECMWF IFS) | 31/08/2022 – 31/08/2026 |
-
-⚠️ O período foi definido pela cobertura da fonte mais restritiva (Air Quality, domínio global disponível só a partir de agosto/2022). A Historical Weather API cobre desde 1940, mas o período foi igualado ao da qualidade do ar para manter as duas fontes no mesmo intervalo. **Pendente:** validar empiricamente que a Air Quality API retorna dado não nulo em todo esse intervalo para as coordenadas do projeto, antes da recoleta oficial (Etapa 3).
-
-#### Documentação oficial resumida (item B do checklist de correção)
-
-**Open-Meteo Air Quality API**
-- **Endpoint:** `GET https://air-quality-api.open-meteo.com/v1/air-quality`
-- **Parâmetros obrigatórios:** `latitude`, `longitude`
-- **Parâmetros usados pelo projeto:** `hourly` (lista de poluentes), `start_date`/`end_date`, `timezone=America/Sao_Paulo`
-- **Resolução temporal:** série entregue como horária, mas para coordenadas fora da Europa (caso de Mogi das Cruzes) o dado vem do domínio **CAMS Global**, cuja resolução nativa do modelo é **3 em 3 horas** — os valores horários intermediários são interpolados pela API, não são observações independentes.
-- **Período histórico disponível na fonte:** domínio global (fora da Europa) a partir de **agosto/2022**; domínio europeu tem reanálise desde 2013 (não se aplica ao projeto).
-- **Limitações:** dado **modelado** (CAMS), não medição direta de estação; resolução espacial de ~45 km fora da Europa; uso de `start_date` fora do intervalo documentado de `past_days` (0–92 dias) é comportamento não oficialmente garantido, ainda que a tabela de fontes da própria documentação confirme cobertura desde ago/2022.
-
-**Open-Meteo Historical Weather API**
-- **Endpoint:** `GET https://archive-api.open-meteo.com/v1/archive`
-- **Parâmetros obrigatórios:** `latitude`, `longitude`, `start_date`, `end_date`
-- **Parâmetros usados pelo projeto:** `hourly` (lista de variáveis meteorológicas), `timezone=America/Sao_Paulo`
-- **Resolução temporal:** horária (nativa).
-- **Período histórico disponível na fonte:** reanálise ERA5 desde **1940** (0,25°); ERA5-Land desde 1950 (0,1°); ECMWF IFS desde 2017 (9 km). Não é fator limitante para este projeto.
-- **Limitações:** dado de **reanálise** (combinação de estação, satélite, radar, modelo), não medição direta pontual; pode divergir de estação local em eventos de curta duração (ex.: chuva convectiva isolada).
-
-* **Unidade de análise:** 1 linha = 1 hora, no ponto de coleta (-23.514561, -46.186832 · Mogi das Cruzes/SP · `America/Sao_Paulo`). *(proposta — confirmar no RFC)*
-* **N após o merge:** *(pendente — merge ainda não foi feito)*
-* **Split:** *(pendente — será temporal, definido na Sprint 2; teste = período mais recente)*
-* **Dicionário:** `docs/Dicionario_de_Dados.md` *(a criar; v0.1 deve cobrir as variáveis abaixo)*
-
-### Variáveis coletadas
-
-Critério de classe positiva adotado: **IQAr consolidado = maior sub-índice entre os seis poluentes** (metodologia CETESB), faixa 101–199 = inadequado.
-
-| Variável | Fonte | Unidade | Justificativa | Papel |
-|---|---|---|---|---|
-| `pm10` | Air Quality | µg/m³ | Poluente regulado pelo IQAr; indicador de material particulado grosso (queimadas, poeira urbana). | Feature (t) **e** base do alvo (t+1h, via `shift`) |
-| `pm2_5` | Air Quality | µg/m³ | Poluente regulado pelo IQAr; partícula fina com maior impacto respiratório, costuma dominar o sub-índice em áreas urbanas. | Feature (t) **e** base do alvo (t+1h) |
-| `carbon_monoxide` | Air Quality | µg/m³ | Poluente regulado pelo IQAr; indicador de queima incompleta (tráfego, queimadas). | Feature (t) **e** base do alvo (t+1h) |
-| `nitrogen_dioxide` | Air Quality | µg/m³ | Poluente regulado pelo IQAr; associado a emissões veiculares. | Feature (t) **e** base do alvo (t+1h) |
-| `sulphur_dioxide` | Air Quality | µg/m³ | Poluente regulado pelo IQAr; associado à queima de combustíveis fósseis industriais. | Feature (t) **e** base do alvo (t+1h) |
-| `ozone` | Air Quality | µg/m³ | Poluente regulado pelo IQAr; formado fotoquimicamente, sensível a temperatura e radiação solar. | Feature (t) **e** base do alvo (t+1h) |
-| `temperature_2m` | Historical Weather | °C | Influencia a formação de ozônio e a dispersão vertical dos poluentes. | Feature |
-| `relative_humidity_2m` | Historical Weather | % | Afeta a permanência de particulados em suspensão. | Feature |
-| `precipitation` | Historical Weather | mm | Chuva remove particulados da atmosfera (lavagem úmida); explica quedas súbitas de concentração. | Feature |
-| `wind_speed_10m` | Historical Weather | km/h | Vento dispersa poluentes; velocidades baixas favorecem acúmulo e picos de concentração. | Feature |
-| `pressure_msl` | Historical Weather | hPa | Associada a estabilidade atmosférica; pressão alta e vento fraco favorecem inversões térmicas e acúmulo de poluentes. | Feature |
-
-⚠️ **Atenção ao vazamento (Etapa 6):** os seis poluentes têm duas funções — como **feature** (valor em *t*, disponível no instante da previsão) e como **insumo do alvo** (valor em *t+1h*, deslocado com `shift(-1)` para calcular o IQAr da hora seguinte). É a mesma coluna em dois momentos: a versão em *t+1h* usada para montar o alvo **não entra** na lista de features do modelo — só a versão em *t*.
-
-Nenhuma dessas colunas está, ainda, formalmente implementada com `shift` ou excluída por vazamento no código — isso é trabalho da Etapa 6, mas o **critério e a justificativa** já estão fechados aqui (item B/F do checklist).
+A qualidade do ar é um fator relevante para o meio ambiente e para a saúde pública, pois a presença de determinados poluentes pode estar associada à piora das condições atmosféricas. A previsão de uma hora à frente pretende apoiar a identificação antecipada de possíveis situações de qualidade do ar inadequada no ponto de referência da Universidade Braz Cubas, em Mogi das Cruzes/SP. Dessa forma, o projeto busca demonstrar como dados de qualidade do ar e condições meteorológicas podem ser utilizados para acompanhar e antecipar episódios de piora da qualidade do ar.
 
 ---
 
-## Modelo
+## 3. Problema e evento a ser previsto
 
-*(Nada disto é esperado antes da Sprint 3 — registrado aqui apenas como lembrete do contrato entre sprints.)*
-
-* **Baseline:** *(Dummy `most_frequent` + Persistência — Sprint 3)*
-* **Modelo final:** *(a definir na Sprint 5, no pipeline final)*
-* **Limiar (escolhido na validação) e por quê:** *(a definir — nunca otimizado no teste)*
-* **Métrica principal na classe positiva (teste, uma vez):** *(a definir — provavelmente recall/F1, conforme custo de FN do RFC)*
-
----
-
-## Estrutura do repositório
-
-Arquitetura-alvo (conforme padrão do projeto) — **ainda não implementada integralmente**:
-
-```text
-projeto-trilha-b/
-├── README.md
-├── requirements.txt                 
-├── config/
-│   └── params.yaml                  # a criar (hoje: dentro do .py de coleta)
-├── data/
-│   ├── raw/                         # ok: air_quality_raw.json, weather_raw.json
-│   ├── interim/                     # a criar (Sprint 2)
-│   └── processed/                   # a criar (Sprints 3–5)
-├── notebooks/                       # a criar
-│   ├── 01_ingestao.ipynb
-│   ├── 02_limpeza_eda_features.ipynb
-│   ├── 03_baseline.ipynb
-│   ├── 04_features_iteracao.ipynb
-│   └── 05_modelos.ipynb
-├── src/                             # opcional — hoje contém a coleta atual
-│   └── coleta/
-│       └── Coleta_Dados.py
-├── models/                          # a criar (Sprint 5)
-├── docs/
-│   ├── RFC.md                       # a criar
-│   ├── Dicionario_de_Dados.md       # a criar
-│   └── sprints/                     # a criar
-└── reports/                         # a criar
-```
-
-`data/` não sobe para o Git além de um `data/README.md` com o comando de recoleta *(a criar)*.
+| Pergunta | Resposta |
+|---|---|
+| Qual evento será previsto? |Prever se a qualidade do ar no ponto de referência da Universidade Braz Cubas, em Mogi das Cruzes/SP, estará inadequada uma hora à frente. |
+| Como será definida a classe positiva?  |(provisória na Sprint 1; limiar formal na Sprint 2, com base no treino) Classe 1: qualidade do ar inadequada. Classe 0: qualidade do ar adequada. O limiar que determinará formalmente quando a qualidade do ar será considerada inadequada será definido na Sprint 2, após a análise e preparação dos dados. |
+| Qual é o horizonte da previsão? |1 hora à frente. |
+| Qual é a unidade de análise (o que representa cada linha do dataset)?  |Cada linha representa uma observação horária do ponto geográfico de referência da Universidade Braz Cubas, contendo dados de qualidade do ar e variáveis meteorológicas correspondentes àquele horário. |
 
 ---
 
-## O que já foi feito
+## 4. Escopo
 
-* `config` único (local, latitude, longitude, datas, timezone) — nada hard-coded no meio do código de coleta.
-* Requisições às duas fontes exigidas pela Trilha B (qualidade do ar + clima), com `timeout=30` e `raise_for_status()`.
-* JSON bruto preservado sem transformação em `data/raw/` (`air_quality_raw.json`, `weather_raw.json`).
+| Pergunta | Resposta |
+|---|---|
+| Recorte geográfico (cidade/região) ou cultura e municípios (Trilha C) |O projeto será delimitado ao município de Mogi das Cruzes/SP, utilizando como referência um único ponto geográfico localizado na Universidade Braz Cubas, nas coordenadas aproximadas de latitude -23.514561 e longitude -46.186832. O ponto será utilizado como referência para as observações e não terá como objetivo representar toda a cidade.|
+| Período histórico considerado |O período final ainda será definido. Inicialmente foi utilizado o intervalo de 01/01/2025 a 31/01/2025, porém o grupo pretende ampliar o histórico para um período maior, de acordo com a cobertura temporal compatível e a disponibilidade dos dados nas APIs utilizadas.|
+| O que está *dentro* do escopo deste projeto |Coleta e integração de dados de qualidade do ar e meteorológicos; organização e limpeza dos dados; análise da qualidade da base; definição da variável-alvo; criação de características para a previsão de uma hora à frente; desenvolvimento, treinamento e avaliação de modelos de classificação nas etapas posteriores do projeto.|
+| O que está *fora* de escopo (explicitamente não será feito) |Representar a qualidade do ar de toda a cidade por meio de vários pontos de monitoramento; realizar previsões para outras cidades ou regiões; desenvolver um sistema de monitoramento em tempo real; criar um aplicativo ou serviço de produção para emissão de alertas; realizar implantação em ambiente produtivo.|
 
-## Pendências para fechar a Sprint 1
-
-* [x] ~~Documentar oficialmente as duas APIs (item B)~~ — feito na seção [Dados](#dados): endpoint, parâmetros obrigatórios, resolução, período histórico e limitações registrados.
-* [x] ~~Preencher a tabela variável/unidade/justificativa/papel (item B)~~ — feito, incluindo o critério de classe positiva (IQAr = maior sub-índice) e o aviso de vazamento entre feature e alvo.
-* [ ] Escrever o RFC (`docs/RFC.md`): evento, usuário, horizonte, classe positiva, custo de FN/FP.
-* [ ] Criar o dicionário de dados v0.1 (`docs/Dicionario_de_Dados.md`) — pode ser gerado a partir da tabela de variáveis já pronta no README.
-* [ ] Fazer o **merge** das duas fontes e registrar o `how`/`validate` usados e o N resultante.
-* [ ] Migrar a estrutura de pastas para o padrão (`config/params.yaml`, `data/raw|interim|processed`, `notebooks/`, `docs/`).
-* [ ] Criar `requirements.txt`.
-* [ ] Tratar exceções de rede (`try/except requests.RequestException`) e inspecionar `status_code`/`headers`/`Content-Type`/`resposta.url` antes de qualquer transformação.
-* [x] ~~Nomear a cidade e o recorte geográfico~~ — feito (Mogi das Cruzes/SP).
-* [ ] Validar empiricamente a cobertura real da Air Quality API no novo período (31/08/2022–31/08/2026) antes da recoleta oficial.
-* [ ] Garantir contribuição individual de todos os integrantes registrada (commits e/ou diário de sprint).
-
-**Lembrete:** limpeza, EDA e engenharia de atributos **não** entram na Sprint 1 — só a partir da Sprint 2, sobre dado já limpo.
+> Trilha C: *uma única cultura* e municípios de escala comparável. Declarar também o N esperado (municípios × safras): a produtividade do IBGE é em geral anual; N pequeno limita modelos complexos.
 
 ---
 
-## Documentação
+## 5. Usuários e decisão apoiada
 
-- RFC: `docs/RFC.md` *(a criar)*
-- Sprints: `docs/sprints/` *(a criar — `Sprint1_TrilhaB.md`, diário e evidências)*
-- Model card: no diário da Sprint 5
+Quem usaria o alerta gerado por este projeto? Que decisão concreta essa pessoa/instituição tomaria com base nele?
+Em um possível cenário de utilização, o alerta poderia ser utilizado por instituições de ensino, órgãos públicos ou equipes responsáveis pelo acompanhamento ambiental e da qualidade do ar. A partir da previsão de uma possível condição inadequada para a próxima hora, esses usuários poderiam acompanhar a situação com maior atenção e avaliar a necessidade de comunicar ou orientar a população sobre a piora prevista.
+No contexto deste projeto acadêmico, o alerta será utilizado principalmente para demonstrar a aplicação de Ciência de Dados e Aprendizagem de Máquina na previsão de qualidade do ar, não constituindo um sistema oficial de alerta à população.
+
+---
+
+## 6. Dados e fontes
+
+O projeto utilizará duas fontes principais da Open-Meteo. A primeira fornece dados horários relacionados à qualidade do ar e à concentração de poluentes. A segunda fornece dados meteorológicos horários que serão utilizados para caracterizar as condições atmosféricas associadas às observações.
+
+| Fonte | O que fornece | Papel no projeto (feature / alvo / ambos) |
+|---|---|---|
+|Open-Meteo Air Quality API |Dados horários de qualidade do ar, incluindo concentrações de poluentes como PM10, PM2.5, monóxido de carbono, dióxido de nitrogênio, dióxido de enxofre e ozônio.|Features e base para definição do alvo|
+|Open-Meteo Weather API |Dados meteorológicos horários, como temperatura, umidade relativa, precipitação, velocidade do vento e pressão atmosférica. |Features|
+
+*Link para o dicionário de dados do projeto: a definir*
+
+---
+
+## 7. Custo dos erros
+
+| Tipo de erro | O que significa no contexto do projeto | Custo/consequência |
+|---|---|---|
+| Falso negativo |O modelo prevê que a qualidade do ar estará adequada, mas uma hora depois a condição é inadequada. |Pode deixar de identificar antecipadamente uma possível piora da qualidade do ar, reduzindo a utilidade do alerta e dificultando uma ação preventiva. |
+| Falso positivo |O modelo prevê que a qualidade do ar estará inadequada, mas uma hora depois a condição permanece adequada. |Pode gerar um alerta desnecessário, causando preocupação ou ações que não seriam necessárias. |
+
+Qual erro é mais grave para este problema, e por quê? Isso orienta a métrica da classe positiva (em geral recall) *e o limiar de decisão da Sprint 5* — o modelo devolve probabilidade; o ponto de corte é decisão de produto.
+
+Erro mais grave: o falso negativo, pois significa que o modelo não identificou uma situação de qualidade do ar inadequada que deveria ser antecipada. Por esse motivo, o projeto dará atenção especial ao recall da classe positiva (1) nas etapas de avaliação. O limiar de decisão será definido posteriormente, com base nos resultados da validação.
+
+---
+
+## 8. Abordagem proposta (visão de alto nível)
+
+Caminho planejado, sem escolher algoritmo:
+
+*ingestão bruta (Pipeline CD)* → integração do cru → *limpeza e tratamento* → *split* → imputação residual só no treino (se houver) → EDA *no treino já tratado* → alvo formal → features sem vazamento → *um Pipeline sklearn* (pré-processamento + classificador) → baselines → iteração de features com retreino → modelos + *limiar escolhido na validação* (teste uma vez) → model card + artefato (joblib do Pipeline).
+
+Dashboard de visualização, se houver na mostra final, é extra: não há sprint numerada de deploy neste projeto.
+
+O projeto seguirá um fluxo composto pela coleta e integração dos dados de qualidade do ar e meteorológicos, seguido pelas etapas de limpeza, análise, definição da variável-alvo, criação das características e desenvolvimento de modelos de classificação. As decisões relacionadas ao processamento dos dados, features, modelos e critérios de avaliação serão definidas e refinadas nas sprints seguintes, conforme os resultados das análises realizadas.
+
+---
+
+## 9. Riscos e limitações conhecidas
+
+- Os dados utilizados pela API de qualidade do ar podem ser estimados por modelos atmosféricos, não representando necessariamente uma medição realizada exatamente no ponto da Universidade Braz Cubas.
+- A quantidade de dados disponível dependerá da cobertura histórica compatível entre as APIs utilizadas.
+- O projeto utiliza um único ponto geográfico de referência, portanto os resultados não devem ser generalizados automaticamente para todo o município de Mogi das Cruzes.
+- Podem existir dados ausentes, duplicados ou valores inconsistentes, que deverão ser identificados e tratados durante as etapas de preparação e análise.
+- Existe a possibilidade de desbalanceamento entre as classes adequada e inadequada após a definição do limiar, o que será verificado nas etapas seguintes.
+- A disponibilidade dos dados depende do funcionamento e da estabilidade das APIs utilizadas para a coleta.
+- O histórico utilizado pode não representar todas as condições atmosféricas possíveis, limitando a capacidade de generalização dos resultados.
+
+---
+
+## 10. Critérios de sucesso
+
+A solução será considerada útil ao final do projeto caso seja capaz de prever situações de qualidade do ar inadequada com desempenho satisfatório no conjunto de teste, dando atenção especial à capacidade de identificar corretamente a classe positiva.
+
+Além do desempenho do modelo, serão considerados como critérios de sucesso:
+
+    definição e justificativa da variável-alvo e do seu limiar;
+    utilização de dados corretamente integrados, tratados e documentados;
+    ausência de vazamento de informações futuras;
+    avaliação do modelo por métricas adequadas, com atenção especial ao recall da classe positiva;
+    documentação dos resultados, limitações e decisões tomadas;
+    dicionário de dados atualizado e alinhado às variáveis utilizadas pelo modelo;
+    preenchimento do model card e disponibilização do artefato final do pipeline.
+
+O valor mínimo de desempenho esperado será definido nas etapas de validação, após a análise dos dados e dos resultados dos modelos de referência.
+
+---
+
+## 11. Alternativas consideradas (opcional)
+
+Não preenchido nesta versão.
+
+---
+
+## 12. Perguntas em aberto
+
+Pontos que dependem da EDA da Sprint 2 (limiar do alvo, janelas) ou do lift da Sprint 4.
+
+Qual será o período histórico final utilizado, considerando a cobertura compatível das APIs e a qualidade dos dados disponíveis?
+Qual será o limiar utilizado para definir a classe positiva, classificando a qualidade do ar como inadequada?
+Quais variáveis e características apresentarão maior relação com a ocorrência de qualidade do ar inadequada?
+Será necessário utilizar janelas ou defasagens temporais para melhorar a representação das condições anteriores?
+Como ficará a distribuição entre as classes 0 e 1 após a definição do alvo?
+Quais características poderão ser utilizadas sem causar vazamento de informações futuras?
+Quais abordagens de modelagem apresentarão melhor desempenho e qual será o ganho obtido em relação aos modelos de referência?
+
+Essas questões serão respondidas progressivamente nas sprints seguintes, principalmente a partir da análise exploratória dos dados, dos experimentos de modelagem e da comparação dos resultados.
+
+---
+
+## 13. Cronograma e contrato entre sprints
+
+| Sprint | Período | Produz (sai) | A próxima sprint é obrigada a usar |
+|---|---|---|---|
+| 1 | 17/08/2026 – 17/09/2026 | RFC v0.1, dicionário v0.1, data/raw, config, N do merge | O bruto desta coleta |
+| 2 | 18/09/2026 – 27/09/2026 | data/interim, split, alvo, features iniciais, dicionário v0.2 | Split, alvo e features daqui |
+| 3 | 28/09/2026 – 04/10/2026 | Transformer inicial, Dummy + persistência + NB, erros | Os erros (para features novas) e o mesmo split |
+| 4 | 05/10/2026 – 11/10/2026 | Features novas, transformer congelado, lift S3→S4, dicionário v0.3 | Este transformer e estes baselines retreinados |
+| 5 | 12/10/2026 – 25/10/2026 | Comparativo final, limiar *na validação*, caderno, model card, dicionário v0.4, joblib do Pipeline | — (entrega final) |
+
+---
+
+## 14. Histórico de revisões
+
+| Versão | Data | Autor | O que mudou |
+|---|---|---|---|
+| v0.1 |15/09/2026 | Diogo Gomese Davi | Primeira versão do RFC (Sprint 1) |
+| | | | |

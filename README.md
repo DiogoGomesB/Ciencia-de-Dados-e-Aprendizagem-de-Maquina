@@ -1,6 +1,7 @@
 # Qualidade do Ar Inadequada — Mogi das Cruzes/SP
 
 **Disciplina:** Ciência de Dados e Aprendizado de Máquina
+**Título: Previsão da Qualidade do Ar Inadequada em Na Região da Faculdade UBC
 
 **Trilha:** B — Qualidade do ar inadequada
 

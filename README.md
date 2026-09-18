@@ -3,42 +3,43 @@
 **Disciplina:** Ciência de Dados e Aprendizado de Máquina
 **Trilha:** B — Qualidade do ar inadequada
 **Equipe:** Davi Gama dos Santos (33121079) · Diogo Gomes Barbosa (35866276) · Eudenis de Souza Vieira (32751621) · Gabriel Januário Alves (35609991) · João Pedro Barreto da Silva (33297185)
-**Repositório / board:** [DiogoGomesB/Ciencia-de-Dados-e-Aprendizagem-de-Maquina](https://github.com/DiogoGomesB/Ciencia-de-Dados-e-Aprendizagem-de-Maquina)
-
-> ⚠️ Até o momento, os commits partiram apenas de Diogo Gomes Barbosa e Davi Gama dos Santos. A contribuição individual dos demais integrantes precisa ficar registrada (commits próprios e/ou diário de sprint).
+**Repositório:** [DiogoGomesB/Ciencia-de-Dados-e-Aprendizagem-de-Maquina](https://github.com/DiogoGomesB/Ciencia-de-Dados-e-Aprendizagem-de-Maquina)
+**Licença:** MIT (arquivo `LICENSE` no repositório)
 
 ---
 
-## Status atual — Sprint 1 (17/08–17/09)
+## Status da Sprint 1 (17/08/2026 a 17/09/2026)
 
-Segundo o cronograma oficial do projeto, a Sprint 1 entrega **RFC, coleta bruta, merge e `data/raw`** (limpeza, EDA e features ficam para a Sprint 2 — não se antecipa nada disso aqui).
+Conforme o cronograma do projeto, a Sprint 1 tem como entregas obrigatórias o RFC, a coleta bruta, o merge das duas fontes e a organização de `data/raw`. Limpeza, análise exploratória e engenharia de atributos são objeto da Sprint 2 e não são antecipadas nesta etapa.
 
-| Entrega da Sprint 1 | Situação |
-|---|---|
-| RFC (`docs/RFC.md`) | ☐ Não iniciado |
-| Dicionário de dados v0.1 | ☐ Não iniciado |
-| Coleta bruta das duas fontes | ☒ Feito (`Coleta_Dados.py`) |
-| `data/raw` com o bruto de cada API | ☒ Feito (`air_quality_raw.json`, `weather_raw.json`) |
-| Merge das duas fontes | ☐ **Não feito** — pendência crítica antes do fim da Sprint 1 |
-| `config` fora do código | ☒ Feito |
+| Entrega | Status | Observação |
+|---|---|---|
+| RFC | Concluída | `RFC_Proposta_de_Projeto_Template.md` |
+| Dicionário de dados v0.1 | Concluída | `docs/Dicionario_de_Dados.md`, conforme `SPRINT1_TRILHA.md` |
+| Coleta bruta das duas fontes | Concluída | `Coleta_Dados.py` |
+| Armazenamento em `data/raw` | Concluída, com ressalva | Arquivos gerados ainda correspondem ao período de teste (01/01/2025 a 31/01/2025), não ao período oficial do projeto |
+| Merge das duas fontes | Pendente | Depende da recoleta com o período oficial; é a pendência crítica da sprint |
+| Configuração externa ao código | Concluída | — |
+| `requirements.txt` | Concluída | — |
+| `LICENSE` | Concluída | MIT |
 
-⚠️ **Repositório ainda não migrado para a arquitetura mínima do projeto** (seção [Estrutura do repositório](#estrutura-do-repositório)): faltam `config/params.yaml`, `notebooks/`, `docs/RFC.md`, `docs/Dicionario_de_Dados.md`, `docs/sprints/`, `requirements.txt` e a pasta `data/` com `raw/interim/processed`.
+**Pendência crítica:** o período histórico oficial do projeto foi definido em **31/08/2022 a 31/08/2026** (ver seção [Dados](#dados)), mas a coleta registrada em `data/raw/` ainda corresponde ao período de teste inicial (01/01/2025 a 31/01/2025, 744 registros por fonte). É necessário executar novamente `Coleta_Dados.py` com o período oficial antes de considerar a Sprint 1 encerrada.
+
+**Estrutura de pastas:** o repositório já contém `data/raw/`, `docs/`, `src/` e `notebooks/`, conforme `SPRINT1_TRILHA.md`. Permanecem pendentes a criação de `config/params.yaml` (a configuração ainda está definida dentro de `Coleta_Dados.py`), o preenchimento de `notebooks/` e a criação de `docs/sprints/`.
 
 ---
 
 ## Problema
 
-* **Evento a prever:** a qualidade do ar em Mogi das Cruzes/SP estará **inadequada na próxima hora**.
-* **Usuário da decisão:** *(a definir no RFC — ex.: gestor de saúde pública / cidadão que decide restringir atividade externa)*.
-* **Horizonte:** **1 hora à frente** — a previsão feita no instante *t* usa dados disponíveis até *t* para prever a condição em *t+1h*.
+| Item | Definição |
+|---|---|
+| Evento a prever | A qualidade do ar em Mogi das Cruzes/SP estará inadequada na próxima hora. |
+| Usuário da decisão | A definir no RFC (proposta: gestor de saúde pública ou indivíduo que decide restringir atividade externa). |
+| Horizonte | Uma hora à frente — a previsão realizada no instante *t* utiliza dados disponíveis até *t* para estimar a condição em *t+1h*. |
+| Classe positiva | Definida pela ultrapassagem dos padrões legais de qualidade do ar, consolidados no Índice de Qualidade do Ar (IQAr) [1, 2]. Classe 0: qualidade do ar adequada (IQAr até 100). Classe 1: qualidade do ar inadequada (IQAr entre 101 e 199, categoria "Inadequada" do IQAr). |
+| Custo priorizado | Falso negativo — o modelo prever "adequada" quando a condição real na hora seguinte é inadequada. Considerado o erro mais grave, pois compromete a antecipação de uma piora real da qualidade do ar. |
 
-**Classe positiva:** definida pela ultrapassagem dos padrões legais de qualidade do ar, consolidados no **Índice de Qualidade do Ar (IQAr)** [1, 2]. Neste projeto:
-- `0` — qualidade do ar **adequada** (IQAr até 100)
-- `1` — qualidade do ar **inadequada** (IQAr na faixa **101–199**, categoria "Inadequada" do IQAr)
-
-**Custo priorizado (FN ou FP):** falso negativo (FN) — o modelo prever "adequada" quando a hora seguinte é, de fato, inadequada. É o erro mais crítico porque o modelo deixaria de antecipar uma piora real da qualidade do ar. *(discussão completa a detalhar no RFC)*
-
-> Horizonte, evento e unidade de análise já definidos (ver acima). Falta apenas formalizar tudo isso em `docs/RFC.md`, que ainda não existe no repositório — sem RFC formal, a Sprint 1 não está encerrada.
+Status: evento, horizonte, classe positiva e custo de falso negativo já estão formalizados no RFC (`RFC_Proposta_de_Projeto_Template.md`). Permanecem pendentes a definição do usuário da decisão e o desenvolvimento em texto corrido da discussão sobre o custo do falso negativo, hoje apenas enunciado.
 
 **Referências**
 [1] FURG — Dissertação/monografia sobre padrões de qualidade do ar: https://sistemas.furg.br/sistemas/sab/arquivos/bdtd/0000010377.pdf
@@ -54,118 +55,150 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
-⚠️ `requirements.txt` ainda não existe no repositório — precisa ser criado com as dependências atuais (`requests`; e, a partir da Sprint 2, `pandas`, etc.).
+O arquivo `requirements.txt` já está no repositório e cobre as dependências de coleta (`requests`), configuração (`PyYAML`), transformação (`pandas`, `numpy`), visualização (`matplotlib`, `seaborn`) e o notebook do guia (`jupyter`).
 
-Configuração: `config/params.yaml` — nada de coordenadas, cidade ou datas hard-coded no código. *(Hoje o `config` está montado dentro do próprio `Coleta_Dados.py`; precisa migrar para `config/params.yaml`.)*
+Configuração: prevista em `config/params.yaml`, de modo que nenhuma coordenada, cidade ou data fique fixada diretamente no código. Atualmente essa configuração ainda está definida dentro de `Coleta_Dados.py`; a migração para `config/params.yaml` permanece pendente.
 
-Notebooks: 01 → 05 *(ainda não criados — ver [Estrutura do repositório](#estrutura-do-repositório))*.
+Notebooks: a pasta `notebooks/` já foi criada no repositório, mas está vazia. O preenchimento com os notebooks 01 a 05 está pendente (ver [Estrutura do repositório](#estrutura-do-repositório)).
 
 ---
 
 ## Dados
 
-| Fonte | Papel | Resolução | Medido ou modelado | Período |
+| Fonte | Papel | Resolução | Natureza do dado | Período |
 |---|---|---|---|---|
-| Open-Meteo Air Quality API ([docs](https://open-meteo.com/en/docs/air-quality-api)) | Qualidade do ar | Horária (dado nativo global 3/3h, interpolado) | Modelado (CAMS Global, fora da Europa) | 31/08/2022 – 31/08/2026 |
-| Open-Meteo Historical Weather API ([docs](https://open-meteo.com/en/docs/historical-weather-api)) | Clima | Horária | Reanálise (ERA5/ERA5-Land/ECMWF IFS) | 31/08/2022 – 31/08/2026 |
+| Open-Meteo Air Quality API ([documentação](https://open-meteo.com/en/docs/air-quality-api)) | Qualidade do ar | Horária (dado nativo do domínio global a cada 3 horas, interpolado pela API) | Modelado (CAMS Global, para localidades fora da Europa) | 31/08/2022 a 31/08/2026 |
+| Open-Meteo Historical Weather API ([documentação](https://open-meteo.com/en/docs/historical-weather-api)) | Clima | Horária | Reanálise (ERA5 / ERA5-Land / ECMWF IFS) | 31/08/2022 a 31/08/2026 |
 
-⚠️ O período foi definido pela cobertura da fonte mais restritiva (Air Quality, domínio global disponível só a partir de agosto/2022). A Historical Weather API cobre desde 1940, mas o período foi igualado ao da qualidade do ar para manter as duas fontes no mesmo intervalo. **Pendente:** validar empiricamente que a Air Quality API retorna dado não nulo em todo esse intervalo para as coordenadas do projeto, antes da recoleta oficial (Etapa 3).
+O período foi definido pela cobertura da fonte mais restritiva: a Air Quality API só oferece dado consistente para localidades fora da Europa (domínio CAMS Global) a partir de agosto de 2022. A Historical Weather API cobre desde 1940 e não é o fator limitante. Permanece pendente a validação empírica de que a Air Quality API retorna dado não nulo em todo o intervalo definido, antes da execução da recoleta oficial.
 
-* **Unidade de análise:** 1 linha = 1 hora, no ponto de coleta (-23.514561, -46.186832 · Mogi das Cruzes/SP · `America/Sao_Paulo`). *(proposta — confirmar no RFC)*
-* **N após o merge:** *(pendente — merge ainda não foi feito)*
-* **Split:** *(pendente — será temporal, definido na Sprint 2; teste = período mais recente)*
-* **Dicionário:** `docs/Dicionario_de_Dados.md` *(a criar; v0.1 deve cobrir as variáveis abaixo)*
+**Limitações identificadas na coleta** (segundo `SPRINT1_TRILHA.md`):
+- As APIs retornam a coordenada da célula de grade do modelo, que pode diferir ligeiramente da coordenada solicitada (-23.514561, -46.186832). Essa diferença é esperada em dado modelado ou de reanálise e não constitui erro de coleta, mas deve ser considerada na interpretação dos resultados.
+- A validação inicial, referente ao período de teste (janeiro de 2025), não identificou valores nulos e confirmou compatibilidade das unidades com a documentação oficial. Essa validação cobre apenas o mês de teste, não o período oficial ainda a ser coletado.
 
-### Variáveis coletadas (bruto)
+### Documentação oficial das APIs
 
-| Variável | Fonte | Unidade | Justificativa | Papel (feature / alvo) |
+**Open-Meteo Air Quality API**
+- Endpoint: `GET https://air-quality-api.open-meteo.com/v1/air-quality`
+- Parâmetros obrigatórios: `latitude`, `longitude`
+- Parâmetros utilizados pelo projeto: `hourly` (lista de poluentes), `start_date`, `end_date`, `timezone=America/Sao_Paulo`
+- Resolução temporal: a série é entregue como horária, mas para coordenadas fora da Europa o dado é originado do domínio CAMS Global, cuja resolução nativa do modelo é de 3 em 3 horas. Os valores horários intermediários são interpolados pela API e não constituem observações independentes.
+- Período histórico disponível na fonte: domínio global (fora da Europa), a partir de agosto de 2022; domínio europeu possui reanálise desde 2013, não aplicável a este projeto.
+- Limitações: dado modelado (CAMS), não corresponde a medição direta de estação; resolução espacial de aproximadamente 45 km fora da Europa; o uso de `start_date` além do intervalo documentado para o parâmetro `past_days` (0 a 92 dias) não é oficialmente garantido pela documentação, ainda que a tabela de fontes de dados confirme cobertura desde agosto de 2022.
+
+**Open-Meteo Historical Weather API**
+- Endpoint: `GET https://archive-api.open-meteo.com/v1/archive`
+- Parâmetros obrigatórios: `latitude`, `longitude`, `start_date`, `end_date`
+- Parâmetros utilizados pelo projeto: `hourly` (lista de variáveis meteorológicas), `timezone=America/Sao_Paulo`
+- Resolução temporal: horária, nativa.
+- Período histórico disponível na fonte: reanálise ERA5 desde 1940 (resolução de 0,25°); ERA5-Land desde 1950 (resolução de 0,1°); ECMWF IFS desde 2017 (resolução de 9 km). Não constitui fator limitante para este projeto.
+- Limitações: dado de reanálise, combinando estações, satélite, radar e modelo; não corresponde a medição direta pontual e pode divergir de estação local em eventos de curta duração, como chuva convectiva isolada.
+
+**Unidade de análise:** cada linha corresponde a uma observação horária no ponto de coleta (-23.514561, -46.186832, Mogi das Cruzes/SP, fuso horário `America/Sao_Paulo`), conforme definido no RFC.
+
+**N após o merge:** pendente — o merge das duas fontes ainda não foi realizado.
+
+**Split:** pendente — será temporal, com definição prevista para a Sprint 2; o conjunto de teste corresponderá ao período mais recente.
+
+**Dicionário de dados:** `docs/Dicionario_de_Dados.md`, já criado conforme `SPRINT1_TRILHA.md`. Recomenda-se conferir se o conteúdo do arquivo corresponde à tabela de variáveis apresentada a seguir.
+
+### Variáveis coletadas
+
+O critério adotado para a classe positiva é o IQAr consolidado, calculado como o maior sub-índice entre os seis poluentes coletados (metodologia CETESB), com a faixa de 101 a 199 correspondendo à classificação de qualidade do ar inadequada.
+
+| Variável | Fonte | Unidade | Justificativa | Papel |
 |---|---|---|---|---|
-| `pm10` | Air Quality | µg/m³ | *(a preencher no dicionário)* | *(a definir)* |
-| `pm2_5` | Air Quality | µg/m³ | *(a preencher)* | *(a definir)* |
-| `carbon_monoxide` | Air Quality | µg/m³ | *(a preencher)* | *(a definir)* |
-| `nitrogen_dioxide` | Air Quality | µg/m³ | *(a preencher)* | *(a definir)* |
-| `sulphur_dioxide` | Air Quality | µg/m³ | *(a preencher)* | *(a definir)* |
-| `ozone` | Air Quality | µg/m³ | *(a preencher)* | *(a definir)* |
-| `temperature_2m` | Historical Weather | °C | *(a preencher)* | *(a definir)* |
-| `relative_humidity_2m` | Historical Weather | % | *(a preencher)* | *(a definir)* |
-| `precipitation` | Historical Weather | mm | *(a preencher)* | *(a definir)* |
-| `wind_speed_10m` | Historical Weather | km/h | *(a preencher)* | *(a definir)* |
-| `pressure_msl` | Historical Weather | hPa | *(a preencher)* | *(a definir)* |
+| `pm10` | Air Quality | µg/m³ | Poluente regulado pelo IQAr; indicador de material particulado grosso, associado a queimadas e poeira urbana. | Feature (valor no instante *t*) e base do alvo (valor em *t+1h*, via deslocamento temporal) |
+| `pm2_5` | Air Quality | µg/m³ | Poluente regulado pelo IQAr; partícula fina com maior impacto respiratório, frequentemente responsável pelo sub-índice mais crítico em áreas urbanas. | Feature (t) e base do alvo (t+1h) |
+| `carbon_monoxide` | Air Quality | µg/m³ | Poluente regulado pelo IQAr; indicador de queima incompleta, associado a tráfego e queimadas. | Feature (t) e base do alvo (t+1h) |
+| `nitrogen_dioxide` | Air Quality | µg/m³ | Poluente regulado pelo IQAr; associado a emissões veiculares. | Feature (t) e base do alvo (t+1h) |
+| `sulphur_dioxide` | Air Quality | µg/m³ | Poluente regulado pelo IQAr; associado à queima de combustíveis fósseis industriais. | Feature (t) e base do alvo (t+1h) |
+| `ozone` | Air Quality | µg/m³ | Poluente regulado pelo IQAr; formado fotoquimicamente, sensível a temperatura e radiação solar. | Feature (t) e base do alvo (t+1h) |
+| `temperature_2m` | Historical Weather | °C | Influencia a formação de ozônio e a dispersão vertical dos poluentes. | Feature |
+| `relative_humidity_2m` | Historical Weather | % | Afeta a permanência de material particulado em suspensão. | Feature |
+| `precipitation` | Historical Weather | mm | A chuva remove particulados da atmosfera por lavagem úmida, explicando quedas súbitas de concentração. | Feature |
+| `wind_speed_10m` | Historical Weather | km/h | O vento dispersa poluentes; velocidades baixas favorecem acúmulo e picos de concentração. | Feature |
+| `pressure_msl` | Historical Weather | hPa | Associada à estabilidade atmosférica; pressão alta e vento fraco favorecem inversões térmicas e acúmulo de poluentes. | Feature |
 
-Nenhuma dessas colunas é, ainda, formalmente marcada como alvo ou excluída por vazamento — isso é trabalho da Sprint 2 (formação do alvo) e deve ser refletido no dicionário v0.2.
+**Atenção ao risco de vazamento:** os seis poluentes desempenham dupla função no projeto — como feature, no valor observado em *t*, disponível no instante da previsão; e como insumo do alvo, no valor em *t+1h*, deslocado para o cálculo do IQAr da hora seguinte. Trata-se da mesma coluna em dois momentos distintos: a versão em *t+1h*, utilizada para compor o alvo, não deve integrar a lista de features do modelo — apenas a versão em *t*. A implementação formal do deslocamento temporal e da exclusão de variáveis por vazamento está prevista para a Sprint 2; o critério e a justificativa já estão consolidados neste documento.
 
 ---
 
 ## Modelo
 
-*(Nada disto é esperado antes da Sprint 3 — registrado aqui apenas como lembrete do contrato entre sprints.)*
+Nenhum destes itens é esperado antes da Sprint 3; estão registrados aqui como referência do contrato entre sprints.
 
-* **Baseline:** *(Dummy `most_frequent` + Persistência — Sprint 3)*
-* **Modelo final:** *(a definir na Sprint 5, no pipeline final)*
-* **Limiar (escolhido na validação) e por quê:** *(a definir — nunca otimizado no teste)*
-* **Métrica principal na classe positiva (teste, uma vez):** *(a definir — provavelmente recall/F1, conforme custo de FN do RFC)*
+| Item | Status |
+|---|---|
+| Baseline | A definir na Sprint 3 (Dummy `most_frequent` e Persistência) |
+| Modelo final | A definir na Sprint 5, no pipeline final |
+| Limiar de decisão | A definir na validação; não deve ser otimizado no conjunto de teste |
+| Métrica principal | A definir — provavelmente recall ou F1 da classe positiva, em conformidade com o custo de falso negativo definido no RFC |
 
 ---
 
 ## Estrutura do repositório
 
-Arquitetura-alvo (conforme padrão do projeto) — **ainda não implementada integralmente**:
+Arquitetura de referência do projeto, com indicação do que já está implementado:
 
 ```text
-projeto-trilha-b/
+Ciencia-de-Dados-e-Aprendizagem-de-Maquina/
 ├── README.md
-├── requirements.txt                 
+├── LICENSE                           # concluído (MIT)
+├── requirements.txt                  # concluído
 ├── config/
-│   └── params.yaml                  # a criar (hoje: dentro do .py de coleta)
+│   └── params.yaml                   # pendente (configuração ainda em Coleta_Dados.py)
 ├── data/
-│   ├── raw/                         # ok: air_quality_raw.json, weather_raw.json
-│   ├── interim/                     # a criar (Sprint 2)
-│   └── processed/                   # a criar (Sprints 3–5)
-├── notebooks/                       # a criar
-│   ├── 01_ingestao.ipynb
-│   ├── 02_limpeza_eda_features.ipynb
-│   ├── 03_baseline.ipynb
-│   ├── 04_features_iteracao.ipynb
-│   └── 05_modelos.ipynb
-├── src/                             # opcional — hoje contém a coleta atual
+│   ├── raw/                          # concluído: air_quality_raw.json, weather_raw.json
+│   │                                 # (período de teste; recoleta com o período oficial pendente)
+│   ├── interim/                      # pendente (Sprint 2)
+│   └── processed/                    # pendente (Sprints 3 a 5)
+├── notebooks/                        # criada, ainda vazia
+├── src/
 │   └── coleta/
-│       └── Coleta_Dados.py
-├── models/                          # a criar (Sprint 5)
+│       └── Coleta_Dados.py           # concluído
+├── models/                           # pendente (Sprint 5)
 ├── docs/
-│   ├── RFC.md                       # a criar
-│   ├── Dicionario_de_Dados.md       # a criar
-│   └── sprints/                     # a criar
-└── reports/                         # a criar
+│   ├── RFC.md                        # concluído — RFC_Proposta_de_Projeto_Template.md
+│   ├── Dicionario_de_Dados.md        # concluído — conforme SPRINT1_TRILHA.md
+│   └── sprints/                      # pendente — deve receber o SPRINT1_TRILHA.md
+└── reports/                          # pendente
 ```
 
-`data/` não sobe para o Git além de um `data/README.md` com o comando de recoleta *(a criar)*.
+A pasta `data/` não deve ser versionada integralmente no Git; recomenda-se manter um `data/README.md` com o comando de recoleta (a criar).
 
 ---
 
-## O que já foi feito
+## Trabalho realizado
 
-* `config` único (local, latitude, longitude, datas, timezone) — nada hard-coded no meio do código de coleta.
-* Requisições às duas fontes exigidas pela Trilha B (qualidade do ar + clima), com `timeout=30` e `raise_for_status()`.
-* JSON bruto preservado sem transformação em `data/raw/` (`air_quality_raw.json`, `weather_raw.json`).
+- Configuração centralizada (local, latitude, longitude, datas, fuso horário), sem valores fixados diretamente no código de coleta.
+- Requisições às duas fontes exigidas pela Trilha B (qualidade do ar e clima), com `timeout=30` e `raise_for_status()`.
+- Dados brutos preservados sem transformação em `data/raw/` (`air_quality_raw.json`, `weather_raw.json`).
+- RFC formalizado, com evento, horizonte, classe positiva, custo de falso negativo, documentação das APIs e tabela de variáveis.
+- Dicionário de dados v0.1 criado.
+- `requirements.txt` e `LICENSE` (MIT) adicionados ao repositório.
 
-## Pendências para fechar a Sprint 1
+## Pendências para o encerramento da Sprint 1
 
-* [ ] Escrever o RFC (`docs/RFC.md`): evento, usuário, horizonte, classe positiva, custo de FN/FP.
-* [ ] Criar o dicionário de dados v0.1 (`docs/Dicionario_de_Dados.md`).
-* [ ] Fazer o **merge** das duas fontes e registrar o `how`/`validate` usados e o N resultante.
-* [ ] Migrar a estrutura de pastas para o padrão (`config/params.yaml`, `data/raw|interim|processed`, `notebooks/`, `docs/`).
-* [ ] Criar `requirements.txt`.
-* [ ] Tratar exceções de rede (`try/except requests.RequestException`) e inspecionar `status_code`/`headers`/`Content-Type`/`resposta.url` antes de qualquer transformação.
-* [ ] Nomear a cidade e o recorte geográfico no RFC (feito neste README: Mogi das Cruzes/SP).
-* [ ] Validar empiricamente a cobertura real da Air Quality API no novo período (31/08/2022–31/08/2026) antes da recoleta oficial — histórico anterior era 01/01/2025–31/01/2025, insuficiente.
-* [ ] Garantir contribuição individual de todos os integrantes registrada (commits e/ou diário de sprint).
+| Pendência | Prioridade |
+|---|---|
+| Recoletar os dados com o período oficial (31/08/2022 a 31/08/2026) | Crítica — bloqueia as demais pendências desta lista |
+| Validar empiricamente a cobertura da Air Quality API no período oficial, antes da recoleta | Alta |
+| Realizar o merge das duas fontes, com `how` e `validate` explicitados e justificados, e registrar o N resultante | Alta — depende da recoleta |
+| Adicionar tratamento de exceções de rede (`try/except requests.RequestException`) e inspeção completa da resposta (`status_code`, `headers`, `Content-Type`, `resposta.url`) antes de qualquer transformação | Alta |
+| Migrar a configuração para `config/params.yaml` | Média |
+| Criar `docs/sprints/` e mover `SPRINT1_TRILHA.md` para essa pasta | Média |
+| Popular a pasta `notebooks/` | Média |
+| Registrar a contribuição individual de Eudenis, Gabriel e João Pedro (commits próprios ou diário de sprint) | Média |
+| Nomear o usuário da decisão e desenvolver em texto corrido a discussão do custo de falso negativo no RFC | Baixa |
 
-**Lembrete:** limpeza, EDA e engenharia de atributos **não** entram na Sprint 1 — só a partir da Sprint 2, sobre dado já limpo.
+Observação: limpeza, análise exploratória e engenharia de atributos não fazem parte do escopo da Sprint 1; essas atividades estão previstas para a Sprint 2, a partir do dado já tratado.
 
 ---
 
 ## Documentação
 
-- RFC: `docs/RFC.md` *(a criar)*
-- Sprints: `docs/sprints/` *(a criar — `Sprint1_TrilhaB.md`, diário e evidências)*
-- Model card: no diário da Sprint 5
+- RFC: `docs/RFC.md` (`RFC_Proposta_de_Projeto_Template.md`)
+- Dicionário de dados: `docs/Dicionario_de_Dados.md`
+- Relatório da Sprint 1: `SPRINT1_TRILHA.md` (a mover para `docs/sprints/`)
+- Model card: previsto no diário da Sprint 5

@@ -1,9 +1,13 @@
 # Qualidade do Ar Inadequada — Mogi das Cruzes/SP
 
 **Disciplina:** Ciência de Dados e Aprendizado de Máquina
+
 **Trilha:** B — Qualidade do ar inadequada
+
 **Equipe:** Davi Gama dos Santos (33121079) · Diogo Gomes Barbosa (35866276) · Eudenis de Souza Vieira (32751621) · Gabriel Januário Alves (35609991) · João Pedro Barreto da Silva (33297185)
+
 **Repositório:** [DiogoGomesB/Ciencia-de-Dados-e-Aprendizagem-de-Maquina](https://github.com/DiogoGomesB/Ciencia-de-Dados-e-Aprendizagem-de-Maquina)
+
 **Licença:** MIT (arquivo `LICENSE` no repositório)
 
 ---

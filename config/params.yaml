@@ -1,0 +1,46 @@
+# Configurações do projeto de Previsão da Qualidade do Ar
+# Este arquivo centraliza todos os parâmetros configuráveis
+
+# Localização da coleta
+location:
+  latitude: -23.514561
+  longitude: -46.186832
+  timezone: America/Sao_Paulo
+
+# Período de coleta (formato YYYY-MM-DD)
+# Período oficial do projeto: 31/08/2022 a 31/08/2026
+# Período de teste atual: 01/01/2025 a 31/01/2025
+collection:
+  start_date: "2025-01-01"
+  end_date: "2025-01-31"
+
+# Variáveis de qualidade do ar a coletar
+air_quality_variables:
+  - pm10
+  - pm2_5
+  - carbon_monoxide
+  - nitrogen_dioxide
+  - sulphur_dioxide
+  - ozone
+
+# Variáveis meteorológicas a coletar
+weather_variables:
+  - temperature_2m
+  - relative_humidity_2m
+  - precipitation
+  - wind_speed_10m
+  - pressure_msl
+
+# Configurações das APIs
+apis:
+  air_quality:
+    url: https://air-quality-api.open-meteo.com/v1/air-quality
+    timeout: 30
+  
+  weather:
+    url: https://archive-api.open-meteo.com/v1/archive
+    timeout: 30
+
+# Caminhos de dados
+paths:
+  raw_data: data/raw

@@ -67,7 +67,7 @@ O projeto utilizará duas fontes principais da Open-Meteo, ambas cobrindo o per�
 |Open-Meteo Air Quality API |Dados horários de qualidade do ar, incluindo concentrações de poluentes como PM10, PM2.5, monóxido de carbono, dióxido de nitrogênio, dióxido de enxofre e ozônio.|Features e base para definição do alvo|
 |Open-Meteo Weather API |Dados meteorológicos horários, como temperatura, umidade relativa, precipitação, velocidade do vento e pressão atmosférica. |Features|
 
-*Link para o dicionário de dados do projeto: a definir*
+*Link para o dicionário de dados do projeto: [docs/Dicionario_de_Dados.md](Dicionario_de_Dados.md)*
 
 ---
 

@@ -272,21 +272,28 @@ A estrutura relacionada aos dados na Sprint 1 é:
 ```text
 Ciencia-de-Dados-e-Aprendizagem-de-Maquina/
 │
+├── README.md
+├── LICENSE
+├── requirements.txt
+├── config/
+│   └── params.yaml
 ├── data/
-│   └── raw/
-│       ├── air_quality_raw.json
-│       └── weather_raw.json
-│
-├── docs/
-│   └── Dicionario_de_Dados.md
-│
-├── src/
-│
+│   ├── raw/
+│   │   ├── air_quality_raw.json
+│   │   └── weather_raw.json
+│   ├── interim/
+│   └── processed/
 ├── notebooks/
-│
-├── Coleta_Dados.py
-│
-└── README.md
+├── src/
+│   └── coleta/
+│       └── Coleta_Dados.py
+├── models/
+├── docs/
+│   ├── RFC.md
+│   ├── Dicionario_de_Dados.md
+│   └── sprints/
+│       └── SPRINT1_TRILHA.md
+└── reports/
 ```
 
 Os diretórios e arquivos que ainda não foram utilizados poderão ser preenchidos nas sprints seguintes conforme o avanço do projeto.

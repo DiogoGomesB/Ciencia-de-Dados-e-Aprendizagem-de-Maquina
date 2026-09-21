@@ -29,9 +29,7 @@ Conforme o cronograma do projeto, a Sprint 1 tem como entregas obrigatórias o R
 | `requirements.txt` | Concluída | — |
 | `LICENSE` | Concluída | MIT |
 
-**Pendência crítica:** o período histórico oficial do projeto foi definido em **31/08/2022 a 31/08/2026** (ver seção [Dados](#dados)), mas a coleta registrada em `data/raw/` ainda corresponde ao período de teste inicial (01/01/2025 a 31/01/2025, 744 registros por fonte). É necessário executar novamente `Coleta_Dados.py` com o período oficial antes de considerar a Sprint 1 encerrada.
 
-**Estrutura de pastas:** o repositório já contém `data/raw/`, `docs/`, `src/` e `notebooks/`, conforme `SPRINT1_TRILHA.md`. Permanecem pendentes a criação de `config/params.yaml` (a configuração ainda está definida dentro de `Coleta_Dados.py`), o preenchimento de `notebooks/` e a criação de `docs/sprints/`.
 
 ---
 

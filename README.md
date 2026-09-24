@@ -6,7 +6,7 @@
 
 **Trilha:** B — Qualidade do ar inadequada
 
-**Equipe:** Davi Gama dos Santos (33121079) · Diogo Gomes Barbosa (35866276) · Eudenis de Souza Vieira (32751621) · Gabriel Januário Alves (35609991) · João Pedro Barreto da Silva (33297185)
+**Equipe:** Davi Gama dos Santos (33121079) · Diogo Gomes Barbosa (35866276) · Eudenis Vieira (32751621) · Gabriel Januário Alves (35609991) · João Pedro Barreto da Silva (33297185)
 
 **Repositório:** [DiogoGomesB/Ciencia-de-Dados-e-Aprendizagem-de-Maquina](https://github.com/DiogoGomesB/Ciencia-de-Dados-e-Aprendizagem-de-Maquina)
 
@@ -206,3 +206,4 @@ Observação: limpeza, análise exploratória e engenharia de atributos não faz
 - Dicionário de dados: `docs/Dicionario_de_Dados.md`
 - Relatório da Sprint 1: `SPRINT1_TRILHA.md` (a mover para `docs/sprints/`)
 - Model card: previsto no diário da Sprint 5
+

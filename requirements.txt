@@ -12,6 +12,9 @@ numpy>=1.24.0
 matplotlib>=3.7.0
 seaborn>=0.12.0
  
+# Modelagem baseline (Pipeline, ColumnTransformer e classificadores)
+scikit-learn>=1.6.0
+
 # Notebook do guia (Etapa 7 - Guia_Alunos_APIs_Trilhas_B_C.ipynb)
 jupyter>=1.0.0
  

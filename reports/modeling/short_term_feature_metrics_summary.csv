@@ -1,0 +1,5 @@
+variante,folds,media_precisao_classe_1,media_recall_classe_1,media_f1_classe_1,tn_total,fp_total,fn_total,tp_total,horas_validacao,semanas_completas,max_episodios_em_uma_semana,semanas_com_mais_de_3_episodios,max_horas_alerta_em_uma_semana,episodios_alerta_total
+baseline_atual,4,0.5057,0.9949,0.6669,7995,402,3,384,8784,52,7,19,85,130
+delta_2h_poluentes_brutos_ozone_pm25,4,0.5052,0.9949,0.6666,7987,410,3,384,8784,52,7,18,85,130
+media_3h_e_delta_2h_poluentes_brutos_ozone_pm25,4,0.4578,1.0,0.6261,7926,471,0,387,8784,52,6,19,76,133
+media_3h_poluentes_brutos_ozone_pm25,4,0.4632,0.9985,0.6307,7935,462,1,386,8784,52,6,18,77,131

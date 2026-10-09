@@ -28,6 +28,25 @@ paths = config["paths"]
 url_air_quality = apis["air_quality"]["url"]
 url_weather = apis["weather"]["url"]
 timeout = apis["air_quality"]["timeout"]
+periodo = {
+    "start_date": collection["start_date"],
+    "end_date": collection["end_date"],
+}
+pasta_raw = paths["raw_data"]
+arquivo_air_quality = os.path.join(
+    pasta_raw,
+    paths["air_quality_raw_filename"].format(**periodo),
+)
+arquivo_weather = os.path.join(
+    pasta_raw,
+    paths["weather_raw_filename"].format(**periodo),
+)
+
+if os.path.exists(arquivo_air_quality) or os.path.exists(arquivo_weather):
+    raise FileExistsError(
+        "Já existe pelo menos um arquivo bruto para o período configurado. "
+        f"Os arquivos não serão sobrescritos: {arquivo_air_quality}, {arquivo_weather}"
+    )
 
 
 # ============================================================
@@ -121,25 +140,12 @@ print(dados_weather.keys())
 # 8. CRIAÇÃO DA PASTA PARA DADOS BRUTOS
 # ============================================================
 
-pasta_raw = paths["raw_data"]
-
 os.makedirs(pasta_raw, exist_ok=True)
 
 
 # ============================================================
 # 9. SALVAMENTO DOS DADOS BRUTOS
 # ============================================================
-
-arquivo_air_quality = os.path.join(
-    pasta_raw,
-    "air_quality_raw.json"
-)
-
-arquivo_weather = os.path.join(
-    pasta_raw,
-    "weather_raw.json"
-)
-
 
 with open(arquivo_air_quality, "w", encoding="utf-8") as arquivo:
     json.dump(

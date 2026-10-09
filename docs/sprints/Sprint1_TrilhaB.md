@@ -98,11 +98,7 @@ O período definitivo utilizado no projeto ainda deverá ser validado e definido
 
 ## 5. Processo de coleta
 
-A coleta foi realizada por meio do arquivo:
-
-`Coleta_Dados.py`
-
-O script utiliza requisições HTTP para acessar as APIs da Open-Meteo e salvar as respostas em formato JSON.
+A coleta pode ser reproduzida pelo notebook [`01_Coleta_Dados.ipynb`](../../notebooks/01_Coleta_Dados.ipynb), que explica as configurações, as chamadas às APIs da Open-Meteo, a inspeção das respostas e a gravação dos arquivos JSON. A execução impede a sobrescrita de arquivos existentes. Como alternativa para execução pelo terminal, o script `src/coleta/Coleta_Dados.py` mantém o mesmo fluxo.
 
 A estrutura utilizada na Sprint 1 mantém os dados brutos separados por fonte.
 
@@ -116,6 +112,10 @@ data/
 ```
 
 Os arquivos da pasta `data/raw/` representam os dados originais obtidos das APIs e devem permanecer sem alterações durante as etapas posteriores.
+
+### Integração das fontes
+
+O notebook [`02_Merge_Dados.ipynb`](../../notebooks/02_Merge_Dados.ipynb) demonstra como carregar os JSONs, conferir a cobertura e a unicidade dos horários, fazer a integração interna por `time` e salvar o CSV em `data/interim/`. O script `src/transformacao/Merge_Dados.py` continua disponível para execução pelo terminal. Nenhum dos dois substitui arquivos de saída existentes.
 
 ---
 
@@ -284,9 +284,13 @@ Ciencia-de-Dados-e-Aprendizagem-de-Maquina/
 │   ├── interim/
 │   └── processed/
 ├── notebooks/
+│   ├── 01_Coleta_Dados.ipynb
+│   └── 02_Merge_Dados.ipynb
 ├── src/
-│   └── coleta/
-│       └── Coleta_Dados.py
+│   ├── coleta/
+│   │   └── Coleta_Dados.py
+│   └── transformacao/
+│       └── Merge_Dados.py
 ├── models/
 ├── docs/
 │   ├── RFC.md

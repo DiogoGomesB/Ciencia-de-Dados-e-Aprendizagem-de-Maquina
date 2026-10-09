@@ -31,7 +31,7 @@ A qualidade do ar é um fator relevante para o meio ambiente e para a saúde pú
 | Pergunta | Resposta |
 |---|---|
 | Qual evento será previsto? |Prever se a qualidade do ar no ponto de referência da Universidade Braz Cubas, em Mogi das Cruzes/SP, estará inadequada uma hora à frente. |
-| Como será definida a classe positiva?  |(provisória na Sprint 1; limiar formal na Sprint 2, com base no treino) Classe 1: qualidade do ar inadequada. Classe 0: qualidade do ar adequada. O limiar que determinará formalmente quando a qualidade do ar será considerada inadequada será definido na Sprint 2, após a análise e preparação dos dados. |
+| Como será definida a classe positiva? | Classe 0: IQAr <= 100. Classe 1: IQAr > 100. O IQAr será o maior subíndice CETESB entre os seis poluentes, calculados nas janelas de exposição da Tabela 2.7. Se faltar algum valor necessário nas janelas que terminam em t+1h, o rótulo será indefinido e a linha ficará fora da modelagem. |
 | Qual é o horizonte da previsão? |1 hora à frente. |
 | Qual é a unidade de análise (o que representa cada linha do dataset)?  |Cada linha representa uma observação horária do ponto geográfico de referência da Universidade Braz Cubas, contendo dados de qualidade do ar e variáveis meteorológicas correspondentes àquele horário. |
 
@@ -42,7 +42,7 @@ A qualidade do ar é um fator relevante para o meio ambiente e para a saúde pú
 | Pergunta | Resposta |
 |---|---|
 | Recorte geográfico (cidade/região) ou cultura e municípios (Trilha C) |O projeto será delimitado ao município de Mogi das Cruzes/SP, utilizando como referência um único ponto geográfico localizado na Universidade Braz Cubas, nas coordenadas aproximadas de latitude -23.514561 e longitude -46.186832. O ponto será utilizado como referência para as observações e não terá como objetivo representar toda a cidade.|
-| Período histórico considerado |**31/08/2022 a 31/08/2026.** O período inicial (01/01/2025 a 31/01/2025) foi descartado por ser insuficiente como histórico. O novo intervalo foi definido pela cobertura da fonte mais restritiva: a Open-Meteo Air Quality API só oferece dado consistente para pontos fora da Europa (domínio CAMS Global) a partir de agosto/2022; a Historical Weather API cobre desde 1940 e não é o fator limitante. **Pendente:** validar empiricamente, antes da recoleta, que a Air Quality API retorna dado não nulo em todo o intervalo para as coordenadas do projeto.|
+| Período histórico considerado |**04/08/2022 a 31/08/2026.** O período de janeiro/2025 foi preservado como teste inicial. Em 08/10/2026, as duas APIs foram coletadas para o intervalo ampliado: 35.736 horários por fonte, sem valores ausentes e com timestamps alinhados; os arquivos foram persistidos em nomes separados pelo intervalo. Em agosto/2022, a qualidade do ar começou a retornar valores em 03/08 às 21h; 04/08 foi o primeiro dia completo observado. Datas de referência anteriores retornaram horários sem valores de poluentes.|
 | O que está *dentro* do escopo deste projeto |Coleta e integração de dados de qualidade do ar e meteorológicos; organização e limpeza dos dados; análise da qualidade da base; definição da variável-alvo; criação de características para a previsão de uma hora à frente; desenvolvimento, treinamento e avaliação de modelos de classificação nas etapas posteriores do projeto.|
 | O que está *fora* de escopo (explicitamente não será feito) |Representar a qualidade do ar de toda a cidade por meio de vários pontos de monitoramento; realizar previsões para outras cidades ou regiões; desenvolver um sistema de monitoramento em tempo real; criar um aplicativo ou serviço de produção para emissão de alertas; realizar implantação em ambiente produtivo.|
 
@@ -60,12 +60,18 @@ No contexto deste projeto acadêmico, o alerta será utilizado principalmente pa
 
 ## 6. Dados e fontes
 
-O projeto utilizará duas fontes principais da Open-Meteo, ambas cobrindo o período de **31/08/2022 a 31/08/2026**. A primeira fornece dados horários relacionados à qualidade do ar e à concentração de poluentes. A segunda fornece dados meteorológicos horários que serão utilizados para caracterizar as condições atmosféricas associadas às observações.
+O projeto utilizará duas fontes principais da Open-Meteo, consultadas para o período de **04/08/2022 a 31/08/2026**. A primeira fornece dados horários relacionados à qualidade do ar e à concentração de poluentes. A segunda fornece dados meteorológicos horários que serão utilizados para caracterizar as condições atmosféricas associadas às observações.
 
 | Fonte | O que fornece | Papel no projeto (feature / alvo / ambos) |
 |---|---|---|
 |Open-Meteo Air Quality API |Dados horários de qualidade do ar, incluindo concentrações de poluentes como PM10, PM2.5, monóxido de carbono, dióxido de nitrogênio, dióxido de enxofre e ozônio.|Features e base para definição do alvo|
 |Open-Meteo Weather API |Dados meteorológicos horários, como temperatura, umidade relativa, precipitação, velocidade do vento e pressão atmosférica. |Features|
+
+### Definição operacional do alvo
+
+O relatório CETESB de 2025 define o índice de cada poluente por interpolação linear e o IQAr consolidado como o maior subíndice. Para o alvo em t+1h, cada concentração será calculada na janela móvel que termina nesse horário: 24h para PM10, PM2,5 e SO2; 8h para O3 e CO; e 1h para NO2. Como a API fornece CO em µg/m³ e a tabela CETESB usa ppm, a conversão segue a lei dos gases ideais a 25 °C e 1 atm. Se faltar algum valor necessário em qualquer janela, o IQAr e o rótulo não são imputados. O critério positivo continua sendo IQAr > 100.
+
+Metodologia: CETESB (2025), seção 2.3 e Tabela 2.7, pp. 18–20 ([relatório oficial](https://www.cetesb.sp.gov.br/dx/api/dam/v1/collections/186909e9-ab59-4641-abba-c5c465793216/items/3adb602d-77ec-4de5-b378-5fa141e80614/renditions/5a0e5f05-41aa-4e9c-9b00-69165ab36963/versions/1?binary=true)).
 
 *Link para o dicionário de dados do projeto: [docs/Dicionario_de_Dados.md](Dicionario_de_Dados.md)*
 
@@ -80,7 +86,9 @@ O projeto utilizará duas fontes principais da Open-Meteo, ambas cobrindo o per�
 
 Qual erro é mais grave para este problema, e por quê? Isso orienta a métrica da classe positiva (em geral recall) *e o limiar de decisão da Sprint 5* — o modelo devolve probabilidade; o ponto de corte é decisão de produto.
 
-Erro mais grave: o falso negativo, pois significa que o modelo não identificou uma situação de qualidade do ar inadequada que deveria ser antecipada. Por esse motivo, o projeto dará atenção especial ao recall da classe positiva (1) nas etapas de avaliação. O limiar de decisão será definido posteriormente, com base nos resultados da validação.
+**Prioridade confirmada pela equipe:** evitar falsos negativos, aceitando a possibilidade de mais falsos alertas. Por esse motivo, a avaliação dará atenção especial ao recall e à taxa de falsos negativos da classe positiva, sem deixar de reportar precisão, falsos positivos e a carga de alertas resultante. Para contagem operacional exploratória, horas positivas consecutivas formam um episódio de alerta; uma hora prevista como negativa encerra o episódio. A equipe definiu como critério de carga no máximo três episódios iniciados por semana; um episódio que atravessa a virada da semana é contado somente na semana em que começou. Ainda falta decidir se haverá também um teto de horas de alerta por semana. Nenhum modelo ou limiar final foi selecionado. A escolha futura de limiar deverá usar somente dados de treino/validação interna temporal; o fold externo correspondente e o holdout não podem participar dessa seleção.
+
+Uma análise exploratória de 101 limiares em janelas internas anteriores aos folds externos foi executada e documentada no relatório de desenvolvimento. Para o grupo de subíndices sem `iqar`, nenhum limiar entre 0,01 e 0,99 respeitou o teto de três episódios em todas as semanas observadas. Os cenários ilustrativos 0,25 e 0,50 excederam o teto em 21 das 52 semanas completas, com máximos de seis e sete episódios, respectivamente. Os extremos da varredura não são soluções operacionais: em 0,00, o modelo alertou por todas as 8.784 horas (8.340 falsos positivos); em 1,00, deixou de detectar 384 dos 444 positivos. Portanto, o critério semanal precisa ser avaliado em conjunto com a carga em horas e a prioridade de evitar falsos negativos; esses resultados não selecionam um limiar.
 
 ---
 
@@ -123,7 +131,7 @@ Além do desempenho do modelo, serão considerados como critérios de sucesso:
     dicionário de dados atualizado e alinhado às variáveis utilizadas pelo modelo;
     preenchimento do model card e disponibilização do artefato final do pipeline.
 
-O valor mínimo de desempenho esperado será definido nas etapas de validação, após a análise dos dados e dos resultados dos modelos de referência.
+Não foi fixado um valor mínimo numérico de desempenho antes dos experimentos. Na Sprint 5, a escolha foi feita na validação temporal priorizando a redução de falsos negativos e respeitando o critério semanal de episódios; a avaliação final reporta também que uma semana do holdout excedeu esse teto.
 
 ---
 
@@ -133,19 +141,22 @@ Não preenchido nesta versão.
 
 ---
 
-## 12. Perguntas em aberto
+## 12. Perguntas de pesquisa e decisões respondidas
 
-Pontos que dependem da EDA da Sprint 2 (limiar do alvo, janelas) ou do lift da Sprint 4.
+As perguntas abaixo foram registradas no planejamento e respondidas progressivamente nas Sprints 2–5.
 
-~~Qual será o período histórico final utilizado, considerando a cobertura compatível das APIs e a qualidade dos dados disponíveis?~~ **Respondida (Sprint 1):** 31/08/2022 a 31/08/2026, limitado pela Air Quality API. Falta apenas a validação empírica de que não há lacunas de dado nulo nesse intervalo.
-Qual será o limiar utilizado para definir a classe positiva, classificando a qualidade do ar como inadequada?
-Quais variáveis e características apresentarão maior relação com a ocorrência de qualidade do ar inadequada?
-Será necessário utilizar janelas ou defasagens temporais para melhorar a representação das condições anteriores?
-Como ficará a distribuição entre as classes 0 e 1 após a definição do alvo?
-Quais características poderão ser utilizadas sem causar vazamento de informações futuras?
-Quais abordagens de modelagem apresentarão melhor desempenho e qual será o ganho obtido em relação aos modelos de referência?
+~~Qual será o período histórico final utilizado?~~ **Respondida:** 04/08/2022 a 31/08/2026; coletado, integrado e rotulado em arquivos próprios em 08/10/2026, preservando os arquivos de janeiro/2025.
+~~Qual será a definição da classe positiva?~~ **Respondida:** classe 1 quando IQAr > 100; classe 0 quando IQAr <= 100. O IQAr é o maior subíndice CETESB entre os seis poluentes, com as janelas de exposição da Tabela 2.7, e o alvo de t+1h usa janelas terminando nesse horário. CO é convertido de µg/m³ para ppm a 25 °C e 1 atm. Se faltar algum valor necessário nas janelas, o rótulo ficará indefinido e a observação não será usada na modelagem.
+~~Como ficará a distribuição entre as classes 0 e 1 após a definição do alvo?~~ **Respondida:** no período completo, 904 positivos e 34.809 negativos entre 35.713 rótulos definidos (2,53% positivos). A prevalência varia por ano (4,41% em 2024; 1,24% em 2025; 0,89% em 2026), reforçando a necessidade de avaliação temporal.
+~~Qual estratégia de split e validação será utilizada?~~ **Respondida:** folds expansivos por trimestre em 2024; treino em cada fold usa apenas rótulos anteriores ao trimestre validado, com a validação anterior incorporada nos folds seguintes. O holdout temporal final abrange 2025 a 2026. Antes de fixar o split, a série completa foi examinada descritivamente (taxas e médias por classe); não houve ajuste/avaliação de modelo ou limiar, mas o holdout não é totalmente cego. A partir da decisão, ele não será usado para seleção. As partições usam o horário do evento previsto (`time + 1h`), evitando atribuir ao treino um rótulo cujo evento pertence à validação/teste. Os limites estão em `config/params.yaml` e a implementação em `src/validacao/Separacao_Temporal.py`.
+~~Quais variáveis e características apresentam maior associação inicial com o alvo?~~ **Respondida inicialmente:** no desenvolvimento, Spearman foi maior para `iqar_ozone` e `iqar` (0,317), ozônio bruto (0,297), `iqar_pm2_5` (0,215) e PM2,5 (0,211). Os índices em *t* são candidatos disponíveis na previsão, mas as associações podem refletir janelas sobrepostas; não são causais nem substituem comparação nos folds.
+~~Como comparar variáveis brutas com os subíndices derivados?~~ **Respondida (09/10/2026):** comparar nos mesmos folds temporais três conjuntos candidatos: seis poluentes brutos + cinco variáveis meteorológicas; seis subíndices e o `iqar` consolidado + as mesmas variáveis meteorológicas; e a combinação dos dois grupos de qualidade do ar + meteorologia. Os subíndices e `iqar` são calculados até *t*. A comparação formal da Sprint 3 com a Sprint 4 registrou a escolha do conjunto S4 e seus trade-offs em `docs/sprints/Sprint4_TrilhaB.md`.
+**Resultado preliminar dos baselines (09/10/2026):** nos quatro folds de 2024, a persistência (classe do IQAr em *t*) obteve F1 médio 0,8196; Gaussian Naive Bayes obteve F1 médio 0,4134 com poluentes brutos, 0,6175 com subíndices/IQAr e 0,5914 com ambos. O modelo de subíndices/IQAr teve recall médio 0,9985, mas gerou 476 falsos positivos agregados. O Dummy prior previu sempre a classe negativa. As taxas de falso positivo do Naive Bayes com subíndices foram 5,7%, 2,5%, 11,0% e 3,7% nos quatro trimestres, com maior incidência em Q3. Os 114 falsos negativos do modelo com poluentes brutos foram todos positivos segundo a persistência em IQAr(t), o que evidencia complementaridade entre as referências, mas não determina regra combinada. Essas métricas são referências descritivas da Sprint 3; naquele estágio, nenhum limiar final havia sido escolhido e o holdout ainda não havia sido avaliado.
+~~Será necessário utilizar janelas ou defasagens temporais para melhorar a representação das condições anteriores?~~ **Respondida na Sprint 4:** foram adicionadas médias móveis de 3 horas e deltas de 2 horas para ozônio e PM2,5, usando medições disponíveis até *t*. O protocolo temporal e as limitações estão registrados em `docs/sprints/Sprint4_TrilhaB.md`.
+~~Quais características poderão ser utilizadas sem causar vazamento de informações futuras?~~ **Respondida:** o conjunto S4 usa variáveis disponíveis até *t* para prever o evento em *t+1h*; imputação e padronização são ajustadas dentro do treino. A lista congelada e o pipeline estão registrados em `docs/sprints/Sprint4_TrilhaB.md`.
+~~Quais abordagens de modelagem apresentarão melhor desempenho e qual será o ganho obtido em relação aos modelos de referência?~~ **Respondida na Sprint 5:** a equipe congelou Random Forest balanceada com limiar 0,3 com base na validação temporal de 2024-Q4. No teste temporal final, avaliado uma única vez após congelar a escolha, obteve recall 0,9814, precisão 0,7822 e F1 0,8705 (158 TP, 44 FP, 3 FN, 14.387 TN). Uma das 86 semanas completas excedeu o teto de três episódios, com máximo de cinco episódios e 31 horas de alerta. A regressão logística padrão teve recall e F1 maiores no mesmo holdout, mas não substituiu a escolha congelada; o teste não foi reutilizado para seleção ou ajuste. Resultados, limitações e artefato estão documentados em `docs/sprints/Sprint5_TrilhaB.md`.
 
-Essas questões serão respondidas progressivamente nas sprints seguintes, principalmente a partir da análise exploratória dos dados, dos experimentos de modelagem e da comparação dos resultados.
+As perguntas de planejamento acima foram respondidas; pendências operacionais de equipe e integração opcional com banco de dados não alteram os resultados experimentais registrados.
 
 ---
 
@@ -167,3 +178,13 @@ Essas questões serão respondidas progressivamente nas sprints seguintes, princ
 |---|---|---|---|
 | v0.1 |15/09/2026 | Diogo Gomes e Davi Gama | Primeira versão do RFC (Sprint 1) |
 | v0.2 |14/09/2026 | Davi Gama e Diogo Gomes | Período histórico definido: 31/08/2022–31/08/2026 (seções 4, 6, 9, 12), substituindo o intervalo provisório de 01/01/2025–31/01/2025. |
+| v0.3 |08/10/2026 | Equipe | Cobertura das APIs validada para 04/08/2022–31/08/2026; classe positiva definida como IQAr > 100 e política para alvos ausentes registrada. |
+| v0.4 |08/10/2026 | Equipe | Metodologia CETESB, janelas, conversão de CO e alvo aplicados ao período ampliado; distribuição por classe documentada. |
+| v0.5 |08/10/2026 | Equipe | EDA inicial e estratégia de validação temporal/teste final definidas e implementadas. |
+| v0.4 |08/10/2026 | Equipe | Metodologia CETESB 2025 conferida; janelas de exposição, conversão de CO e cálculo do alvo em t+1h definidos e implementados. |
+| v0.6 |09/10/2026 | Equipe | EDA gráfica no desenvolvimento e protocolo aprovado para comparar os grupos de features. |
+| v0.7 |09/10/2026 | Equipe | Primeiros baselines e análise out-of-fold dos erros registrados; holdout não avaliado. |
+| v0.6 |09/10/2026 | Equipe | EDA gráfica no desenvolvimento concluída e protocolo de comparação dos grupos de features aprovado. |
+| v0.5 |08/10/2026 | Equipe | Período ampliado coletado, integrado e rotulado em arquivos próprios, preservando os dados de teste de janeiro/2025. |
+| v0.8 | Sprint 4 | Equipe | Conjunto de features temporais comparado e congelado; resultados e trade-offs documentados. |
+| v0.9 | Sprint 5 | Equipe | Seleção pré-teste, avaliação única do holdout e pipeline final documentados. |

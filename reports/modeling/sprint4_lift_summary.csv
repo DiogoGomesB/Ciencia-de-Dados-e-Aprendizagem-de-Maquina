@@ -1,0 +1,5 @@
+variante,folds,media_precisao_classe_1,media_recall_classe_1,media_f1_classe_1,tn_total,fp_total,fn_total,tp_total,horas_validacao,semanas_completas,max_episodios_em_uma_semana,semanas_com_mais_de_3_episodios,max_horas_alerta_em_uma_semana,episodios_alerta_total,delta_recall_vs_s3,delta_f1_vs_s3,delta_fp_total_vs_s3,delta_fn_total_vs_s3
+dummy_prior,4,0.0,0.0,0.0,8397,0,387,0,8784,52,0,0,0,0,,,,
+naive_bayes_s3_subindices_sem_iqar,4,0.5057,0.9949,0.6669,7995,402,3,384,8784,52,7,19,85,130,,,,
+naive_bayes_s4_media3h_delta2h_ozone_pm25,4,0.4578,1.0,0.6261,7926,471,0,387,8784,52,6,19,76,133,0.005099999999999993,-0.04080000000000006,69.0,-3.0
+persistencia_iqar_atual,4,0.8196,0.8196,0.8196,8329,68,68,319,8784,52,5,4,32,68,,,,

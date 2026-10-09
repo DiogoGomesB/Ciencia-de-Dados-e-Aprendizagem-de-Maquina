@@ -14,18 +14,21 @@
 
 ---
 
-## Status da Sprint 1 (17/08/2026 a 17/09/2026)
+## Estado atual do projeto
 
-Conforme o cronograma do projeto, a Sprint 1 tem como entregas obrigatórias o RFC, a coleta bruta, o merge das duas fontes e a organização de `data/raw`. Limpeza, análise exploratória e engenharia de atributos são objeto da Sprint 2 e não são antecipadas nesta etapa.
+Situação verificada em 09/10/2026. O período de teste de janeiro/2025 foi preservado nos arquivos originais; o intervalo ampliado foi coletado, integrado e rotulado em arquivos separados com o período no nome.
 
 | Entrega | Status | Observação |
 |---|---|---|
-| RFC | Concluída | `RFC_Proposta_de_Projeto_Template.md` |
-| Dicionário de dados v0.1 | Concluída | `docs/Dicionario_de_Dados.md`, conforme `SPRINT1_TRILHA.md` |
-| Coleta bruta das duas fontes | Concluída | `Coleta_Dados.py` |
-| Armazenamento em `data/raw` | Concluída, com ressalva | Arquivos gerados ainda correspondem ao período de teste (01/01/2025 a 31/01/2025), não ao período oficial do projeto |
-| Merge das duas fontes | Pendente | Depende da recoleta com o período oficial; é a pendência crítica da sprint |
-| Configuração externa ao código | Concluída | — |
+| RFC | Existe | `docs/RFC.md`; revisar conforme decisões e resultados do projeto |
+| Dicionário de dados | Atualizado | `docs/Dicionario_de_Dados.md`; alvo, split, EDA e baselines iniciais registrados |
+| Coleta bruta das duas fontes | Concluída para o período ampliado | 35.736 horários por fonte em arquivos versionados pelo intervalo; JSONs de janeiro/2025 preservados |
+| Merge das duas fontes | Concluído para o período ampliado | 35.736 linhas em `data/interim/dados_merged_2022-08-04_2026-08-31.csv`; merge de janeiro preservado |
+| Alvo | Implementado e calculado | 35.713 rótulos definidos: 904 positivos (2,53%) e 34.809 negativos; 23 indefinidos |
+| Split temporal | Definido e implementado | Validação expansiva nos quatro trimestres de 2024; teste final de 2025 a 2026, sem embaralhamento |
+| EDA do desenvolvimento | Concluída | Séries, boxplots, correlação entre candidatas e triagem de extremos |
+| Baselines iniciais | Executados | Dummy, persistência e Gaussian Naive Bayes nos quatro folds de 2024; holdout não usado |
+| Seleção de features/modelos | Em andamento | Comparação inicial documentada; análise e iteração de features ainda pendentes |
 | `requirements.txt` | Concluída | — |
 | `LICENSE` | Concluída | MIT |
 
@@ -40,14 +43,15 @@ Conforme o cronograma do projeto, a Sprint 1 tem como entregas obrigatórias o R
 | Evento a prever | A qualidade do ar em Mogi das Cruzes/SP estará inadequada na próxima hora. |
 | Usuário da decisão | A definir no RFC (proposta: gestor de saúde pública ou indivíduo que decide restringir atividade externa). |
 | Horizonte | Uma hora à frente — a previsão realizada no instante *t* utiliza dados disponíveis até *t* para estimar a condição em *t+1h*. |
-| Classe positiva | Definida pela ultrapassagem dos padrões legais de qualidade do ar, consolidados no Índice de Qualidade do Ar (IQAr) [1, 2]. Classe 0: qualidade do ar adequada (IQAr até 100). Classe 1: qualidade do ar inadequada (IQAr entre 101 e 199, categoria "Inadequada" do IQAr). |
+| Classe positiva | Classe 0: IQAr <= 100. Classe 1: IQAr > 100, incluindo as categorias mais graves. O índice consolidado é o maior subíndice dos seis poluentes, conforme a metodologia CETESB 2025. |
 | Custo priorizado | Falso negativo — o modelo prever "adequada" quando a condição real na hora seguinte é inadequada. Considerado o erro mais grave, pois compromete a antecipação de uma piora real da qualidade do ar. |
 
-Status: evento, horizonte, classe positiva e custo de falso negativo já estão formalizados no RFC (`RFC_Proposta_de_Projeto_Template.md`). Permanecem pendentes a definição do usuário da decisão e o desenvolvimento em texto corrido da discussão sobre o custo do falso negativo, hoje apenas enunciado.
+Status: alvo, split temporal, EDA, comparação de features S3→S4 e pipeline com features S4 congelado estão implementados. A Sprint 5 comparou modelos, congelou Random Forest com limiar 0,3 na validação e executou a avaliação final uma única vez no holdout.
 
 **Referências**
 [1] FURG — Dissertação/monografia sobre padrões de qualidade do ar: https://sistemas.furg.br/sistemas/sab/arquivos/bdtd/0000010377.pdf
 [2] SANTOS, C. M. dos. UnB, 2011 — Índice de Qualidade do Ar: https://repositorio.unb.br/bitstream/10482/10977/1/2011_CleideMouradosSantos.pdf
+[3] CETESB (2025), *Relatório de Metodologia para Avaliação da Qualidade do Ar*, Tabela 2.7 e seção 2.3, pp. 18–20: [PDF oficial](https://www.cetesb.sp.gov.br/dx/api/dam/v1/collections/186909e9-ab59-4641-abba-c5c465793216/items/3adb602d-77ec-4de5-b378-5fa141e80614/renditions/5a0e5f05-41aa-4e9c-9b00-69165ab36963/versions/1?binary=true).
 
 ---
 
@@ -61,9 +65,27 @@ pip install -r requirements.txt
 
 O arquivo `requirements.txt` já está no repositório e cobre as dependências de coleta (`requests`), configuração (`PyYAML`), transformação (`pandas`, `numpy`), visualização (`matplotlib`, `seaborn`) e o notebook do guia (`jupyter`).
 
-Configuração: prevista em `config/params.yaml`, de modo que nenhuma coordenada, cidade ou data fique fixada diretamente no código. Atualmente essa configuração ainda está definida dentro de `Coleta_Dados.py`; a migração para `config/params.yaml` permanece pendente.
+Configuração: coordenadas, datas, variáveis, endpoints, timeout e nomes dos arquivos estão em `config/params.yaml`. Os arquivos do intervalo configurado são nomeados com as datas e não sobrescrevem os JSONs ou o CSV de janeiro/2025.
 
-Notebooks: a pasta `notebooks/` já foi criada no repositório, mas está vazia. O preenchimento com os notebooks 01 a 05 está pendente (ver [Estrutura do repositório](#estrutura-do-repositório)).
+Para acompanhar o fluxo de forma interativa, abra os notebooks em `notebooks/` com Jupyter ou a extensão Jupyter do VS Code e execute as células na ordem:
+
+1. [`01_Coleta_Dados.ipynb`](notebooks/01_Coleta_Dados.ipynb) consulta as APIs, inspeciona as respostas e salva os JSONs brutos. A execução faz chamadas externas e recusa sobrescrever arquivos existentes.
+2. [`02_Merge_Dados.ipynb`](notebooks/02_Merge_Dados.ipynb) verifica os arquivos e horários, integra as fontes e salva o CSV em `data/interim/`.
+
+O cálculo do alvo e a validação temporal continuam disponíveis como scripts. Para executar todo o fluxo pelo terminal, use os comandos equivalentes na raiz do projeto:
+
+```bash
+python src/coleta/Coleta_Dados.py
+python src/transformacao/Merge_Dados.py
+python src/transformacao/Calcular_Alvo_IQAr.py
+python -m src.validacao.Separacao_Temporal
+```
+
+Os scripts gravam arquivos com o período configurado no nome. Eles recusam sobrescrever arquivos já existentes para esse intervalo. A rotulagem exige uma série horária ordenada e usa janelas completas terminando no horário avaliado; a última linha não recebe rótulo porque não há observação para *t+1h*.
+
+O script de validação temporal lê as partições de `config/params.yaml`, ignora rótulos indefinidos e imprime os tamanhos/classes de cada fold e do teste. A divisão é feita pelo horário do evento previsto (`time + 1h`); os dados não são duplicados nem salvos em novos arquivos.
+
+Os dois primeiros notebooks documentam passo a passo a coleta e a integração das fontes. Outros notebooks de análise e modelagem podem ser acrescentados nas etapas seguintes; os scripts em `src/` continuam disponíveis para execução pelo terminal.
 
 ---
 
@@ -71,14 +93,59 @@ Notebooks: a pasta `notebooks/` já foi criada no repositório, mas está vazia.
 
 | Fonte | Papel | Resolução | Natureza do dado | Período |
 |---|---|---|---|---|
-| Open-Meteo Air Quality API ([documentação](https://open-meteo.com/en/docs/air-quality-api)) | Qualidade do ar | Horária (dado nativo do domínio global a cada 3 horas, interpolado pela API) | Modelado (CAMS Global, para localidades fora da Europa) | 31/08/2022 a 31/08/2026 |
-| Open-Meteo Historical Weather API ([documentação](https://open-meteo.com/en/docs/historical-weather-api)) | Clima | Horária | Reanálise (ERA5 / ERA5-Land / ECMWF IFS) | 31/08/2022 a 31/08/2026 |
+| Open-Meteo Air Quality API ([documentação](https://open-meteo.com/en/docs/air-quality-api)) | Qualidade do ar | Horária (dado nativo do domínio global a cada 3 horas, interpolado pela API) | Modelado (CAMS Global, para localidades fora da Europa) | 04/08/2022 a 31/08/2026 |
+| Open-Meteo Historical Weather API ([documentação](https://open-meteo.com/en/docs/historical-weather-api)) | Clima | Horária | Reanálise (ERA5 / ERA5-Land / ECMWF IFS) | 04/08/2022 a 31/08/2026 |
 
-O período foi definido pela cobertura da fonte mais restritiva: a Air Quality API só oferece dado consistente para localidades fora da Europa (domínio CAMS Global) a partir de agosto de 2022. A Historical Weather API cobre desde 1940 e não é o fator limitante. Permanece pendente a validação empírica de que a Air Quality API retorna dado não nulo em todo o intervalo definido, antes da execução da recoleta oficial.
+Em 08/10/2026, o intervalo completo foi coletado e salvo: 35.736 horários em cada API, sem valores ausentes nas variáveis solicitadas, sem lacunas horárias e com timestamps idênticos. Os JSONs e o CSV originais de janeiro/2025 foram preservados. Consultas a datas anteriores a agosto/2022 retornaram horários sem valores de poluentes; em agosto/2022, os dados começaram em 03/08 às 21h, e 04/08 foi o primeiro dia completo.
 
-**Limitações identificadas na coleta** (segundo `SPRINT1_TRILHA.md`):
+### EDA inicial e avaliação temporal
+
+A análise inicial encontrou 35.713 rótulos definidos e 904 positivos (2,53%). Antes de fixar o split, a série completa foi examinada descritivamente, incluindo taxas por ano e médias condicionadas à classe; por isso, o período 2025–2026 não é um teste totalmente cego. Nenhum modelo ou limiar foi treinado/selecionado com esses dados. A partir do split fixado, as decisões de features e modelos serão baseadas somente no desenvolvimento (2022–2024), e o holdout não será consultado novamente até a avaliação final.
+
+Para preservar essa ordem temporal, a validação será expansiva nos trimestres de 2024 e a janela de teste final será 2025–2026. Os intervalos são atribuídos pelo horário previsto (`time + 1h`), não apenas pelo horário das features:
+
+| Partição | Registros | Positivos | Negativos |
+|---|---:|---:|---:|
+| Validação 2024-Q1 | 2.184 | 114 | 2.070 |
+| Validação 2024-Q2 | 2.184 | 55 | 2.129 |
+| Validação 2024-Q3 | 2.208 | 172 | 2.036 |
+| Validação 2024-Q4 | 2.208 | 46 | 2.162 |
+| Treino final (até antes de 2025) | 21.121 | 743 | 20.378 |
+| Teste final (2025–2026) | 14.592 | 161 | 14.431 |
+
+Em cada fold, o treino contém somente rótulos anteriores ao início do trimestre de validação; os trimestres anteriores são incorporados nos folds seguintes. A seleção do modelo e de limiares usará somente esses folds. Como os 46 positivos do Q4 são uma amostra pequena, as métricas devem ser interpretadas com cautela.
+
+**EDA detalhada inicial no desenvolvimento (rótulos com evento até 31/12/2024):** 21.121 linhas, 743 positivas (3,52%). A taxa positiva variou de 2,38% em 2022 a 4,41% em 2024; por mês, setembro foi 6,62%, março 5,65% e junho 1,04%. Por hora do evento, os picos foram 18h (13,30%), 17h (12,84%) e 19h (11,82%). São padrões exploratórios, sujeitos a variação temporal, não regras para um classificador.
+
+Como candidatos a feature, os subíndices e o IQAr calculados até *t* estão disponíveis no instante da previsão e não usam diretamente o rótulo futuro. No desenvolvimento, a associação de Spearman com o alvo foi maior para `iqar_ozone` e `iqar` (ambos 0,317), `ozone` (0,297), `iqar_pm2_5` (0,215) e `pm2_5` (0,211). Medianas entre classe 0 e 1: ozônio 61 e 156 µg/m³; PM2,5 9 e 18,9 µg/m³; IQAr em *t* 26,85 e 118,33. Como o alvo é construído a partir dos mesmos poluentes e de janelas sobrepostas, essas associações não são evidência causal nem importância independente.
+
+Foi aprovado comparar três grupos nos mesmos folds: (1) seis poluentes brutos + meteorologia; (2) seis subíndices e `iqar` + meteorologia; (3) poluentes brutos, subíndices e `iqar` + meteorologia. Os índices devem ser calculados somente com informações disponíveis até *t*; o holdout 2025–2026 não será usado na comparação.
+
+Não há ausências nas variáveis brutas no desenvolvimento; `iqar_pm10`, `iqar_pm2_5`, `iqar_sulphur_dioxide` e `iqar` têm uma ausência cada, na borda inicial das janelas. A matriz de Spearman mostra associação elevada entre PM10/PM2,5 e seus índices derivados, esperada porque estes são transformações determinísticas; `iqar` também é o máximo dos subíndices. Isso indica redundância candidata, não justifica excluir features antes da comparação nos folds.
+
+A EDA gráfica foi reproduzida em `src/analise/EDA_Desenvolvimento.py`, usando somente rótulos com evento previsto até 31/12/2024. Os gráficos mostram prevalência mensal variável, distribuições por classe em escala `log1p`, associações entre as features candidatas e máximos diários de CO/PM. O CO bruto chega a 3.838 µg/m³ (p99,9 = 2.832,04 µg/m³), PM10 a 152,7 µg/m³ e PM2,5 a 106,9 µg/m³; os três máximos ocorreram em 05/06/2023, em um episódio com vários horários elevados simultaneamente. Também aparecem episódios de particulados em maio–junho/2023 e setembro/2024. Não há medição local independente para confirmar os valores.
+
+A cerca exploratória `Q3 + 1,5 × IQR` marca 1.118 horas para CO (5,29%), 1.132 para PM10 (5,36%) e 1.120 para PM2,5 (5,30%); 669 horas excedem simultaneamente as três cercas. Entre essas horas, as taxas positivas foram 3,13%, 14,49% e 13,57%, respectivamente, ante 3,52% no desenvolvimento todo. Como as observações são horárias e autocorrelacionadas, essas taxas não são evidência causal nem observações independentes. A classe usa as janelas CETESB e o evento em *t+1h*, não o valor bruto isolado: no episódio de 05/06/2023, os máximos matinais de CO/PM tiveram rótulo negativo; mais tarde, o subíndice de ozônio elevou o IQAr acima de 100, produzindo rótulos positivos para eventos previstos entre 16h e 22h. As cercas são apenas triagem estatística; nenhum valor foi removido ou limitado.
+
+Para reproduzir a análise, execute `python -m src.analise.EDA_Desenvolvimento` na raiz do projeto. As imagens geradas estão em [prevalência mensal](reports/figures/eda_desenvolvimento/prevalencia_mensal.png), [boxplots das concentrações](reports/figures/eda_desenvolvimento/boxplots_concentracoes_log1p.png), [correlação de Spearman](reports/figures/eda_desenvolvimento/correlacao_spearman_features.png) e [extremos no tempo](reports/figures/eda_desenvolvimento/extremos_concentracoes_tempo.png). O período 2025–2026 permanece fora desta EDA.
+
+Para uma explicação não técnica da origem e do propósito dos dados, dos cálculos, dos gráficos, dos resultados e de suas limitações, consulte o [relatório auxiliar da EDA](docs/Relatorio_EDA_Desenvolvimento.md).
+
+**Primeiros baselines e ablação:** nos folds de validação de 2024, a persistência pelo IQAr em *t* obteve F1 positivo médio 0,8196. O Gaussian Naive Bayes obteve F1 médio 0,4134 com poluentes brutos, 0,6175 com subíndices/IQAr e 0,5914 com os dois grupos. Remover o `iqar` consolidado reduziu os falsos positivos de 476 para 402 no grupo somente de subíndices, mas no grupo combinado houve aumento de 537 para 542; a ablação também não reduziu a taxa elevada de setembro em Q3. São resultados exploratórios de desenvolvimento, sem ajuste de limiar e sem uso do holdout; nenhuma variante final foi escolhida. O script é `python -m src.modelagem.Avaliar_Baselines`; consulte as [métricas por fold](reports/modeling/baseline_metrics_by_fold.csv), o [resumo](reports/modeling/baseline_metrics_summary.csv), os [casos classificados incorretamente](reports/modeling/baseline_misclassified_cases.csv), as [taxas de erro por mês](reports/modeling/baseline_error_rates_by_month.csv) e o [resumo da ablação](reports/modeling/baseline_iqar_ablation_summary.csv).
+
+**Critério de alertas definido pela equipe:** evitar falsos negativos, aceitando a possibilidade de mais falsos alertas; uma hora prevista como negativa encerra o episódio e o limite é de até três episódios iniciados por semana. Um episódio que atravessa a virada da semana é contado na semana em que começou. Ainda não há teto definido para horas de alerta. Para a entrega final, a equipe congelou Random Forest com limiar 0,3 na validação; o teste final foi consultado uma vez e resultou em uma semana completa acima do teto, sem reutilização para ajustes.
+
+Uma varredura exploratória de 101 limiares em trimestres internos anteriores aos folds externos está disponível em [métricas por janela](reports/modeling/baseline_threshold_tradeoff_by_inner_fold.csv), [resumo do trade-off](reports/modeling/baseline_threshold_tradeoff_summary.csv) e [carga semanal de episódios](reports/modeling/baseline_threshold_alert_episodes_by_week.csv). No grupo de subíndices sem `iqar`, os cenários 0,25 e 0,50 excederam o teto semanal em 21 das 52 semanas completas, com máximos de 6 e 7 episódios e cargas máximas de 90 e 85 horas de alerta por semana. Nenhum limiar entre 0,01 e 0,99 respeitou o teto em todas as semanas. Os extremos também não são adequados: 0,00 emitiu alerta por todas as 8.784 horas e produziu 8.340 falsos positivos; 1,00 deixou 384 dos 444 positivos sem alerta. São cenários internos exploratórios, não limiares selecionados nem estimativas de operação futura. A contagem semanal une as janelas internas antes de agrupar episódios e não mede acerto na detecção de episódios reais; o holdout 2025–2026 permanece sem uso.
+
+**Sprint 4 — triagem temporal inicial:** `python -m src.modelagem.Avaliar_Features_Temporais` compara, nos folds de 2024 e sem ajustar limiar, diferenças horárias de ozônio/PM2,5 e de variáveis meteorológicas, além de hora do dia cíclica, com o grupo-base de subíndices sem `iqar`. Os deltas brutos de ozônio e PM2,5 mudaram o recall de 0,9949 para 0,9971 (FN de 3 para 2), mas aumentaram FP de 402 para 411 e reduziram ligeiramente F1; a hora cíclica elevou FP para 435 e reduziu F1, embora diminuísse o pico de horas de alerta semanal de 85 para 69. Nenhuma variante foi congelada como feature final. Métricas reproduzíveis: [por fold](reports/modeling/temporal_feature_metrics_by_fold.csv), [resumo](reports/modeling/temporal_feature_metrics_summary.csv) e [carga semanal](reports/modeling/temporal_feature_alert_burden_by_week.csv). Esta triagem não usa o holdout 2025–2026.
+
+Uma segunda triagem adiciona médias retrospectivas de 3h e mudanças em 2h para ozônio e PM2,5. No comparativo formal S3→S4, a variante combinada teve 0 FN contra 3 no grupo-base e reduziu os picos semanais de 7 para 6 episódios e de 85 para 76 horas. A troca é aumento de FP (471, +69), redução de F1 (0,6261 ante 0,6669) e nenhuma redução nas semanas acima do teto de três episódios (19). Como o projeto prioriza evitar falsos negativos, as quatro features foram congeladas para o comparativo da Sprint 5. Isso não seleciona o modelo final nem o limiar; a triagem nos folds de desenvolvimento pode introduzir viés e o holdout continua reservado. Resultados da triagem: [métricas por fold](reports/modeling/short_term_feature_metrics_by_fold.csv), [resumo](reports/modeling/short_term_feature_metrics_summary.csv) e [carga semanal](reports/modeling/short_term_feature_alert_burden_by_week.csv). Comparativo formal: [lift por fold](reports/modeling/sprint4_lift_by_fold.csv), [resumo S3→S4](reports/modeling/sprint4_lift_summary.csv) e [carga semanal](reports/modeling/sprint4_alert_burden_by_week.csv).
+
+**Sprint 5 — modelagem e avaliação final:** `python -m src.modelagem.Comparar_Modelos_Sprint5` compara Dummy, persistência, Gaussian Naive Bayes S4, regressão logística balanceada e Random Forest balanceada em 2024-Q4. A regressão logística usa `max_iter=1000` e `random_state=42`; a Random Forest usa 300 árvores, `min_samples_leaf=2` e `random_state=42`. Na validação (2.208 horas, 46 positivos), a equipe congelou Random Forest com limiar 0,3: recall 1,0, 13 FP e nenhuma semana completa acima do teto de três episódios (máximo de três). A avaliação final foi executada uma vez: no holdout (14.592 horas, 161 positivos), a combinação congelada teve recall 0,9814, F1 0,8705, 44 FP e 3 FN. Uma semana das 86 completas excedeu o teto. Os comparadores também foram medidos no mesmo holdout, mas não houve novo ajuste ou troca após consultá-lo. Relatórios de validação: [métricas](reports/modeling/sprint5_validation_metrics.csv), [trade-off de limiares](reports/modeling/sprint5_validation_threshold_tradeoff.csv), [carga semanal](reports/modeling/sprint5_validation_alert_burden_by_week.csv) e [previsões](reports/modeling/sprint5_validation_predictions.csv). Relatórios finais: [métricas](reports/modeling/sprint5_final_test_metrics.csv), [erros](reports/modeling/sprint5_final_test_misclassified_cases.csv) e [carga semanal](reports/modeling/sprint5_final_test_alert_burden_by_week.csv). Pipeline empacotado em `models/modelo_final_sprint5.joblib`.
+
+**Limitações identificadas na coleta** (segundo [Sprint 1](docs/sprints/Sprint1_TrilhaB.md)):
 - As APIs retornam a coordenada da célula de grade do modelo, que pode diferir ligeiramente da coordenada solicitada (-23.514561, -46.186832). Essa diferença é esperada em dado modelado ou de reanálise e não constitui erro de coleta, mas deve ser considerada na interpretação dos resultados.
-- A validação inicial, referente ao período de teste (janeiro de 2025), não identificou valores nulos e confirmou compatibilidade das unidades com a documentação oficial. Essa validação cobre apenas o mês de teste, não o período oficial ainda a ser coletado.
+- Tanto os arquivos de janeiro/2025 quanto a coleta ampliada não apresentaram valores nulos nas variáveis solicitadas; no período ampliado, as duas fontes também têm timestamps alinhados e sem lacunas.
 
 ### Documentação oficial das APIs
 
@@ -88,7 +155,7 @@ O período foi definido pela cobertura da fonte mais restritiva: a Air Quality A
 - Parâmetros utilizados pelo projeto: `hourly` (lista de poluentes), `start_date`, `end_date`, `timezone=America/Sao_Paulo`
 - Resolução temporal: a série é entregue como horária, mas para coordenadas fora da Europa o dado é originado do domínio CAMS Global, cuja resolução nativa do modelo é de 3 em 3 horas. Os valores horários intermediários são interpolados pela API e não constituem observações independentes.
 - Período histórico disponível na fonte: domínio global (fora da Europa), a partir de agosto de 2022; domínio europeu possui reanálise desde 2013, não aplicável a este projeto.
-- Limitações: dado modelado (CAMS), não corresponde a medição direta de estação; resolução espacial de aproximadamente 45 km fora da Europa; o uso de `start_date` além do intervalo documentado para o parâmetro `past_days` (0 a 92 dias) não é oficialmente garantido pela documentação, ainda que a tabela de fontes de dados confirme cobertura desde agosto de 2022.
+- Limitações: dado modelado (CAMS), não corresponde a medição direta de estação; resolução espacial de aproximadamente 45 km fora da Europa. Embora a documentação descreva `past_days` como limitado a 0–92 dias, a consulta histórica com `start_date`/`end_date` para o intervalo deste projeto foi validada empiricamente em 08/10/2026; esse comportamento deve ser revalidado se a API mudar.
 
 **Open-Meteo Historical Weather API**
 - Endpoint: `GET https://archive-api.open-meteo.com/v1/archive`
@@ -100,44 +167,53 @@ O período foi definido pela cobertura da fonte mais restritiva: a Air Quality A
 
 **Unidade de análise:** cada linha corresponde a uma observação horária no ponto de coleta (-23.514561, -46.186832, Mogi das Cruzes/SP, fuso horário `America/Sao_Paulo`), conforme definido no RFC.
 
-**N após o merge:** pendente — o merge das duas fontes ainda não foi realizado.
+**N após o merge:** 744 registros no arquivo legado de janeiro/2025 e 35.736 no arquivo do período ampliado (`dados_merged_2022-08-04_2026-08-31.csv`).
 
-**Split:** pendente — será temporal, com definição prevista para a Sprint 2; o conjunto de teste corresponderá ao período mais recente.
+**Split temporal:** implementado em `src/validacao/Separacao_Temporal.py`. Os folds expansivos de validação usam os quatro trimestres de 2024; o teste final cobre 2025–2026. Os limites são configurados em `config/params.yaml` e atribuídos pela hora do rótulo (`time + 1h`).
 
-**Dicionário de dados:** `docs/Dicionario_de_Dados.md`, já criado conforme `SPRINT1_TRILHA.md`. Recomenda-se conferir se o conteúdo do arquivo corresponde à tabela de variáveis apresentada a seguir.
+**Dicionário de dados:** `docs/Dicionario_de_Dados.md`.
 
 ### Variáveis coletadas
 
-O critério adotado para a classe positiva é o IQAr consolidado, calculado como o maior sub-índice entre os seis poluentes coletados (metodologia CETESB), com a faixa de 101 a 199 correspondendo à classificação de qualidade do ar inadequada.
+O critério de classe positiva adotado é IQAr > 100, incluindo categorias mais graves; classe 0 corresponde a IQAr <= 100. O cálculo implementado segue a Tabela 2.7 e a seção 2.3 do relatório CETESB 2025: cada poluente recebe um subíndice por interpolação linear, e o IQAr é o maior entre os seis subíndices.
+
+| Poluente | Janela móvel terminando no horário avaliado |
+|---|---:|
+| `pm10`, `pm2_5`, `sulphur_dioxide` | 24 horas |
+| `ozone`, `carbon_monoxide` | 8 horas |
+| `nitrogen_dioxide` | 1 hora |
+
+Como a API retorna CO em µg/m³ e a tabela CETESB usa ppm, a concentração média de CO é convertida pela lei dos gases ideais a 25 °C e 1 atm antes do cálculo do subíndice. O rótulo da linha *t* usa o IQAr calculado no horário *t+1h*. Se faltar dado necessário em qualquer janela de qualquer um dos seis poluentes, o IQAr e o rótulo daquele horário ficam indefinidos; o rótulo não é imputado. Os subíndices e o IQAr calculados no instante *t* são colunas de auditoria/características candidatas; nenhum valor posterior a *t* deve entrar nas features.
+
+Esse alvo é uma estimativa metodológica baseada em concentrações horárias modeladas/interpoladas pela Open-Meteo; não é o IQAr oficial de uma estação CETESB. Na base completa, há 904 positivos entre 35.713 rótulos definidos (2,53%). O CSV de janeiro/2025 foi a amostra inicial preservada; a avaliação final foi definida para 2025–2026, com 161 positivos em 14.592 linhas.
 
 | Variável | Fonte | Unidade | Justificativa | Papel |
 |---|---|---|---|---|
-| `pm10` | Air Quality | µg/m³ | Poluente regulado pelo IQAr; indicador de material particulado grosso, associado a queimadas e poeira urbana. | Feature (valor no instante *t*) e base do alvo (valor em *t+1h*, via deslocamento temporal) |
-| `pm2_5` | Air Quality | µg/m³ | Poluente regulado pelo IQAr; partícula fina com maior impacto respiratório, frequentemente responsável pelo sub-índice mais crítico em áreas urbanas. | Feature (t) e base do alvo (t+1h) |
-| `carbon_monoxide` | Air Quality | µg/m³ | Poluente regulado pelo IQAr; indicador de queima incompleta, associado a tráfego e queimadas. | Feature (t) e base do alvo (t+1h) |
-| `nitrogen_dioxide` | Air Quality | µg/m³ | Poluente regulado pelo IQAr; associado a emissões veiculares. | Feature (t) e base do alvo (t+1h) |
-| `sulphur_dioxide` | Air Quality | µg/m³ | Poluente regulado pelo IQAr; associado à queima de combustíveis fósseis industriais. | Feature (t) e base do alvo (t+1h) |
-| `ozone` | Air Quality | µg/m³ | Poluente regulado pelo IQAr; formado fotoquimicamente, sensível a temperatura e radiação solar. | Feature (t) e base do alvo (t+1h) |
+| `pm10` | Air Quality | µg/m³ | Poluente regulado pelo IQAr; indicador de material particulado grosso, associado a queimadas e poeira urbana. | Feature em *t*; alvo usa média móvel de 24h até *t+1h* |
+| `pm2_5` | Air Quality | µg/m³ | Poluente regulado pelo IQAr; partícula fina com maior impacto respiratório, frequentemente responsável pelo subíndice mais crítico em áreas urbanas. | Feature em *t*; alvo usa média móvel de 24h até *t+1h* |
+| `carbon_monoxide` | Air Quality | µg/m³ | Poluente regulado pelo IQAr; indicador de queima incompleta, associado a tráfego e queimadas. | Feature em *t*; alvo usa média móvel de 8h até *t+1h* e conversão para ppm |
+| `nitrogen_dioxide` | Air Quality | µg/m³ | Poluente regulado pelo IQAr; associado a emissões veiculares. | Feature em *t*; alvo usa concentração de 1h em *t+1h* |
+| `sulphur_dioxide` | Air Quality | µg/m³ | Poluente regulado pelo IQAr; associado à queima de combustíveis fósseis industriais. | Feature em *t*; alvo usa média móvel de 24h até *t+1h* |
+| `ozone` | Air Quality | µg/m³ | Poluente regulado pelo IQAr; formado fotoquimicamente, sensível a temperatura e radiação solar. | Feature em *t*; alvo usa média móvel de 8h até *t+1h* |
 | `temperature_2m` | Historical Weather | °C | Influencia a formação de ozônio e a dispersão vertical dos poluentes. | Feature |
 | `relative_humidity_2m` | Historical Weather | % | Afeta a permanência de material particulado em suspensão. | Feature |
 | `precipitation` | Historical Weather | mm | A chuva remove particulados da atmosfera por lavagem úmida, explicando quedas súbitas de concentração. | Feature |
 | `wind_speed_10m` | Historical Weather | km/h | O vento dispersa poluentes; velocidades baixas favorecem acúmulo e picos de concentração. | Feature |
 | `pressure_msl` | Historical Weather | hPa | Associada à estabilidade atmosférica; pressão alta e vento fraco favorecem inversões térmicas e acúmulo de poluentes. | Feature |
 
-**Atenção ao risco de vazamento:** os seis poluentes desempenham dupla função no projeto — como feature, no valor observado em *t*, disponível no instante da previsão; e como insumo do alvo, no valor em *t+1h*, deslocado para o cálculo do IQAr da hora seguinte. Trata-se da mesma coluna em dois momentos distintos: a versão em *t+1h*, utilizada para compor o alvo, não deve integrar a lista de features do modelo — apenas a versão em *t*. A implementação formal do deslocamento temporal e da exclusão de variáveis por vazamento está prevista para a Sprint 2; o critério e a justificativa já estão consolidados neste documento.
+**Atenção ao risco de vazamento:** os seis poluentes desempenham dupla função — como candidatos a feature nos valores disponíveis até *t* e como insumos do alvo nas janelas que terminam em *t+1h*. As colunas calculadas no horário *t+1h* são usadas apenas para gerar `qualidade_ar_inadequada_1h` e não devem integrar as features. O cálculo do alvo e o split temporal estão implementados; a seleção e a engenharia de features sem vazamento continuam pendentes.
 
 ---
 
 ## Modelo
 
-Nenhum destes itens é esperado antes da Sprint 3; estão registrados aqui como referência do contrato entre sprints.
-
 | Item | Status |
 |---|---|
-| Baseline | A definir na Sprint 3 (Dummy `most_frequent` e Persistência) |
-| Modelo final | A definir na Sprint 5, no pipeline final |
-| Limiar de decisão | A definir na validação; não deve ser otimizado no conjunto de teste |
-| Métrica principal | A definir — provavelmente recall ou F1 da classe positiva, em conformidade com o custo de falso negativo definido no RFC |
+| Baseline | Dummy prior, persistência pelo IQAr em *t* e Gaussian Naive Bayes com features S4 |
+| Modelo selecionado | Random Forest balanceada, 300 árvores, `min_samples_leaf=2`, `random_state=42` |
+| Limiar de decisão | 0,3, congelado na validação temporal 2024-Q4 |
+| Métrica principal no teste | Recall 0,9814 da classe positiva; 3 FN e 44 FP |
+| Artefato | `models/modelo_final_sprint5.joblib` (pipeline, features e limiar) |
 
 ---
 
@@ -151,21 +227,27 @@ Ciencia-de-Dados-e-Aprendizagem-de-Maquina/
 ├── LICENSE                           # concluído (MIT)
 ├── requirements.txt                  # concluído
 ├── config/
-│   └── params.yaml                   # pendente (configuração ainda em Coleta_Dados.py)
+│   └── params.yaml                   # configurado para o período validado
 ├── data/
-│   ├── raw/                          # concluído: air_quality_raw.json, weather_raw.json
-│   │                                 # (período de teste; recoleta com o período oficial pendente)
-│   ├── interim/                      # pendente (Sprint 2)
+│   ├── raw/                          # JSONs de janeiro/2025 e arquivos versionados do período ampliado
+│   ├── interim/                      # merge (35.736) e alvo (35.736) do período ampliado
 │   └── processed/                    # pendente (Sprints 3 a 5)
-├── notebooks/                        # criada, ainda vazia
+├── notebooks/
+│   ├── 01_Coleta_Dados.ipynb         # consulta APIs e salva os JSONs brutos
+│   └── 02_Merge_Dados.ipynb          # audita horários e integra as fontes
 ├── src/
-│   └── coleta/
-│       └── Coleta_Dados.py           # concluído
+│   ├── coleta/
+│   │   └── Coleta_Dados.py           # concluído; não sobrescreve outro período
+│   ├── transformacao/
+│   │   ├── Merge_Dados.py            # merge versionado por período
+│   │   └── Calcular_Alvo_IQAr.py      # subíndices CETESB e rótulo t+1h
+│   └── validacao/
+│       └── Separacao_Temporal.py     # folds expansivos e teste final por horário-alvo
 ├── models/                           # pendente (Sprint 5)
 ├── docs/
-│   ├── RFC.md                        # concluído — RFC_Proposta_de_Projeto_Template.md
-│   ├── Dicionario_de_Dados.md        # concluído — conforme SPRINT1_TRILHA.md
-│   └── sprints/                      # pendente — deve receber o SPRINT1_TRILHA.md
+│   ├── RFC.md
+│   ├── Dicionario_de_Dados.md
+│   └── sprints/
 └── reports/                          # pendente
 ```
 
@@ -173,7 +255,7 @@ A pasta `data/` não deve ser versionada integralmente no Git; recomenda-se mant
 
 ---
 
-## Trabalho realizado
+## Trabalho realizado na Sprint 1 (registro histórico)
 
 - Configuração centralizada (local, latitude, longitude, datas, fuso horário), sem valores fixados diretamente no código de coleta.
 - Requisições às duas fontes exigidas pela Trilha B (qualidade do ar e clima), com `timeout=30` e `raise_for_status()`.
@@ -182,19 +264,18 @@ A pasta `data/` não deve ser versionada integralmente no Git; recomenda-se mant
 - Dicionário de dados v0.1 criado.
 - `requirements.txt` e `LICENSE` (MIT) adicionados ao repositório.
 
-## Pendências para o encerramento da Sprint 1
+## Pendências registradas no plano original da Sprint 1
+
+> Lista histórica do plano inicial; não representa o estado atual do projeto. Consulte a tabela de estado atual no início deste README.
 
 | Pendência | Prioridade |
 |---|---|
-| Recoletar os dados com o período oficial (31/08/2022 a 31/08/2026) | Crítica — bloqueia as demais pendências desta lista |
-| Validar empiricamente a cobertura da Air Quality API no período oficial, antes da recoleta | Alta |
-| Realizar o merge das duas fontes, com `how` e `validate` explicitados e justificados, e registrar o N resultante | Alta — depende da recoleta |
-| Adicionar tratamento de exceções de rede (`try/except requests.RequestException`) e inspeção completa da resposta (`status_code`, `headers`, `Content-Type`, `resposta.url`) antes de qualquer transformação | Alta |
-| Migrar a configuração para `config/params.yaml` | Média |
-| Criar `docs/sprints/` e mover `SPRINT1_TRILHA.md` para essa pasta | Média |
-| Popular a pasta `notebooks/` | Média |
+| Recoletar e persistir os dados de 04/08/2022 a 31/08/2026, preservando/versionando os arquivos atuais | Alta |
+| Validar esquema e erros da resposta da API; reforçar verificações de unicidade e cobertura no merge | Alta |
+| Definir e implementar o alvo IQAr > 100, o split temporal e as features sem vazamento | Alta |
+| Criar notebooks didáticos para análise e modelagem | Média |
 | Registrar a contribuição individual de Eudenis, Gabriel e João Pedro (commits próprios ou diário de sprint) | Média |
-| Nomear o usuário da decisão e desenvolver em texto corrido a discussão do custo de falso negativo no RFC | Baixa |
+| Atualizar documentação e dicionário com resultados efetivamente persistidos e experimentos | Média |
 
 Observação: limpeza, análise exploratória e engenharia de atributos não fazem parte do escopo da Sprint 1; essas atividades estão previstas para a Sprint 2, a partir do dado já tratado.
 
@@ -202,8 +283,7 @@ Observação: limpeza, análise exploratória e engenharia de atributos não faz
 
 ## Documentação
 
-- RFC: `docs/RFC.md` (`RFC_Proposta_de_Projeto_Template.md`)
+- RFC: `docs/RFC.md`
 - Dicionário de dados: `docs/Dicionario_de_Dados.md`
-- Relatório da Sprint 1: `SPRINT1_TRILHA.md` (a mover para `docs/sprints/`)
+- Relatório da Sprint 1: `docs/sprints/Sprint1_TrilhaB.md`
 - Model card: previsto no diário da Sprint 5
-

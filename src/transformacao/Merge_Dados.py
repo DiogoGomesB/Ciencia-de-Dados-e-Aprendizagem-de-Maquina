@@ -1,6 +1,7 @@
 import json
 import pandas as pd
 import os
+import yaml
 
 
 # ============================================================
@@ -11,8 +12,25 @@ print("=" * 60)
 print("MERGE DOS DADOS - QUALIDADE DO AR + CLIMA")
 print("=" * 60)
 
-caminho_air_quality = os.path.join("data", "raw", "air_quality_raw.json")
-caminho_weather = os.path.join("data", "raw", "weather_raw.json")
+caminho_config = os.path.join("config", "params.yaml")
+with open(caminho_config, "r", encoding="utf-8") as f:
+    config = yaml.safe_load(f)
+
+collection = config["collection"]
+paths = config["paths"]
+periodo = {
+    "start_date": collection["start_date"],
+    "end_date": collection["end_date"],
+}
+
+caminho_air_quality = os.path.join(
+    paths["raw_data"],
+    paths["air_quality_raw_filename"].format(**periodo),
+)
+caminho_weather = os.path.join(
+    paths["raw_data"],
+    paths["weather_raw_filename"].format(**periodo),
+)
 
 with open(caminho_air_quality, "r", encoding="utf-8") as f:
     dados_air_quality = json.load(f)
@@ -79,7 +97,7 @@ else:
 # 5. CRIAR DIRETÓRIO data/interim
 # ============================================================
 
-pasta_interim = os.path.join("data", "interim")
+pasta_interim = paths["interim_data"]
 os.makedirs(pasta_interim, exist_ok=True)
 
 
@@ -91,7 +109,14 @@ print("\n" + "=" * 60)
 print("SALVANDO DADOS MERGED")
 print("=" * 60)
 
-caminho_saida = os.path.join(pasta_interim, "dados_merged.csv")
+caminho_saida = os.path.join(
+    pasta_interim,
+    paths["merged_filename"].format(**periodo),
+)
+if os.path.exists(caminho_saida):
+    raise FileExistsError(
+        f"O arquivo de merge já existe e não será sobrescrito: {caminho_saida}"
+    )
 
 df_merged.to_csv(caminho_saida, index=False, encoding="utf-8")
 

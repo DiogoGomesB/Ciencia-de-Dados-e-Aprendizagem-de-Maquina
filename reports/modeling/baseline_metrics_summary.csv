@@ -1,0 +1,8 @@
+modelo,grupo_features,folds,media_precisao_classe_1,media_recall_classe_1,media_f1_classe_1,media_f1_macro,tn_total,fp_total,fn_total,tp_total,positivos_validacao
+dummy_prior,referencia_independente_de_features,4,0.0,0.0,0.0,0.4887,8397,0,387,0,387
+gaussian_naive_bayes,poluentes_brutos_meteorologia,4,0.2996,0.6882,0.4134,0.6851,7814,583,114,273,387
+gaussian_naive_bayes,poluentes_subindices_meteorologia,4,0.4217,0.9985,0.5914,0.7788,7860,537,1,386,387
+gaussian_naive_bayes,poluentes_subindices_sem_iqar_meteorologia,4,0.4254,0.9956,0.5942,0.7799,7855,542,3,384,387
+gaussian_naive_bayes,subindices_meteorologia,4,0.4491,0.9985,0.6175,0.7938,7921,476,1,386,387
+gaussian_naive_bayes,subindices_sem_iqar_meteorologia,4,0.5057,0.9949,0.6669,0.8208,7995,402,3,384,387
+persistencia_iqar_atual,referencia_independente_de_features,4,0.8196,0.8196,0.8196,0.9057,8329,68,68,319,387

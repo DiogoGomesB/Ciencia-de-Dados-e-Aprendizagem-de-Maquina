@@ -1,10 +1,10 @@
 # Relatório auxiliar — exploração dos dados de qualidade do ar
 
-Este documento explica, em linguagem acessível, o objetivo do projeto, os dados usados, o que foi calculado na análise exploratória (EDA), o que os gráficos mostram e quais conclusões podem ou não ser tiradas. Foi escrito para leitores que não acompanharam as etapas anteriores.
+Este documento explica, em linguagem acessível, o objetivo do projeto, os dados usados, o que foi calculado na análise exploratória (EDA), o que os gráficos mostram e quais conclusões podem ou não ser tiradas. Também orienta uma pessoa que não participou do desenvolvimento a abrir a demonstração, executar o fluxo seguro e interpretar a saída. Foi escrito para leitores que não acompanharam as etapas anteriores.
 
 ## 1. Em poucas palavras: qual é o projeto?
 
-O projeto investiga se é possível estimar, com uma hora de antecedência, se a qualidade do ar estará inadequada em um ponto de referência da região da Universidade Braz Cubas, em Mogi das Cruzes/SP.
+O projeto investiga se é possível estimar, com uma hora de antecedência, se a qualidade do ar estará inadequada em um ponto de referência da região da Universidade Braz Cubas, em Mogi das Cruzes/SP. **Ele não é um sensor nem uma estação de medição:** usa séries históricas estimadas por modelos atmosféricos e de reanálise, disponibilizadas por APIs.
 
 Para transformar essa pergunta em uma tarefa de ciência de dados, cada observação tem:
 
@@ -23,6 +23,40 @@ As séries horárias foram consultadas em duas fontes da Open-Meteo para as coor
 O intervalo ampliado vai de **04/08/2022 a 31/08/2026**, totalizando 35.736 horários por fonte. Os timestamps das fontes foram integrados em uma tabela. Os arquivos brutos são preservados em `data/raw/`; os dados integrados e rotulados ficam em `data/interim/`. Os arquivos de janeiro de 2025 anteriores à ampliação foram mantidos.
 
 **Importante sobre a origem:** para esta região, a série de qualidade do ar é baseada em modelagem atmosférica CAMS Global, com valores horários intermediários interpolados pela API. A série meteorológica também vem de dados de arquivo/reanálise. Portanto, os dados representam estimativas para uma grade espacial, não medições diretas naquele endereço. O ponto de grade retornado pela API pode diferir um pouco das coordenadas solicitadas.
+
+### 2.1 O que significa cada dado coletado?
+
+Cada linha da base representa um horário (`time`) no ponto configurado. Os nomes abaixo são os nomes técnicos que aparecem nos arquivos CSV e no código. As unidades são as fornecidas pelas fontes nesta coleta.
+
+| Nome no arquivo | Nome simples | Unidade | O que representa / por que foi incluído |
+|---|---|---|---|
+| `time` | Data e hora | Data/hora local | Identifica quando valem as demais informações. É usado para manter a ordem da série, montar janelas passadas e separar treino, validação e teste. Não é uma medição de poluente. |
+| `pm10` | Partículas PM10 | µg/m³ | Massa estimada de partículas inaláveis de até cerca de 10 micrômetros por volume de ar. É um dos poluentes considerados no cálculo do IQAr. |
+| `pm2_5` | Partículas PM2,5 | µg/m³ | Partículas finas de até cerca de 2,5 micrômetros por volume de ar. É um insumo do IQAr e também gera atributos de tendência recente usados pelo modelo. |
+| `carbon_monoxide` | Monóxido de carbono (CO) | µg/m³ | Concentração estimada de CO. Entra no cálculo do subíndice após a conversão prevista no código para a unidade exigida pela tabela CETESB. |
+| `nitrogen_dioxide` | Dióxido de nitrogênio (NO₂) | µg/m³ | Concentração estimada de NO₂; entra no cálculo do respectivo subíndice do IQAr. |
+| `sulphur_dioxide` | Dióxido de enxofre (SO₂) | µg/m³ | Concentração estimada de SO₂; entra no cálculo do respectivo subíndice do IQAr. |
+| `ozone` | Ozônio (O₃) | µg/m³ | Concentração estimada de ozônio; entra no IQAr e gera atributos de média e variação recente usados pelo modelo. |
+| `temperature_2m` | Temperatura a 2 m | °C | Temperatura do ar estimada a dois metros de altura. É uma variável meteorológica de contexto. |
+| `relative_humidity_2m` | Umidade relativa a 2 m | % | Umidade relativa do ar estimada a dois metros de altura. É contexto meteorológico. |
+| `precipitation` | Precipitação | mm | Quantidade de precipitação no intervalo horário segundo a fonte. É contexto meteorológico. |
+| `wind_speed_10m` | Velocidade do vento a 10 m | km/h | Velocidade estimada do vento a dez metros. É contexto meteorológico que pode acompanhar diferentes condições de dispersão. |
+| `pressure_msl` | Pressão ao nível médio do mar | hPa | Pressão atmosférica estimada e ajustada ao nível médio do mar. É contexto meteorológico. |
+
+**Atenção:** as descrições explicam o significado geral das variáveis, não provam que uma delas cause a piora do IQAr. As fontes são modeladas/reanalisadas e a resolução espacial não equivale a uma estação local. As features finais do modelo são um subconjunto dessas colunas mais quatro atributos derivados; a lista exata está em `FEATURES_SPRINT4` no código e no [Dicionário de Dados](Dicionario_de_Dados.md).
+
+### 2.2 O que acontece com os dados em cada etapa?
+
+| Etapa | O que entra | O que o programa faz | Arquivo/resultado |
+|---|---|---|---|
+| Coleta | Respostas das APIs Open-Meteo para datas, coordenadas e variáveis da configuração | Salva a resposta original de qualidade do ar e a resposta de clima sem misturar as fontes | Dois arquivos JSON em `data/raw/` |
+| Integração (*merge*) | Os dois JSONs | Junta as tabelas pelo horário comum e verifica a quantidade de linhas, ausências e duplicatas | CSV integrado em `data/interim/` |
+| Construção do alvo | CSV integrado e concentrações dos seis poluentes | Calcula subíndices pelas janelas CETESB, forma o IQAr como o maior subíndice e marca se o IQAr futuro em `t+1h` passa de 100 | CSV rotulado em `data/interim/`; contém features e também colunas calculadas para análise/alvo |
+| Treino e validação | Features retrospectivas e rótulos do desenvolvimento | Ajusta o pipeline e compara modelos/limiares usando períodos temporais de validação | Métricas e previsões CSV em `reports/modeling/` |
+| Empacotamento | Dados anteriores ao início do holdout e decisão já congelada | Ajusta o pipeline escolhido e guarda classificador, features e limiar para reutilização | `models/modelo_final_sprint5.joblib` |
+| Demonstração | Artefato empacotado e features históricas anteriores ao holdout | Calcula features temporais, estima probabilidade e aplica o limiar salvo | Tabela mostrada no notebook; não é avaliação nem previsão atual |
+
+Os arquivos `JSON` conservam a resposta original estruturada da API. Os arquivos `CSV` são tabelas: cada linha corresponde a um horário e cada coluna a uma variável ou resultado calculado. Os relatórios CSV contêm resultados de experimentos; não são dados brutos nem previsões oficiais.
 
 ## 3. Como foi construído o resultado que se quer prever?
 
@@ -46,6 +80,21 @@ O CO chega da API em µg/m³, enquanto a tabela CETESB usa ppm; por isso, sua m�
 
 Se faltar informação para completar uma janela, o índice e o rótulo dependentes dela ficam indefinidos; esses valores não são inventados por imputação. No conjunto ampliado, há **35.713 rótulos definidos** (904 positivos e 34.809 negativos) e 23 indefinidos, principalmente por aquecimento das janelas no início da série e pela falta de uma hora futura na última linha.
 
+### 3.1 O que significam as colunas calculadas?
+
+Além das colunas recebidas das APIs, o CSV rotulado contém resultados construídos pelo projeto. Eles não são novas medições:
+
+| Coluna ou grupo | Significado em linguagem simples | Uso |
+|---|---|---|
+| `iqar_pm10`, `iqar_pm2_5`, `iqar_carbon_monoxide`, `iqar_nitrogen_dioxide`, `iqar_sulphur_dioxide`, `iqar_ozone` | Subíndice de qualidade do ar calculado separadamente para cada poluente, conforme a tabela CETESB e a janela indicada acima. | Descrevem o nível relativo atribuído a cada poluente no horário avaliado. |
+| `iqar` | O maior valor entre os seis subíndices daquele horário. | Resume qual poluente determina o IQAr consolidado. |
+| `qualidade_ar_inadequada_1h` | Resultado futuro associado à linha: `1` se o IQAr de `t+1h` for maior que 100; `0` se for menor ou igual a 100; vazio se não for possível calcular o resultado. | É o alvo usado durante o treinamento e na avaliação. **Não é uma entrada permitida para gerar a previsão.** |
+| `media_3h_ozone`, `media_3h_pm2_5` | Média dos valores horários do respectivo poluente em `t`, `t−1h` e `t−2h`. | Resume o nível recente de ozônio e PM2,5 usando o instante atual e passado, sem olhar adiante. |
+| `delta_2h_ozone`, `delta_2h_pm2_5` | Valor do poluente em `t` menos seu valor em `t−2h`. Um número positivo indica valor maior em `t` do que duas horas antes; negativo indica valor menor. | Representa mudança ao longo de duas horas; não é uma taxa por hora nem prova causa. |
+| `event_time` | Horário do evento que corresponde ao alvo, calculado como `time + 1 hora`. | Ajuda a atribuir corretamente linhas a treino, validação ou teste. É metadado de avaliação, não uma medição nem uma feature do modelo. |
+
+O modelo final usa subíndices individuais, variáveis meteorológicas e as quatro features retrospectivas da tabela, conforme a lista congelada da Sprint 4. A coluna consolidada `iqar` e o alvo `qualidade_ar_inadequada_1h` não fazem parte das features finais. Os nomes e a lista exata podem ser conferidos no [Dicionário de Dados](Dicionario_de_Dados.md) e em `FEATURES_SPRINT4` no código.
+
 ## 4. Qual parte dos dados entrou nesta EDA?
 
 A EDA foi feita somente no **desenvolvimento**, com rótulos cujo evento previsto (`time + 1h`) ocorre antes de 01/01/2025:
@@ -55,7 +104,7 @@ A EDA foi feita somente no **desenvolvimento**, com rótulos cujo evento previst
 - **20.378 eventos negativos**;
 - **prevalência positiva de 3,52%**.
 
-O período de teste final, 2025–2026, não foi usado para gerar estes gráficos ou orientar a investigação de extremos. Há, contudo, uma ressalva metodológica: antes da definição final do corte, a série completa tinha sido examinada descritivamente, incluindo taxas e médias por classe em 2025–2026. Não houve treino de modelos nem ajuste de limiar com o holdout, mas ele não é totalmente cego. As decisões futuras de features e modelos devem ficar restritas ao desenvolvimento e aos folds temporais de 2024.
+O período de teste final, 2025–2026, não foi usado para gerar estes gráficos nem para orientar a investigação de extremos desta EDA. Há, contudo, uma ressalva metodológica: antes da definição final do corte, a série completa tinha sido examinada descritivamente, incluindo taxas e médias por classe em 2025–2026; por isso, o holdout não é totalmente cego. Posteriormente, após congelar modelo e limiar na validação, o holdout foi avaliado uma única vez na Sprint 5. Ele não deve ser reaberto para seleção ou ajuste.
 
 ## 5. O que foi analisado e para que serve cada gráfico?
 
@@ -111,11 +160,11 @@ O episódio ilustra por que é necessário respeitar a definição do alvo: os m
 2. Concentrações e índices derivados podem ser candidatos a features, desde que sejam calculados apenas com dados disponíveis em `t`.
 3. CO, PM10 e PM2,5 têm distribuições assimétricas e episódios de valores elevados. Como não existe medição local independente para validar esses pontos, a decisão foi **preservar todos os valores**, sem exclusão, imputação ou clipping.
 4. Poluentes brutos e índices derivados carregam informação relacionada. Foi aprovado comparar, nos mesmos folds de 2024, três conjuntos: (a) poluentes brutos + meteorologia; (b) subíndices/IQAr + meteorologia; (c) os dois grupos + meteorologia.
-5. A EDA em si não selecionou modelo nem limiar. A seção seguinte registra a primeira comparação de baselines nos folds; modelo, features e limiar finais continuam sem seleção, mantendo 2025–2026 reservado.
+5. A EDA não selecionou modelo nem limiar. As etapas seguintes compararam features (Sprint 4) e modelos/limiares (Sprint 5) usando validação temporal; a seleção final foi congelada antes da única avaliação do holdout.
 
-## 7. Primeiros baselines nos folds de 2024
+## 7. Primeiros baselines nos folds de 2024 — resultado histórico da Sprint 3
 
-Após a EDA, os três grupos aprovados foram comparados nos mesmos quatro trimestres de validação de 2024. Os dados de 2025–2026 não entraram no treinamento, na validação nem nesta comparação.
+Após a EDA, os três grupos aprovados foram comparados nos mesmos quatro trimestres de validação de 2024. Na Sprint 3, os dados de 2025–2026 não entraram no treinamento, na validação nem nesta comparação. Esses resultados são o baseline histórico da etapa, não a decisão final do projeto.
 
 Foram usados três pontos de referência:
 
@@ -155,28 +204,149 @@ No Q3, o grupo somente de subíndices passou de 224 para 216 falsos positivos, m
 
 Para explorar o custo relativo entre falsos negativos e falsos positivos, foi avaliada uma grade de 101 limiares (0,00 a 1,00, passo 0,01) em janelas internas temporais: para cada fold trimestral de 2024, a validação interna é o trimestre imediatamente anterior e o modelo é ajustado apenas com dados ainda anteriores. As janelas vão de 2023-Q4 a 2024-Q3; somadas, contêm 8.340 negativos e 444 positivos. Nenhuma dessas medições usa 2025–2026, e o fold externo correspondente não participa da análise do limiar.
 
-Exemplo ilustrativo para o Gaussian Naive Bayes com subíndices individuais e meteorologia, sem `iqar`: nas janelas internas, o limiar 0,50 produziu 4 falsos negativos e 428 falsos positivos (recall agregado de 0,9925); o limiar 0,25 produziu 2 falsos negativos e 543 falsos positivos (recall agregado de 0,9971). A redução de dois falsos negativos veio acompanhada de 115 falsos positivos adicionais. Contando a classe prevista positiva por hora, foram 868 horas de alerta (98,8 por mil horas de validação) no limiar 0,50 e 985 (112,1 por mil) no limiar 0,25. Pela regra acordada com a equipe — uma hora negativa encerra o episódio — essas previsões formaram 141 e 146 episódios, respectivamente (16,1 e 16,6 por mil horas). Entre as horas previstas como positivas, 49,3% e 55,1%, respectivamente, eram falsos alertas. A contagem de episódios resume previsões consecutivas; não mede se o episódio real foi detectado nem representa por si só o número de ações operacionais. Isso mostra o trade-off, mas não escolhe o ponto operacional: a equipe ainda precisa decidir a carga aceitável. O limiar 0,25 é apenas um exemplo de leitura da curva, não uma recomendação nem um valor selecionado.
+Exemplo ilustrativo para o Gaussian Naive Bayes com subíndices individuais e meteorologia, sem `iqar`: nas janelas internas, o limiar 0,50 produziu 4 falsos negativos e 428 falsos positivos (recall agregado de 0,9925); o limiar 0,25 produziu 2 falsos negativos e 543 falsos positivos (recall agregado de 0,9971). A redução de dois falsos negativos veio acompanhada de 115 falsos positivos adicionais. Contando a classe prevista positiva por hora, foram 868 horas de alerta (98,8 por mil horas de validação) no limiar 0,50 e 985 (112,1 por mil) no limiar 0,25. Pela regra acordada com a equipe — uma hora negativa encerra o episódio — essas previsões formaram 141 e 146 episódios, respectivamente (16,1 e 16,6 por mil horas). Entre as horas previstas como positivas, 49,3% e 55,1%, respectivamente, eram falsos alertas. A contagem de episódios resume previsões consecutivas; não mede se o episódio real foi detectado nem representa por si só o número de ações operacionais. O limiar 0,25 é apenas um exemplo da exploração histórica da Sprint 3, não a escolha final. A decisão posterior da Sprint 5 está descrita na seção seguinte.
 
 Os CSVs [`baseline_threshold_tradeoff_by_inner_fold.csv`](../reports/modeling/baseline_threshold_tradeoff_by_inner_fold.csv) e [`baseline_threshold_tradeoff_summary.csv`](../reports/modeling/baseline_threshold_tradeoff_summary.csv) trazem os valores por janela e o resumo, incluindo horas e episódios previstos como alerta por mil horas e proporção de falsos alertas entre previsões positivas. A contagem de episódios usa a regra confirmada pela equipe: uma hora negativa encerra a sequência. Ela conta episódios previstos, não acertos de detecção de episódios reais. Os demais artefatos de erros e ablação continuam em [`baseline_misclassified_cases.csv`](../reports/modeling/baseline_misclassified_cases.csv), [`baseline_error_rates_by_month.csv`](../reports/modeling/baseline_error_rates_by_month.csv), [`baseline_error_rates_by_hour.csv`](../reports/modeling/baseline_error_rates_by_hour.csv), [`baseline_iqar_ablation_by_fold.csv`](../reports/modeling/baseline_iqar_ablation_by_fold.csv) e [`baseline_iqar_ablation_summary.csv`](../reports/modeling/baseline_iqar_ablation_summary.csv). Eles se referem ao desenvolvimento/validações internas de 2023-Q4–2024; não incluem o holdout.
 
 Resultados detalhados por trimestre, grupo e matriz de confusão estão em [`reports/modeling/baseline_metrics_by_fold.csv`](../reports/modeling/baseline_metrics_by_fold.csv) e [`reports/modeling/baseline_metrics_summary.csv`](../reports/modeling/baseline_metrics_summary.csv). Para reproduzir a avaliação, execute `python -m src.modelagem.Avaliar_Baselines` na raiz do repositório.
 
-## 8. Como reproduzir
+## 8. Resultados das Sprints 4 e 5
 
-Na raiz do repositório, com as dependências de `requirements.txt` instaladas:
+### Sprint 4 — features temporais e comparação S3→S4
 
-```bash
+Foram avaliados atributos retrospectivos de ozônio e PM2,5 nos mesmos folds temporais de 2024, sem consultar o holdout. A variante congelada para a etapa seguinte acrescentou médias móveis de 3 horas e deltas de 2 horas, todos calculáveis com observações disponíveis até *t*. No comparativo formal, o Gaussian Naive Bayes S4 teve recall médio 1,0000 contra 0,9949 do grupo-base S3, 0 FN contra 3 e pico semanal de 6 contra 7 episódios. Em contrapartida, passou de 402 para 471 falsos positivos, reduziu F1 de 0,6669 para 0,6261 e manteve 19 semanas acima do teto semanal de três episódios. É um trade-off, não uma melhoria global. A escolha das features e sua limitação por viés de seleção nos folds de desenvolvimento estão documentadas em [`Sprint4_TrilhaB.md`](sprints/Sprint4_TrilhaB.md).
+
+### Sprint 5 — seleção pré-teste e avaliação final única
+
+Na validação temporal 2024-Q4 havia 2.208 observações e 46 positivos. Foram comparados Dummy, persistência, Gaussian Naive Bayes, regressão logística balanceada e Random Forest balanceada. A equipe congelou Random Forest com `class_weight="balanced"`, 300 árvores, `min_samples_leaf=2`, `random_state=42` e limiar 0,3: recall 1,0000, precisão 0,7797, F1 0,8440, 13 falsos positivos e no máximo três episódios em cada uma das 12 semanas completas da validação (máximo de 15 horas de alerta na semana de maior carga). A janela curta e o número reduzido de positivos limitam a confiança na escolha.
+
+Depois de congelada a decisão, o holdout temporal de 01/01/2025 a 31/08/2026 foi avaliado uma única vez: 14.592 observações, 161 positivas. A variante escolhida obteve recall 0,9814, precisão 0,7822 e F1 0,8705, com 158 verdadeiros positivos (TP), 44 falsos positivos (FP), 3 falsos negativos (FN) e 14.387 verdadeiros negativos (TN). Uma das 86 semanas completas excedeu o teto de episódios; o máximo foi cinco episódios e 31 horas de alerta. Os três eventos FN registrados foram 27/12/2025 às 14h, 28/12/2025 às 13h e 31/12/2025 às 15h. A regressão logística `predict` padrão apresentou recall 1,0000 e F1 0,8846 no mesmo holdout, mas não substituiu a escolha congelada, pois o teste não pode ser reutilizado para seleção.
+
+O pipeline treinado somente com o período anterior ao teste foi empacotado em [`modelo_final_sprint5.joblib`](../models/modelo_final_sprint5.joblib). O notebook [`03_Demonstracao_Modelo_Final.ipynb`](../notebooks/03_Demonstracao_Modelo_Final.ipynb) demonstra carregamento e inferência sobre uma linha histórica anterior ao holdout. Como o artefato foi treinado no período usado pelo exemplo, essa previsão é *in-sample*: demonstra o fluxo técnico, mas não estima desempenho nem representa uma previsão atual.
+
+## 9. Como executar e validar, passo a passo
+
+Execute os comandos a partir da raiz do repositório. No Windows, os comandos abaixo usam o Python do ambiente virtual local.
+
+### 9.0 Quero apenas abrir a demonstração e ver o resultado
+
+Se os arquivos do projeto já estão na sua máquina, **não comece pelos notebooks de coleta**. Eles consultam serviços externos e tentam criar arquivos que já existem; o notebook de demonstração usa a base e o modelo que foram preparados anteriormente.
+
+1. Abra a pasta do repositório no VS Code.
+2. Abra o terminal do VS Code (`Terminal` → `Novo Terminal`) e confirme que o terminal está na pasta principal do projeto, onde aparecem `README.md`, `config`, `data`, `models` e `notebooks`.
+3. No Windows, crie o ambiente virtual e instale as dependências uma vez:
+
+   ```powershell
+   py -3.13 -m venv .venv
+   .\.venv\Scripts\python.exe -m pip install -r requirements.txt
+   ```
+
+   Se a pasta `.venv` já existir, não precisa recriá-la; execute apenas a linha de instalação. O projeto foi validado com Python 3.13.7. Se `py -3.13` não for reconhecido, instale Python 3.13 e habilite o launcher `py`, ou selecione o interpretador instalado no VS Code.
+
+4. Abra `notebooks/03_Demonstracao_Modelo_Final.ipynb`. Se o VS Code pedir um kernel, selecione o Python dentro de `.venv`.
+5. Execute as células na ordem, usando **Run All**. Alternativamente, no terminal, abra o notebook no Jupyter:
+
+   ```powershell
+   .\.venv\Scripts\python.exe -m jupyter lab notebooks\03_Demonstracao_Modelo_Final.ipynb
+   ```
+
+6. Vá à última tabela, chamada `resumo`, e leia as colunas explicadas na seção 9.6.
+
+O notebook **não consulta a internet**, não coleta dados, não recalcula o alvo, não treina modelos e não abre o período de teste. Ele depende de `data/interim/dados_com_alvo_2022-08-04_2026-08-31.csv` e `models/modelo_final_sprint5.joblib`. Se algum deles estiver ausente, a execução para com uma mensagem de arquivo necessário não encontrado; não tente recriá-los sem confirmar com a equipe qual versão de dados e artefato deve ser usada.
+
+Na execução de referência, a amostra didática é de 31/12/2024 às 22h, com previsão do evento das 23h, e o texto do resultado é **“Sem alerta pela regra”**. O notebook imprime a probabilidade junto da tabela; o valor exato pode variar se o CSV ou o artefato local tiver sido substituído. Essa amostra faz parte do período de treinamento e serve somente para aprender a ler a saída.
+
+### 9.1 Preparar o ambiente
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+python -m pip install pytest
+```
+
+No VS Code, selecione `.venv\Scripts\python.exe` como interpretador e instale/ative a extensão Jupyter para abrir notebooks. `pytest` é necessário apenas para executar a suíte de testes.
+
+### 9.2 Conferir os arquivos necessários antes de rodar
+
+Verifique a existência de:
+
+- `config/params.yaml`;
+- `data/interim/dados_com_alvo_2022-08-04_2026-08-31.csv`;
+- `models/modelo_final_sprint5.joblib`;
+- a pasta `reports/` com os resultados listados nas seções anteriores.
+
+Os scripts de coleta, merge e cálculo do alvo se recusam a sobrescrever saídas já existentes. Como os dados deste projeto já foram coletados e processados, **não é necessário refazer chamadas às APIs** para validar os resultados atuais. Se estiver montando uma cópia limpa sem os arquivos intermediários, siga a ordem documentada no [`README.md`](../README.md): coleta, merge e cálculo do alvo; confira os caminhos e o período em `config/params.yaml` antes de executar. Não apague nem sobrescreva os arquivos existentes.
+
+### 9.3 Reproduzir a EDA
+
+```powershell
 python -m src.analise.EDA_Desenvolvimento
 ```
 
-O comando imprime a contagem de observações e o resumo de extremos e recria os quatro gráficos. Ele lê `data/interim/dados_com_alvo_2022-08-04_2026-08-31.csv`; não altera os arquivos de dados. Os resultados baseline podem ser recalculados com `python -m src.modelagem.Avaliar_Baselines`.
+O comando lê a base rotulada, separa o desenvolvimento pelo horário do evento (`time + horizonte`) e recria os gráficos em `reports/figures/eda_desenvolvimento/`. Valide que o resumo mostre 21.121 observações, 743 positivos, 20.378 negativos e prevalência de 3,52%; confira se os quatro PNGs foram gerados. Essa EDA não é a avaliação final do modelo.
 
-## 9. Arquivos relacionados
+### 9.4 Reproduzir validações de desenvolvimento (opcional)
+
+Os comandos abaixo ajustam modelos e reescrevem relatórios de validação/desenvolvimento em `reports/modeling/`. Use-os quando precisar reproduzir essas análises; eles não são necessários para abrir os relatórios já gerados:
+
+```powershell
+python -m src.modelagem.Avaliar_Baselines
+python -m src.modelagem.Avaliar_Features_Temporais
+python -m src.modelagem.Comparar_Modelos_Sprint5
+```
+
+Confira os CSVs correspondentes ao comando e compare as métricas, contagens FP/FN e carga semanal com as tabelas das Sprints 3–5. A comparação Sprint 5 usa somente o fold de validação 2024-Q4. Não trate métricas históricas de S3 como resultados finais.
+
+### 9.5 Validar o artefato sem reavaliar o holdout
+
+Para reproduzir a demonstração de inferência, abra `notebooks/03_Demonstracao_Modelo_Final.ipynb` e execute as células em ordem. Ela verifica a existência/configuração do modelo, carrega apenas colunas de features e `time` até antes do holdout, calcula as quatro features de curto prazo e aplica o limiar salvo. O último `event_time` mostrado deve ser anterior a `2025-01-01 00:00:00`. A inferência é *in-sample* e não pode ser usada como métrica de desempenho.
+
+Para repetir os testes automatizados, que usam dados sintéticos:
+
+```powershell
+python -m pytest tests
+```
+
+Os testes cobrem cálculo do alvo, separação temporal, criação de features, comparativos e empacotamento. A aprovação dos testes confirma o comportamento coberto por eles, mas não substitui a conferência dos artefatos e resultados do experimento real.
+
+### 9.6 Como ler a tabela final da demonstração
+
+| Coluna apresentada | Como interpretar |
+|---|---|
+| `horário dos dados até t` | Último horário de entrada usado. Por exemplo, `22:00` significa que as informações disponíveis até as 22h foram usadas; não significa que a qualidade do ar tenha sido medida por este projeto naquele endereço. |
+| `horário do evento previsto` | Horário estimado para a condição futura. Como o horizonte configurado é uma hora, dados até 22h correspondem ao evento previsto para 23h. |
+| `probabilidade estimada de IQAr > 100` | Saída numérica da classe positiva pelo pipeline. É um escore probabilístico do modelo, não uma garantia de que o evento ocorrerá e não uma probabilidade calibrada para uso clínico ou oficial. |
+| `limiar congelado` | Corte usado para transformar o escore em uma classe. Neste projeto é `0.3`, escolhido na validação temporal de 2024-Q4 antes da avaliação final. Não significa que 30% seja um nível universal de risco. |
+| `resultado da regra` | Se o escore for maior ou igual a 0,3, aparece `ALERTA (regra experimental)`; se for menor, aparece `Sem alerta pela regra`. O texto é apenas uma saída didática e não deve ser publicado como aviso oficial. |
+
+**O que o notebook não mostra:** ele não exibe o rótulo real da amostra, porque isso não é necessário para a demonstração; não calcula acerto/erro; não mede qualidade do modelo; não consulta as APIs; não usa dados posteriores ao corte; e não representa a situação atual do ar. Para conhecer as métricas reais do experimento, consulte as tabelas de validação e teste na [Sprint 5](sprints/Sprint5_TrilhaB.md) e os relatórios já salvos em `reports/modeling/`. A avaliação do holdout foi feita uma única vez; não rode o script de avaliação final novamente.
+
+### 9.7 Se aparecer um erro
+
+| Sintoma | O que verificar |
+|---|---|
+| `FileNotFoundError` para `config/params.yaml` | O notebook/terminal não está aberto dentro desta cópia do repositório ou não foi encontrado o diretório raiz. Abra a pasta principal do projeto. |
+| `FileNotFoundError` para o CSV ou o arquivo `.joblib` | O arquivo de dados ou modelo não está presente. Confirme que os arquivos da entrega foram obtidos; não rode avaliação final nem gere um modelo novo apenas para eliminar o erro. |
+| `ModuleNotFoundError` para pandas, sklearn, yaml, joblib ou Jupyter | O kernel selecionado não é o `.venv` do projeto ou as dependências não foram instaladas. Repita a instalação do passo 9.0 e selecione o interpretador correto. |
+| A saída é diferente do exemplo | Confira que a configuração, o CSV e o artefato são os da mesma versão. Uma probabilidade diferente não é necessariamente um erro se o arquivo foi atualizado; não compare a saída didática como métrica. |
+| O notebook diz que o horário alcança o holdout | Pare a execução e não altere o corte para “fazer passar”. Confira `evaluation.final_test.start` e `target_horizon_hours` em `config/params.yaml`, além da ordem e do conteúdo do CSV. |
+
+O script `python -m src.modelagem.Empacotar_Modelo_Final_Sprint5` retreina o modelo no período de treino e grava o mesmo caminho do artefato. Execute-o somente se houver uma solicitação explícita para regenerar esse pacote e após confirmar o split e a versão dos dados; não é necessário para a demonstração.
+
+> **Não executar novamente:** `python -m src.modelagem.Avaliar_Modelo_Final_Sprint5`. Esse script consulta o holdout e grava relatórios do teste. A avaliação final já foi realizada uma única vez; não use os resultados para selecionar outro modelo, ajustar limiar ou repetir a avaliação.
+
+## 10. Arquivos relacionados
 
 - [`README.md`](../README.md): visão geral e estado do projeto.
 - [`docs/Dicionario_de_Dados.md`](Dicionario_de_Dados.md): definições e contrato das colunas.
 - [`docs/RFC.md`](RFC.md): problema, decisões metodológicas e limitações.
 - [`docs/sprints/Sprint2_TrilhaB.md`](sprints/Sprint2_TrilhaB.md): registro da preparação e EDA.
 - [`docs/sprints/Sprint3_TrilhaB.md`](sprints/Sprint3_TrilhaB.md): protocolo para comparar features e iniciar os baselines.
+- [`docs/sprints/Sprint4_TrilhaB.md`](sprints/Sprint4_TrilhaB.md): features temporais, comparação S3→S4 e trade-offs.
+- [`docs/sprints/Sprint5_TrilhaB.md`](sprints/Sprint5_TrilhaB.md): comparação de modelos, escolha pré-teste, avaliação final e model card.
 - [`src/transformacao/Calcular_Alvo_IQAr.py`](../src/transformacao/Calcular_Alvo_IQAr.py): cálculo dos subíndices, IQAr e rótulo.
+- [`src/transformacao/Features_Temporais.py`](../src/transformacao/Features_Temporais.py): construção retrospectiva das features temporais.
 - [`src/validacao/Separacao_Temporal.py`](../src/validacao/Separacao_Temporal.py): definição dos folds e do holdout temporal.
+- [`src/modelagem/Empacotar_Modelo_Final_Sprint5.py`](../src/modelagem/Empacotar_Modelo_Final_Sprint5.py): treinamento pré-teste e serialização do pipeline final.
+- [`notebooks/03_Demonstracao_Modelo_Final.ipynb`](../notebooks/03_Demonstracao_Modelo_Final.ipynb): demonstração segura de inferência histórica sem rótulos.

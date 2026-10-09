@@ -2,7 +2,7 @@
 
 **Disciplina:** Ciência de Dados e Aprendizado de Máquina
 
-**Título:** Previsão da Qualidade do Ar Inadequada em Na Região da Faculdade UBC
+**Título:** Previsão de Qualidade do Ar Inadequada na Região da Faculdade UBC
 
 **Trilha:** B — Qualidade do ar inadequada
 
@@ -21,14 +21,17 @@ Situação verificada em 09/10/2026. O período de teste de janeiro/2025 foi pre
 | Entrega | Status | Observação |
 |---|---|---|
 | RFC | Existe | `docs/RFC.md`; revisar conforme decisões e resultados do projeto |
-| Dicionário de dados | Atualizado | `docs/Dicionario_de_Dados.md`; alvo, split, EDA e baselines iniciais registrados |
+| Dicionário de dados | Atualizado | `docs/Dicionario_de_Dados.md`; inclui as features congeladas e o modelo final |
 | Coleta bruta das duas fontes | Concluída para o período ampliado | 35.736 horários por fonte em arquivos versionados pelo intervalo; JSONs de janeiro/2025 preservados |
 | Merge das duas fontes | Concluído para o período ampliado | 35.736 linhas em `data/interim/dados_merged_2022-08-04_2026-08-31.csv`; merge de janeiro preservado |
 | Alvo | Implementado e calculado | 35.713 rótulos definidos: 904 positivos (2,53%) e 34.809 negativos; 23 indefinidos |
 | Split temporal | Definido e implementado | Validação expansiva nos quatro trimestres de 2024; teste final de 2025 a 2026, sem embaralhamento |
 | EDA do desenvolvimento | Concluída | Séries, boxplots, correlação entre candidatas e triagem de extremos |
-| Baselines iniciais | Executados | Dummy, persistência e Gaussian Naive Bayes nos quatro folds de 2024; holdout não usado |
-| Seleção de features/modelos | Em andamento | Comparação inicial documentada; análise e iteração de features ainda pendentes |
+| Baselines e comparação de features | Concluídos | Sprints 3–4; comparação S3→S4 e trade-offs documentados nos mesmos folds |
+| Seleção e avaliação do modelo final | Concluídas | Random Forest e limiar 0,3 congelados na validação; holdout avaliado uma única vez |
+| Pipeline final | Empacotado | `models/modelo_final_sprint5.joblib`; inferência demonstrativa em `notebooks/03_Demonstracao_Modelo_Final.ipynb` |
+| Relatórios de análise e modelagem | Gerados | `reports/`; incluem validação, teste final, erros e carga semanal |
+| Testes automatizados | Implementados | `tests/`; cobrem alvo, split, features, baselines, avaliação e empacotamento |
 | `requirements.txt` | Concluída | — |
 | `LICENSE` | Concluída | MIT |
 
@@ -71,6 +74,7 @@ Para acompanhar o fluxo de forma interativa, abra os notebooks em `notebooks/` c
 
 1. [`01_Coleta_Dados.ipynb`](notebooks/01_Coleta_Dados.ipynb) consulta as APIs, inspeciona as respostas e salva os JSONs brutos. A execução faz chamadas externas e recusa sobrescrever arquivos existentes.
 2. [`02_Merge_Dados.ipynb`](notebooks/02_Merge_Dados.ipynb) verifica os arquivos e horários, integra as fontes e salva o CSV em `data/interim/`.
+3. [`03_Demonstracao_Modelo_Final.ipynb`](notebooks/03_Demonstracao_Modelo_Final.ipynb) carrega o pipeline empacotado e demonstra uma inferência histórica. O notebook lê apenas features anteriores ao holdout; não carrega rótulos, não retreina e não reavalia o teste. A previsão demonstrada é in-sample e não mede desempenho nem representa uma previsão atual.
 
 O cálculo do alvo e a validação temporal continuam disponíveis como scripts. Para executar todo o fluxo pelo terminal, use os comandos equivalentes na raiz do projeto:
 
@@ -85,7 +89,14 @@ Os scripts gravam arquivos com o período configurado no nome. Eles recusam sobr
 
 O script de validação temporal lê as partições de `config/params.yaml`, ignora rótulos indefinidos e imprime os tamanhos/classes de cada fold e do teste. A divisão é feita pelo horário do evento previsto (`time + 1h`); os dados não são duplicados nem salvos em novos arquivos.
 
-Os dois primeiros notebooks documentam passo a passo a coleta e a integração das fontes. Outros notebooks de análise e modelagem podem ser acrescentados nas etapas seguintes; os scripts em `src/` continuam disponíveis para execução pelo terminal.
+Os notebooks documentam a coleta, a integração e uma demonstração de inferência. Os experimentos permanecem reproduzíveis pelos scripts em `src/`; não execute `src.modelagem.Avaliar_Modelo_Final_Sprint5` novamente, pois a avaliação do holdout já foi realizada uma única vez.
+
+Para executar os testes automatizados, instale `pytest` e rode a partir da raiz:
+
+```bash
+python -m pip install pytest
+python -m pytest tests
+```
 
 ---
 
@@ -100,7 +111,7 @@ Em 08/10/2026, o intervalo completo foi coletado e salvo: 35.736 horários em ca
 
 ### EDA inicial e avaliação temporal
 
-A análise inicial encontrou 35.713 rótulos definidos e 904 positivos (2,53%). Antes de fixar o split, a série completa foi examinada descritivamente, incluindo taxas por ano e médias condicionadas à classe; por isso, o período 2025–2026 não é um teste totalmente cego. Nenhum modelo ou limiar foi treinado/selecionado com esses dados. A partir do split fixado, as decisões de features e modelos serão baseadas somente no desenvolvimento (2022–2024), e o holdout não será consultado novamente até a avaliação final.
+A análise inicial encontrou 35.713 rótulos definidos e 904 positivos (2,53%). Antes de fixar o split, a série completa foi examinada descritivamente, incluindo taxas por ano e médias condicionadas à classe; por isso, o período 2025–2026 não é um teste totalmente cego. Nenhum modelo ou limiar foi treinado/selecionado com esses dados. Depois de fixado o split, as decisões de features e modelos foram baseadas no desenvolvimento (2022–2024); o holdout foi consultado uma única vez após congelar a escolha na validação.
 
 Para preservar essa ordem temporal, a validação será expansiva nos trimestres de 2024 e a janela de teste final será 2025–2026. Os intervalos são atribuídos pelo horário previsto (`time + 1h`), não apenas pelo horário das features:
 
@@ -131,11 +142,11 @@ Para reproduzir a análise, execute `python -m src.analise.EDA_Desenvolvimento` 
 
 Para uma explicação não técnica da origem e do propósito dos dados, dos cálculos, dos gráficos, dos resultados e de suas limitações, consulte o [relatório auxiliar da EDA](docs/Relatorio_EDA_Desenvolvimento.md).
 
-**Primeiros baselines e ablação:** nos folds de validação de 2024, a persistência pelo IQAr em *t* obteve F1 positivo médio 0,8196. O Gaussian Naive Bayes obteve F1 médio 0,4134 com poluentes brutos, 0,6175 com subíndices/IQAr e 0,5914 com os dois grupos. Remover o `iqar` consolidado reduziu os falsos positivos de 476 para 402 no grupo somente de subíndices, mas no grupo combinado houve aumento de 537 para 542; a ablação também não reduziu a taxa elevada de setembro em Q3. São resultados exploratórios de desenvolvimento, sem ajuste de limiar e sem uso do holdout; nenhuma variante final foi escolhida. O script é `python -m src.modelagem.Avaliar_Baselines`; consulte as [métricas por fold](reports/modeling/baseline_metrics_by_fold.csv), o [resumo](reports/modeling/baseline_metrics_summary.csv), os [casos classificados incorretamente](reports/modeling/baseline_misclassified_cases.csv), as [taxas de erro por mês](reports/modeling/baseline_error_rates_by_month.csv) e o [resumo da ablação](reports/modeling/baseline_iqar_ablation_summary.csv).
+**Primeiros baselines e ablação (Sprint 3):** nos folds de validação de 2024, a persistência pelo IQAr em *t* obteve F1 positivo médio 0,8196. O Gaussian Naive Bayes obteve F1 médio 0,4134 com poluentes brutos, 0,6175 com subíndices/IQAr e 0,5914 com os dois grupos. Remover o `iqar` consolidado reduziu os falsos positivos de 476 para 402 no grupo somente de subíndices, mas no grupo combinado houve aumento de 537 para 542; a ablação também não reduziu a taxa elevada de setembro em Q3. São resultados exploratórios daquele estágio, sem ajuste de limiar e sem uso do holdout; a seleção final ocorreu posteriormente na Sprint 5. O script é `python -m src.modelagem.Avaliar_Baselines`; consulte as [métricas por fold](reports/modeling/baseline_metrics_by_fold.csv), o [resumo](reports/modeling/baseline_metrics_summary.csv), os [casos classificados incorretamente](reports/modeling/baseline_misclassified_cases.csv), as [taxas de erro por mês](reports/modeling/baseline_error_rates_by_month.csv) e o [resumo da ablação](reports/modeling/baseline_iqar_ablation_summary.csv).
 
 **Critério de alertas definido pela equipe:** evitar falsos negativos, aceitando a possibilidade de mais falsos alertas; uma hora prevista como negativa encerra o episódio e o limite é de até três episódios iniciados por semana. Um episódio que atravessa a virada da semana é contado na semana em que começou. Ainda não há teto definido para horas de alerta. Para a entrega final, a equipe congelou Random Forest com limiar 0,3 na validação; o teste final foi consultado uma vez e resultou em uma semana completa acima do teto, sem reutilização para ajustes.
 
-Uma varredura exploratória de 101 limiares em trimestres internos anteriores aos folds externos está disponível em [métricas por janela](reports/modeling/baseline_threshold_tradeoff_by_inner_fold.csv), [resumo do trade-off](reports/modeling/baseline_threshold_tradeoff_summary.csv) e [carga semanal de episódios](reports/modeling/baseline_threshold_alert_episodes_by_week.csv). No grupo de subíndices sem `iqar`, os cenários 0,25 e 0,50 excederam o teto semanal em 21 das 52 semanas completas, com máximos de 6 e 7 episódios e cargas máximas de 90 e 85 horas de alerta por semana. Nenhum limiar entre 0,01 e 0,99 respeitou o teto em todas as semanas. Os extremos também não são adequados: 0,00 emitiu alerta por todas as 8.784 horas e produziu 8.340 falsos positivos; 1,00 deixou 384 dos 444 positivos sem alerta. São cenários internos exploratórios, não limiares selecionados nem estimativas de operação futura. A contagem semanal une as janelas internas antes de agrupar episódios e não mede acerto na detecção de episódios reais; o holdout 2025–2026 permanece sem uso.
+Uma varredura exploratória de 101 limiares em trimestres internos anteriores aos folds externos está disponível em [métricas por janela](reports/modeling/baseline_threshold_tradeoff_by_inner_fold.csv), [resumo do trade-off](reports/modeling/baseline_threshold_tradeoff_summary.csv) e [carga semanal de episódios](reports/modeling/baseline_threshold_alert_episodes_by_week.csv). No grupo de subíndices sem `iqar`, os cenários 0,25 e 0,50 excederam o teto semanal em 21 das 52 semanas completas, com máximos de 6 e 7 episódios e cargas máximas de 90 e 85 horas de alerta por semana. Nenhum limiar entre 0,01 e 0,99 respeitou o teto em todas as semanas. Os extremos também não são adequados: 0,00 emitiu alerta por todas as 8.784 horas e produziu 8.340 falsos positivos; 1,00 deixou 384 dos 444 positivos sem alerta. São cenários internos exploratórios da etapa anterior à Sprint 5, não limiares selecionados nem estimativas de operação futura. A contagem semanal une as janelas internas antes de agrupar episódios e não mede acerto na detecção de episódios reais; esses relatórios não usaram o holdout. A avaliação final do holdout foi feita separadamente, uma única vez, conforme documentado na Sprint 5.
 
 **Sprint 4 — triagem temporal inicial:** `python -m src.modelagem.Avaliar_Features_Temporais` compara, nos folds de 2024 e sem ajustar limiar, diferenças horárias de ozônio/PM2,5 e de variáveis meteorológicas, além de hora do dia cíclica, com o grupo-base de subíndices sem `iqar`. Os deltas brutos de ozônio e PM2,5 mudaram o recall de 0,9949 para 0,9971 (FN de 3 para 2), mas aumentaram FP de 402 para 411 e reduziram ligeiramente F1; a hora cíclica elevou FP para 435 e reduziu F1, embora diminuísse o pico de horas de alerta semanal de 85 para 69. Nenhuma variante foi congelada como feature final. Métricas reproduzíveis: [por fold](reports/modeling/temporal_feature_metrics_by_fold.csv), [resumo](reports/modeling/temporal_feature_metrics_summary.csv) e [carga semanal](reports/modeling/temporal_feature_alert_burden_by_week.csv). Esta triagem não usa o holdout 2025–2026.
 
@@ -201,7 +212,7 @@ Esse alvo é uma estimativa metodológica baseada em concentrações horárias m
 | `wind_speed_10m` | Historical Weather | km/h | O vento dispersa poluentes; velocidades baixas favorecem acúmulo e picos de concentração. | Feature |
 | `pressure_msl` | Historical Weather | hPa | Associada à estabilidade atmosférica; pressão alta e vento fraco favorecem inversões térmicas e acúmulo de poluentes. | Feature |
 
-**Atenção ao risco de vazamento:** os seis poluentes desempenham dupla função — como candidatos a feature nos valores disponíveis até *t* e como insumos do alvo nas janelas que terminam em *t+1h*. As colunas calculadas no horário *t+1h* são usadas apenas para gerar `qualidade_ar_inadequada_1h` e não devem integrar as features. O cálculo do alvo e o split temporal estão implementados; a seleção e a engenharia de features sem vazamento continuam pendentes.
+**Atenção ao risco de vazamento:** os seis poluentes desempenham dupla função — como candidatos a feature nos valores disponíveis até *t* e como insumos do alvo nas janelas que terminam em *t+1h*. As colunas calculadas no horário *t+1h* são usadas apenas para gerar `qualidade_ar_inadequada_1h` e não integram as features do modelo. O cálculo do alvo, o split temporal e o conjunto congelado de features da Sprint 4 estão implementados; as features são retrospectivas e usam dados disponíveis até *t*. A avaliação final já foi concluída, com as limitações registradas na Sprint 5.
 
 ---
 
@@ -230,28 +241,33 @@ Ciencia-de-Dados-e-Aprendizagem-de-Maquina/
 │   └── params.yaml                   # configurado para o período validado
 ├── data/
 │   ├── raw/                          # JSONs de janeiro/2025 e arquivos versionados do período ampliado
-│   ├── interim/                      # merge (35.736) e alvo (35.736) do período ampliado
-│   └── processed/                    # pendente (Sprints 3 a 5)
+│   └── interim/                      # merge e dados rotulados do período ampliado
 ├── notebooks/
 │   ├── 01_Coleta_Dados.ipynb         # consulta APIs e salva os JSONs brutos
-│   └── 02_Merge_Dados.ipynb          # audita horários e integra as fontes
+│   ├── 02_Merge_Dados.ipynb          # audita horários e integra as fontes
+│   └── 03_Demonstracao_Modelo_Final.ipynb # demonstra inferência com o modelo empacotado
 ├── src/
 │   ├── coleta/
 │   │   └── Coleta_Dados.py           # concluído; não sobrescreve outro período
 │   ├── transformacao/
 │   │   ├── Merge_Dados.py            # merge versionado por período
-│   │   └── Calcular_Alvo_IQAr.py      # subíndices CETESB e rótulo t+1h
-│   └── validacao/
-│       └── Separacao_Temporal.py     # folds expansivos e teste final por horário-alvo
-├── models/                           # pendente (Sprint 5)
+│   │   ├── Calcular_Alvo_IQAr.py      # subíndices CETESB e rótulo t+1h
+│   │   └── Features_Temporais.py     # atributos retrospectivos
+│   ├── analise/                      # EDA de desenvolvimento
+│   ├── validacao/
+│   │   └── Separacao_Temporal.py     # folds expansivos e teste final por horário-alvo
+│   └── modelagem/                    # baselines, comparativos, avaliação e empacotamento
+├── models/                           # pipeline final joblib
+├── reports/                          # métricas, previsões, erros e figuras
+├── tests/                            # testes automatizados
 ├── docs/
 │   ├── RFC.md
 │   ├── Dicionario_de_Dados.md
 │   └── sprints/
-└── reports/                          # pendente
+└── reports/                          # resultados, métricas e figuras gerados
 ```
 
-A pasta `data/` não deve ser versionada integralmente no Git; recomenda-se manter um `data/README.md` com o comando de recoleta (a criar).
+A pasta `data/` contém os arquivos de entrada e processamento versionados neste projeto. O diretório `data/processed/` não faz parte do fluxo atual; os artefatos usados pela modelagem ficam em `data/interim/`.
 
 ---
 

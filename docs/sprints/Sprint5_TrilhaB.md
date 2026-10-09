@@ -1,10 +1,12 @@
 # Diário de Sprint 5 — Modelagem completa, limiar de decisão e seleção
-**Período:** 12/10/2026 a 25/10/2026
+**Período planejado:** 12/10/2026 a 25/10/2026
+**Conclusão técnica antecipada:** 09/10/2026
+
 **Trilha:** B — Qualidade do ar inadequada
 
-**Equipe:**
-**Scrum Master do Sprint:**
-**Repositório GitHub:** (link)
+**Equipe:** Davi Gama dos Santos, Diogo Gomes Barbosa, Eudenis de Souza Vieira, Gabriel Januário Alves e João Pedro Barreto da Silva
+**Scrum Master do Sprint:** Ainda não definido pela equipe
+**Repositório GitHub:** https://github.com/DiogoGomesB/Ciencia-de-Dados-e-Aprendizagem-de-Maquina
 
 > Split da Sprint 2 e `ColumnTransformer` **congelado na Sprint 4**. Use `FEATURES_SPRINT4` e `criar_pipeline_sprint4(classificador)` em `src/modelagem/Avaliar_Baselines.py` para aplicar exatamente as mesmas colunas e preparação aos classificadores comparáveis. No comparativo, Dummy, persistência e Naive Bayes são os da Sprint 4 (mesmo pipeline, exceto as referências que não dependem de features). Pode **reproduzir** esses números no notebook desta sprint; **não** colar métricas da Sprint 3 (features antigas). Classificadores novos treinam neste pipeline, na mesma partição de teste.
 
@@ -21,7 +23,7 @@
 
 **Não há sprint seguinte.** Dashboard, se houver, é extra e lê estes artefatos — não gera outro split.
 
-- [ ] Confirmei transformer da Sprint 4, split da Sprint 2 e que nenhuma métrica da Sprint 3 entrou no quadro
+- [x] Transformer da Sprint 4 e split da Sprint 2 confirmados; comparativo usa os baselines retreinados da Sprint 4, sem reutilizar métricas antigas da Sprint 3
 
 ---
 

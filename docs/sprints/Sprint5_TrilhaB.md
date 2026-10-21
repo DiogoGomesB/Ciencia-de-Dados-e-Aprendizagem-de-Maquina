@@ -5,10 +5,10 @@
 **Trilha:** B — Qualidade do ar inadequada
 
 **Equipe:** Davi Gama dos Santos, Diogo Gomes Barbosa, Eudenis de Souza Vieira, Gabriel Januário Alves e João Pedro Barreto da Silva
-**Scrum Master do Sprint:** Ainda não definido pela equipe
+**Scrum Master do Sprint:** Diogo Gomes Barbosa
 **Repositório GitHub:** https://github.com/DiogoGomesB/Ciencia-de-Dados-e-Aprendizagem-de-Maquina
 
-> Split da Sprint 2 e `ColumnTransformer` **congelado na Sprint 4**. Use `FEATURES_SPRINT4` e `criar_pipeline_sprint4(classificador)` em `src/modelagem/Avaliar_Baselines.py` para aplicar exatamente as mesmas colunas e preparação aos classificadores comparáveis. No comparativo, Dummy, persistência e Naive Bayes são os da Sprint 4 (mesmo pipeline, exceto as referências que não dependem de features). Pode **reproduzir** esses números no notebook desta sprint; **não** colar métricas da Sprint 3 (features antigas). Classificadores novos treinam neste pipeline, na mesma partição de teste.
+> Split da Sprint 2 e `ColumnTransformer` **congelado na Sprint 4**. Use `FEATURES_SPRINT4` e `criar_pipeline_sprint4(classificador)` em `src/modelagem/Avaliar_Baselines.py` para aplicar exatamente as mesmas colunas e preparação aos classificadores comparáveis. No comparativo, Dummy, persistência e Naive Bayes são os da Sprint 4 (mesmo pipeline, exceto as referências que não dependem de features). Pode **reproduzir** esses números pelos scripts de `src/modelagem/`; **não** colar métricas da Sprint 3 (features antigas). Classificadores novos treinam neste pipeline, na mesma partição de teste.
 
 ### Contrato desta sprint
 
@@ -132,8 +132,8 @@ FN nos horários previstos para 27/12/2025 14h, 28/12/2025 13h e 31/12/2025 15h.
 | Features (link do dicionário) | `FEATURES_SPRINT4`; [dicionário de dados](../Dicionario_de_Dados.md). |
 | Algoritmo, hiperparâmetros, `random_state` e limiar (origem: validação) | Random Forest `class_weight="balanced"`, 300 árvores, `min_samples_leaf=2`, `random_state=42`; limiar 0,3 congelado em validação temporal 2024-Q4. |
 | Métrica principal no teste (classe positiva) | Recall 0,9814; precisão 0,7822; F1 0,8705; 158 TP, 3 FN, 44 FP, 14.387 TN. |
-| O que o modelo **não** faz / limitações | Não é alerta oficial nem previsão em tempo real; usa dados modelados de um ponto; validação de limiar tem 46 positivos; no holdout houve 3 FN e uma semana excedeu o teto exploratório de episódios. |
-| Como reproduzir (`requirements.txt` + notebook/script) | Instalar `requirements.txt`; `python -m src.modelagem.Comparar_Modelos_Sprint5` reproduz validação; `python -m src.modelagem.Empacotar_Modelo_Final_Sprint5` gera o artefato final. O relatório do holdout já está salvo; não executar novamente a avaliação final após inspecionar o teste. |
+| O que o modelo **não** faz / limitações | Não é alerta oficial nem serviço de produção; a previsão +1h a partir da hora atual (`src/aplicacao/Prever_Proxima_Hora.py`) é experimental, não tem métrica própria e depende das APIs Open-Meteo no momento da execução; usa dados modelados de um ponto; validação de limiar tem 46 positivos; no holdout houve 3 FN e uma semana excedeu o teto exploratório de episódios. |
+| Como reproduzir (`requirements.txt` + notebook/script) | Instalar `requirements.txt`; `python -m src.modelagem.Comparar_Modelos_Sprint5` reproduz validação; `python -m src.modelagem.Empacotar_Modelo_Final_Sprint5` gera o artefato final; `python -m src.aplicacao.Prever_Proxima_Hora` (ou notebooks `01`–`03`) prevê a próxima hora com dados recentes. O relatório do holdout já está salvo; não executar novamente a avaliação final após inspecionar o teste. |
 
 ## 5. Integração com Banco de Dados (opcional)
 

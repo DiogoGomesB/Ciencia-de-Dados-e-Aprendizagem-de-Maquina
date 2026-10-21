@@ -16,7 +16,7 @@
 
 ## Estado atual do projeto
 
-Situação técnica verificada em 09/10/2026. O projeto percorreu coleta, integração, cálculo do alvo, EDA, validação temporal, comparação de atributos e modelos, avaliação final única e empacotamento do pipeline. O conjunto ampliado foi salvo em arquivos identificados pelo período; os arquivos legados de janeiro/2025 foram preservados. Os registros de Scrum, feedback e rubricas ainda dependem do preenchimento real pela equipe.
+Situação técnica verificada em 09/10/2026; o fluxo operacional +1h (script `src/aplicacao/Prever_Proxima_Hora.py` e notebooks 01–03) foi acrescentado depois e validado com as APIs reais em 20/10/2026. O projeto percorreu coleta, integração, cálculo do alvo, EDA, validação temporal, comparação de atributos e modelos, avaliação final única e empacotamento do pipeline. O conjunto ampliado foi salvo em arquivos identificados pelo período; os arquivos legados de janeiro/2025 foram preservados. Os registros de Scrum, feedback e rubricas ainda dependem do preenchimento real pela equipe.
 
 | Entrega | Status | Observação |
 |---|---|---|
@@ -29,9 +29,9 @@ Situação técnica verificada em 09/10/2026. O projeto percorreu coleta, integr
 | EDA do desenvolvimento | Concluída | Séries, boxplots, correlação entre candidatas e triagem de extremos |
 | Baselines e comparação de features | Concluídos | Sprints 3–4; comparação S3→S4 e trade-offs documentados nos mesmos folds |
 | Seleção e avaliação do modelo final | Concluídas | Random Forest e limiar 0,3 congelados na validação; holdout avaliado uma única vez |
-| Pipeline final | Empacotado | `models/modelo_final_sprint5.joblib`; inferência demonstrativa em `notebooks/03_Demonstracao_Modelo_Final.ipynb` |
+| Pipeline final | Empacotado | `models/modelo_final_sprint5.joblib`; previsão +1h com dados recentes em `notebooks/03_Previsao_Proxima_Hora.ipynb` e `src/aplicacao/` |
 | Relatórios de análise e modelagem | Gerados | `reports/`; incluem validação, teste final, erros e carga semanal |
-| Testes automatizados | 35 aprovados | `tests/`; cobrem alvo, split, features, baselines, avaliação e empacotamento |
+| Testes automatizados | 39 aprovados | `tests/`; cobrem alvo, split, features, baselines, avaliação, empacotamento e a previsão +1h |
 | `requirements.txt` | Concluída | — |
 | `LICENSE` | Concluída | MIT |
 
@@ -42,12 +42,12 @@ Situação técnica verificada em 09/10/2026. O projeto percorreu coleta, integr
 | Item | Definição |
 |---|---|
 | Evento a prever | A qualidade do ar em Mogi das Cruzes/SP estará inadequada na próxima hora. |
-| Usuário da decisão | Contexto acadêmico; usuário operacional ainda não definido pela equipe. |
+| Usuário da decisão | Contexto acadêmico; usuário operacional ainda não definido pela equipe. A previsão +1h a partir de agora é experimental. |
 | Horizonte | Uma hora à frente — a previsão realizada no instante *t* utiliza dados disponíveis até *t* para estimar a condição em *t+1h*. |
 | Classe positiva | Classe 0: IQAr <= 100. Classe 1: IQAr > 100, incluindo as categorias mais graves. O índice consolidado é o maior subíndice dos seis poluentes, conforme a metodologia CETESB 2025. |
 | Custo priorizado | Falso negativo — o modelo prever "adequada" quando a condição real na hora seguinte é inadequada. Considerado o erro mais grave, pois compromete a antecipação de uma piora real da qualidade do ar. |
 
-Status: alvo, split temporal, EDA, comparação S3→S4, pipeline de features congelado e comparação de modelos estão implementados. A Sprint 5 congelou Random Forest com limiar 0,3 na validação, avaliou o holdout uma única vez e empacotou o pipeline. A demonstração atual usa uma linha histórica in-sample; não é uma previsão atual nem uma medição do ar.
+Status: alvo, split temporal, EDA, comparação S3→S4, pipeline de features congelado e comparação de modelos estão implementados. A Sprint 5 congelou Random Forest com limiar 0,3 na validação, avaliou o holdout uma única vez e empacotou o pipeline. A demonstração in-sample do modelo foi substituída pelo fluxo operacional: o notebook e o script de previsão usam dados recentes das APIs e estimam a hora seguinte. As métricas de desempenho continuam sendo as do holdout; a previsão operacional não mede desempenho nem é uma medição do ar.
 
 **Referências**
 [1] FURG — Dissertação/monografia sobre padrões de qualidade do ar: https://sistemas.furg.br/sistemas/sab/arquivos/bdtd/0000010377.pdf
@@ -73,27 +73,42 @@ O arquivo `requirements.txt` cobre coleta (`requests`), configuração (`PyYAML`
 
 Configuração: coordenadas, datas, variáveis, endpoints, timeout e nomes dos arquivos estão em `config/params.yaml`. Os arquivos do intervalo configurado são nomeados com as datas e não sobrescrevem os JSONs ou o CSV de janeiro/2025.
 
-### Demonstração rápida do modelo já empacotado
+### Execução operacional (+1h a partir de agora)
 
-Se os dados e o modelo finais já estiverem presentes, abra `notebooks/03_Demonstracao_Modelo_Final.ipynb` no VS Code, escolha o interpretador `.venv\Scripts\python.exe` e execute as células na ordem. Ou rode:
+Para rodar a aplicação no modo operacional e sempre prever uma hora à frente com os dados mais recentes disponíveis nas APIs, dê dois cliques em `Prever_Proxima_Hora.bat` (na raiz; cria o `.venv` na primeira vez e precisa de internet) ou use:
 
 ```powershell
-.\.venv\Scripts\python.exe -m jupyter lab notebooks\03_Demonstracao_Modelo_Final.ipynb
+.\.venv\Scripts\python.exe -m src.aplicacao.Prever_Proxima_Hora
 ```
 
-O notebook carrega `models/modelo_final_sprint5.joblib`, lê apenas as features históricas anteriores ao holdout, calcula os atributos de curto prazo e mostra a probabilidade e a decisão do limiar 0,3. Não coleta dados, não carrega o alvo, não retreina e não acessa o holdout. A linha usada é histórica e in-sample; serve para demonstrar a saída, não para medir desempenho ou informar a qualidade do ar atual. Para explicação detalhada de cada variável e campo da saída, veja o [Relatório EDA](docs/Relatorio_EDA_Desenvolvimento.md).
+Esse comando:
 
-### Reproduzir coleta e transformações
+1. Consulta dados horários recentes de qualidade do ar e meteorologia nas APIs da Open-Meteo.
+2. Recalcula IQAr e features temporais necessárias para o modelo final.
+3. Carrega `models/modelo_final_sprint5.joblib`.
+4. Mostra a probabilidade de `IQAr > 100` para `t+1h` e aplica o limiar congelado (`0,3`).
 
-Os notebooks de coleta e integração fazem parte do fluxo para uma configuração nova. Eles podem consultar APIs externas e recusam sobrescrever arquivos já existentes. **Não os execute para simplesmente abrir a demonstração ou reproduzir as métricas já documentadas.**
+Para esse modo, as chaves relevantes no `config/params.yaml` são:
 
-Para acompanhar a coleta e integração de forma interativa, abra os notebooks em `notebooks/` com Jupyter ou a extensão Jupyter do VS Code e execute as células na ordem:
+- `apis.air_quality` (qualidade do ar recente),
+- `apis.weather_forecast` (meteorologia recente),
+- `application.recent_history_days` (janela de dias usada para montar as features; padrão `3`).
 
-1. [`01_Coleta_Dados.ipynb`](notebooks/01_Coleta_Dados.ipynb) consulta as APIs, inspeciona as respostas e salva os JSONs brutos. A execução faz chamadas externas e recusa sobrescrever arquivos existentes.
-2. [`02_Merge_Dados.ipynb`](notebooks/02_Merge_Dados.ipynb) verifica os arquivos e horários, integra as fontes e salva o CSV em `data/interim/`.
-3. [`03_Demonstracao_Modelo_Final.ipynb`](notebooks/03_Demonstracao_Modelo_Final.ipynb) carrega o pipeline empacotado e demonstra uma inferência histórica. O notebook lê apenas features anteriores ao holdout; não carrega rótulos, não retreina e não reavalia o teste. A previsão demonstrada é in-sample e não mede desempenho nem representa uma previsão atual.
+> Importante: essa previsão depende da atualização das APIs e usa dados modelados/interpolados. É um apoio experimental e não um alerta oficial de saúde.
 
-O cálculo do alvo e a validação temporal estão disponíveis como scripts. Em uma cópia limpa, após conferir `config/params.yaml` e garantir que os arquivos de saída ainda não existem, a sequência pelo terminal é:
+### Previsão +1h pelos notebooks
+
+Os notebooks em `notebooks/` seguem o mesmo fluxo operacional. Abra-os no VS Code (interpretador `.venv\Scripts\python.exe`) ou com `.\.venv\Scripts\python.exe -m jupyter lab notebooks`, e execute as células na ordem, de cima para baixo:
+
+1. [`01_Coleta_Dados_Recentes.ipynb`](notebooks/01_Coleta_Dados_Recentes.ipynb) consulta as APIs, descarta horas futuras, inspeciona a cobertura e salva a cópia em `data/recent/` (sobrescrita a cada coleta; ignorada pelo git).
+2. [`02_Features_Recentes.ipynb`](notebooks/02_Features_Recentes.ipynb) calcula IQAr e features de curto prazo e seleciona a linha de entrada do modelo.
+3. [`03_Previsao_Proxima_Hora.ipynb`](notebooks/03_Previsao_Proxima_Hora.ipynb) carrega `models/modelo_final_sprint5.joblib` e mostra a probabilidade e a decisão do limiar 0,3 para a hora seguinte, além de um contexto das últimas horas.
+
+Para uma nova previsão, repita os notebooks 01 e 03 (ou o comando acima). Os notebooks não retreinam o modelo, não carregam rótulos e não acessam o holdout. Para explicação detalhada de cada variável e campo da saída, veja o [Relatório EDA](docs/Relatorio_EDA_Desenvolvimento.md).
+
+### Reproduzir coleta histórica e transformações
+
+Os scripts abaixo reproduzem a base histórica usada no treino e na avaliação. Eles podem consultar APIs externas e recusam sobrescrever arquivos já existentes. **Não os execute para simplesmente fazer uma previsão ou reproduzir as métricas já documentadas.** e a validação temporal estão disponíveis como scripts. Em uma cópia limpa, após conferir `config/params.yaml` e garantir que os arquivos de saída ainda não existem, a sequência pelo terminal é:
 
 ```powershell
 .\.venv\Scripts\python.exe src\coleta\Coleta_Dados.py
@@ -106,7 +121,7 @@ Essa sequência é para uma configuração nova, com os caminhos de saída ainda
 
 O script de validação temporal lê as partições de `config/params.yaml`, ignora rótulos indefinidos e imprime os tamanhos/classes de cada fold e do teste. A divisão é feita pelo horário do evento previsto (`time + 1h`); os dados não são duplicados nem salvos em novos arquivos.
 
-Os notebooks documentam coleta, integração e demonstração de inferência. Os experimentos de desenvolvimento permanecem reproduzíveis pelos scripts em `src/`. Não execute `src.modelagem.Avaliar_Modelo_Final_Sprint5` novamente: a avaliação do holdout já foi realizada uma única vez. Não use esse holdout para escolher outro modelo, limiar ou conjunto de features.
+Os notebooks cobrem o fluxo operacional (+1h). Os experimentos de desenvolvimento permanecem reproduzíveis pelos scripts em `src/`. Não execute `src.modelagem.Avaliar_Modelo_Final_Sprint5` novamente: a avaliação do holdout já foi realizada uma única vez. Não use esse holdout para escolher outro modelo, limiar ou conjunto de features.
 
 Para executar os testes automatizados (com dados sintéticos), rode na raiz:
 
@@ -243,7 +258,7 @@ Esse alvo é uma estimativa metodológica baseada em concentrações horárias m
 | Resultado da regra semanal | 1 de 86 semanas completas excedeu o teto de 3 episódios; pico de 5 episódios e 31 horas de alerta |
 | Artefato | `models/modelo_final_sprint5.joblib` (pipeline, features e limiar) |
 
-O modelo usa os sete subíndices individuais dos poluentes, cinco variáveis meteorológicas e quatro atributos retrospectivos: médias móveis de 3h e deltas de 2h de ozônio e PM2,5. Não usa o IQAr consolidado nem o alvo futuro como entrada. Imputação pela mediana e `StandardScaler` são ajustados dentro do pipeline de treino. As métricas descrevem este conjunto temporal e não garantem desempenho futuro nem prontidão para uso operacional.
+O modelo usa os sete subíndices individuais dos poluentes, cinco variáveis meteorológicas e quatro atributos retrospectivos: médias móveis de 3h e deltas de 2h de ozônio e PM2,5. Não usa o IQAr consolidado nem o alvo futuro como entrada. Imputação pela mediana e `StandardScaler` são ajustados dentro do pipeline de treino. As métricas descrevem este conjunto temporal e não garantem desempenho futuro nem prontidão para uso operacional. A previsão +1h a partir da hora atual reutiliza o mesmo artefato, mas não tem métrica própria.
 
 **Limitações e interpretação:** os dados de qualidade do ar são do CAMS Global, têm resolução nativa de 3h fora da Europa e valores horários interpolados; clima vem de reanálise, não de medição direta local. A série foi analisada descritivamente antes da definição do split, portanto o holdout não é totalmente cego. A triagem de features nos folds também pode introduzir viés de seleção. O modelo é um protótipo acadêmico, não um sistema de alerta oficial ou orientação de saúde.
 
@@ -263,10 +278,11 @@ Ciencia-de-Dados-e-Aprendizagem-de-Maquina/
 ├── data/
 │   ├── raw/                          # JSONs de janeiro/2025 e arquivos versionados do período ampliado
 │   └── interim/                      # merge e dados rotulados do período ampliado
+│   (data/recent/ é gerado na execução +1h e ignorado pelo git)
 ├── notebooks/
-│   ├── 01_Coleta_Dados.ipynb         # consulta APIs e salva os JSONs brutos
-│   ├── 02_Merge_Dados.ipynb          # audita horários e integra as fontes
-│   └── 03_Demonstracao_Modelo_Final.ipynb # demonstra inferência com o modelo empacotado
+│   ├── 01_Coleta_Dados_Recentes.ipynb # coleta dados recentes das APIs (até a hora atual)
+│   ├── 02_Features_Recentes.ipynb    # calcula IQAr e features da linha de entrada
+│   └── 03_Previsao_Proxima_Hora.ipynb # prevê a próxima hora com o modelo empacotado
 ├── src/
 │   ├── coleta/
 │   │   └── Coleta_Dados.py           # concluído; não sobrescreve outro período
@@ -275,6 +291,8 @@ Ciencia-de-Dados-e-Aprendizagem-de-Maquina/
 │   │   ├── Calcular_Alvo_IQAr.py      # subíndices CETESB e rótulo t+1h
 │   │   └── Features_Temporais.py     # atributos retrospectivos
 │   ├── analise/                      # EDA de desenvolvimento
+│   ├── aplicacao/
+│   │   └── Prever_Proxima_Hora.py    # previsão +1h com dados recentes das APIs
 │   ├── validacao/
 │   │   └── Separacao_Temporal.py     # folds expansivos e teste final por horário-alvo
 │   └── modelagem/                    # baselines, comparativos, avaliação e empacotamento
@@ -307,7 +325,7 @@ A pasta `data/` contém os arquivos de entrada e processamento versionados neste
 
 | Item a confirmar pela equipe | Situação |
 |---|---|
-| Definir Scrum Master e atualizar eventuais registros do Scrum | Não definido neste repositório |
+| Definir Scrum Master e atualizar eventuais registros do Scrum | Definido: Diogo Gomes Barbosa (registrado nas Sprints 2–5) |
 | Completar diários, contribuições individuais, feedbacks e rubricas da disciplina | Depende dos integrantes/docente |
 | Confirmar usuário decisor operacional do caso de uso | Ainda não definido; escopo permanece acadêmico |
 
@@ -325,4 +343,6 @@ As entregas técnicas inicialmente listadas — coleta ampliada, validação de 
 - [Sprint 3 — baselines e comparação inicial](docs/sprints/Sprint3_TrilhaB.md)
 - [Sprint 4 — atributos temporais e comparação formal](docs/sprints/Sprint4_TrilhaB.md)
 - [Sprint 5 — modelo final, avaliação e model card](docs/sprints/Sprint5_TrilhaB.md)
-- [Demonstração interativa do pipeline](notebooks/03_Demonstracao_Modelo_Final.ipynb)
+- [Previsão +1h interativa](notebooks/03_Previsao_Proxima_Hora.ipynb)
+- Diagramas (PDF e JPG) em `docs/diagramas/`: [pipeline](docs/diagramas/diagrama_pipeline.jpg) e [split temporal](docs/diagramas/diagrama_split_temporal.jpg). Para regenerá-los: `.\.venv\Scripts\python.exe -m src.analise.Gerar_Diagramas`.
+

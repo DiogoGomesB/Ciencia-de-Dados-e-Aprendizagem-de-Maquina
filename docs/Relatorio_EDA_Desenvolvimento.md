@@ -1,6 +1,6 @@
 # Relatório auxiliar — exploração dos dados de qualidade do ar
 
-Este documento explica, em linguagem acessível, o objetivo do projeto, os dados usados, o que foi calculado na análise exploratória (EDA), o que os gráficos mostram e quais conclusões podem ou não ser tiradas. Também orienta uma pessoa que não participou do desenvolvimento a abrir a demonstração, executar o fluxo seguro e interpretar a saída. Foi escrito para leitores que não acompanharam as etapas anteriores.
+Este documento explica, em linguagem acessível, o objetivo do projeto, os dados usados, o que foi calculado na análise exploratória (EDA), o que os gráficos mostram e quais conclusões podem ou não ser tiradas. Também orienta uma pessoa que não participou do desenvolvimento a executar a previsão +1h a partir da hora atual e interpretar a saída. Foi escrito para leitores que não acompanharam as etapas anteriores.
 
 ## 1. Em poucas palavras: qual é o projeto?
 
@@ -19,6 +19,8 @@ As séries horárias foram consultadas em duas fontes da Open-Meteo para as coor
 
 1. **Air Quality API**: PM10, PM2,5, monóxido de carbono (CO), dióxido de nitrogênio (NO2), dióxido de enxofre (SO2) e ozônio (O3).
 2. **Historical Weather API**: temperatura, umidade relativa, precipitação, velocidade do vento e pressão ao nível médio do mar.
+
+Para a previsão +1h a partir de agora, o fluxo operacional usa a mesma Air Quality API (com `past_days`) e, para o clima recente, o endpoint de previsão `api.open-meteo.com/v1/forecast`, pois o arquivo histórico não cobre os dias mais recentes.
 
 O intervalo ampliado vai de **04/08/2022 a 31/08/2026**, totalizando 35.736 horários por fonte. Os timestamps das fontes foram integrados em uma tabela. Os arquivos brutos são preservados em `data/raw/`; os dados integrados e rotulados ficam em `data/interim/`. Os arquivos de janeiro de 2025 anteriores à ampliação foram mantidos.
 
@@ -54,7 +56,7 @@ Cada linha da base representa um horário (`time`) no ponto configurado. Os nome
 | Construção do alvo | CSV integrado e concentrações dos seis poluentes | Calcula subíndices pelas janelas CETESB, forma o IQAr como o maior subíndice e marca se o IQAr futuro em `t+1h` passa de 100 | CSV rotulado em `data/interim/`; contém features e também colunas calculadas para análise/alvo |
 | Treino e validação | Features retrospectivas e rótulos do desenvolvimento | Ajusta o pipeline e compara modelos/limiares usando períodos temporais de validação | Métricas e previsões CSV em `reports/modeling/` |
 | Empacotamento | Dados anteriores ao início do holdout e decisão já congelada | Ajusta o pipeline escolhido e guarda classificador, features e limiar para reutilização | `models/modelo_final_sprint5.joblib` |
-| Demonstração | Artefato empacotado e features históricas anteriores ao holdout | Calcula features temporais, estima probabilidade e aplica o limiar salvo | Tabela mostrada no notebook; não é avaliação nem previsão atual |
+| Previsão +1h | Artefato empacotado e dados recentes (últimos dias até a hora atual) das APIs Air Quality e Forecast | Descarta horas futuras, calcula IQAr e features, estima a probabilidade para a próxima hora e aplica o limiar salvo | Tabela do notebook 03 / script `Prever_Proxima_Hora`; snapshot em `data/recent/` (ignorado pelo git); não é avaliação de desempenho |
 
 Os arquivos `JSON` conservam a resposta original estruturada da API. Os arquivos `CSV` são tabelas: cada linha corresponde a um horário e cada coluna a uma variável ou resultado calculado. Os relatórios CSV contêm resultados de experimentos; não são dados brutos nem previsões oficiais.
 
@@ -222,15 +224,15 @@ Na validação temporal 2024-Q4 havia 2.208 observações e 46 positivos. Foram 
 
 Depois de congelada a decisão, o holdout temporal de 01/01/2025 a 31/08/2026 foi avaliado uma única vez: 14.592 observações, 161 positivas. A variante escolhida obteve recall 0,9814, precisão 0,7822 e F1 0,8705, com 158 verdadeiros positivos (TP), 44 falsos positivos (FP), 3 falsos negativos (FN) e 14.387 verdadeiros negativos (TN). Uma das 86 semanas completas excedeu o teto de episódios; o máximo foi cinco episódios e 31 horas de alerta. Os três eventos FN registrados foram 27/12/2025 às 14h, 28/12/2025 às 13h e 31/12/2025 às 15h. A regressão logística `predict` padrão apresentou recall 1,0000 e F1 0,8846 no mesmo holdout, mas não substituiu a escolha congelada, pois o teste não pode ser reutilizado para seleção.
 
-O pipeline treinado somente com o período anterior ao teste foi empacotado em [`modelo_final_sprint5.joblib`](../models/modelo_final_sprint5.joblib). O notebook [`03_Demonstracao_Modelo_Final.ipynb`](../notebooks/03_Demonstracao_Modelo_Final.ipynb) demonstra carregamento e inferência sobre uma linha histórica anterior ao holdout. Como o artefato foi treinado no período usado pelo exemplo, essa previsão é *in-sample*: demonstra o fluxo técnico, mas não estima desempenho nem representa uma previsão atual.
+O pipeline treinado somente com o período anterior ao teste foi empacotado em [`modelo_final_sprint5.joblib`](../models/modelo_final_sprint5.joblib). O notebook [`03_Previsao_Proxima_Hora.ipynb`](../notebooks/03_Previsao_Proxima_Hora.ipynb) (e o script `src/aplicacao/Prever_Proxima_Hora.py`) carrega esse artefato e o aplica aos dados mais recentes das APIs para estimar a hora seguinte. A saída é uma estimativa experimental; ela não mede desempenho, que continua sendo o do holdout descrito acima.
 
 ## 9. Como executar e validar, passo a passo
 
 Execute os comandos a partir da raiz do repositório. No Windows, os comandos abaixo usam o Python do ambiente virtual local.
 
-### 9.0 Quero apenas abrir a demonstração e ver o resultado
+### 9.0 Quero apenas rodar a previsão da próxima hora
 
-Se os arquivos do projeto já estão na sua máquina, **não comece pelos notebooks de coleta**. Eles consultam serviços externos e tentam criar arquivos que já existem; o notebook de demonstração usa a base e o modelo que foram preparados anteriormente.
+Se os arquivos do projeto já estão na sua máquina, use o fluxo operacional. Ele **consulta a internet** (APIs da Open-Meteo) para obter os dados mais recentes, mas não recria a base histórica nem treina modelos.
 
 1. Abra a pasta do repositório no VS Code.
 2. Abra o terminal do VS Code (`Terminal` → `Novo Terminal`) e confirme que o terminal está na pasta principal do projeto, onde aparecem `README.md`, `config`, `data`, `models` e `notebooks`.
@@ -243,16 +245,22 @@ Se os arquivos do projeto já estão na sua máquina, **não comece pelos notebo
 
    Se a pasta `.venv` já existir, não precisa recriá-la; execute apenas a linha de instalação. O projeto foi validado com Python 3.13.7. Se `py -3.13` não for reconhecido, instale Python 3.13 e habilite o launcher `py`, ou selecione o interpretador instalado no VS Code.
 
-4. Abra `notebooks/03_Demonstracao_Modelo_Final.ipynb`. Se o VS Code pedir um kernel, selecione o Python dentro de `.venv`.
-5. Execute as células na ordem, usando **Run All**. Alternativamente, no terminal, abra o notebook no Jupyter:
+4. Abra `notebooks/01_Coleta_Dados_Recentes.ipynb`. Se o VS Code pedir um kernel, selecione o Python dentro de `.venv`.
+5. Execute as células na ordem, usando **Run All**. Repita com `02_Features_Recentes.ipynb` e depois `03_Previsao_Proxima_Hora.ipynb`. Alternativamente, abra o Jupyter pelo terminal:
 
    ```powershell
-   .\.venv\Scripts\python.exe -m jupyter lab notebooks\03_Demonstracao_Modelo_Final.ipynb
+   .\.venv\Scripts\python.exe -m jupyter lab notebooks
    ```
 
-6. Vá à última tabela, chamada `resumo`, e leia as colunas explicadas na seção 9.6.
+   Ou, sem notebooks, use um único comando:
 
-O notebook **não consulta a internet**, não coleta dados, não recalcula o alvo, não treina modelos e não abre o período de teste. Ele depende de `data/interim/dados_com_alvo_2022-08-04_2026-08-31.csv` e `models/modelo_final_sprint5.joblib`. Se algum deles estiver ausente, a execução para com uma mensagem de arquivo necessário não encontrado; não tente recriá-los sem confirmar com a equipe qual versão de dados e artefato deve ser usada.
+   ```powershell
+   .\.venv\Scripts\python.exe -m src.aplicacao.Prever_Proxima_Hora
+   ```
+
+6. Vá à tabela `resumo` do notebook 03 (ou à tabela impressa pelo comando) e leia as colunas explicadas na seção 9.6.
+
+O fluxo coleta apenas os últimos dias, não recalcula o alvo, não treina modelos e não abre o período de teste. Ele depende de `models/modelo_final_sprint5.joblib` e de acesso à internet. Se o modelo estiver ausente, a execução para com uma mensagem de arquivo não encontrado; não tente recriá-lo sem confirmar com a equipe qual versão do artefato deve ser usada.
 
 Na execução de referência, a amostra didática é de 31/12/2024 às 22h, com previsão do evento das 23h, e o texto do resultado é **“Sem alerta pela regra”**. O notebook imprime a probabilidade junto da tabela; o valor exato pode variar se o CSV ou o artefato local tiver sido substituído. Essa amostra faz parte do período de treinamento e serve somente para aprender a ler a saída.
 
@@ -300,7 +308,7 @@ Confira os CSVs correspondentes ao comando e compare as métricas, contagens FP/
 
 ### 9.5 Validar o artefato sem reavaliar o holdout
 
-Para reproduzir a demonstração de inferência, abra `notebooks/03_Demonstracao_Modelo_Final.ipynb` e execute as células em ordem. Ela verifica a existência/configuração do modelo, carrega apenas colunas de features e `time` até antes do holdout, calcula as quatro features de curto prazo e aplica o limiar salvo. O último `event_time` mostrado deve ser anterior a `2025-01-01 00:00:00`. A inferência é *in-sample* e não pode ser usada como métrica de desempenho.
+Para reproduzir a previsão +1h, execute em ordem os notebooks `01_Coleta_Dados_Recentes`, `02_Features_Recentes` e `03_Previsao_Proxima_Hora`. Eles verificam a existência do modelo, calculam IQAr e as quatro features de curto prazo sobre as horas já ocorridas e aplicam o limiar salvo. O horário `t` mostrado deve ser a última hora completa disponível, anterior ou igual ao momento atual. A saída não é uma métrica de desempenho.
 
 Para repetir os testes automatizados, que usam dados sintéticos:
 
@@ -310,7 +318,7 @@ python -m pytest tests
 
 Os testes cobrem cálculo do alvo, separação temporal, criação de features, comparativos e empacotamento. A aprovação dos testes confirma o comportamento coberto por eles, mas não substitui a conferência dos artefatos e resultados do experimento real.
 
-### 9.6 Como ler a tabela final da demonstração
+### 9.6 Como ler a tabela final da previsão +1h
 
 | Coluna apresentada | Como interpretar |
 |---|---|
@@ -320,7 +328,7 @@ Os testes cobrem cálculo do alvo, separação temporal, criação de features, 
 | `limiar congelado` | Corte usado para transformar o escore em uma classe. Neste projeto é `0.3`, escolhido na validação temporal de 2024-Q4 antes da avaliação final. Não significa que 30% seja um nível universal de risco. |
 | `resultado da regra` | Se o escore for maior ou igual a 0,3, aparece `ALERTA (regra experimental)`; se for menor, aparece `Sem alerta pela regra`. O texto é apenas uma saída didática e não deve ser publicado como aviso oficial. |
 
-**O que o notebook não mostra:** ele não exibe o rótulo real da amostra, porque isso não é necessário para a demonstração; não calcula acerto/erro; não mede qualidade do modelo; não consulta as APIs; não usa dados posteriores ao corte; e não representa a situação atual do ar. Para conhecer as métricas reais do experimento, consulte as tabelas de validação e teste na [Sprint 5](sprints/Sprint5_TrilhaB.md) e os relatórios já salvos em `reports/modeling/`. A avaliação do holdout foi feita uma única vez; não rode o script de avaliação final novamente.
+**O que o notebook não mostra:** ele não exibe o rótulo real (a hora seguinte ainda não aconteceu); não calcula acerto/erro; não mede qualidade do modelo; não usa horas posteriores a "agora" (as horas futuras que as APIs devolvem como previsão do dia são descartadas); e depende de dados modelados pelo CAMS/Open-Meteo, não de uma estação local. Para conhecer as métricas reais do experimento, consulte as tabelas de validação e teste na [Sprint 5](sprints/Sprint5_TrilhaB.md) e os relatórios já salvos em `reports/modeling/`. A avaliação do holdout foi feita uma única vez; não rode o script de avaliação final novamente.
 
 ### 9.7 Se aparecer um erro
 
@@ -330,9 +338,10 @@ Os testes cobrem cálculo do alvo, separação temporal, criação de features, 
 | `FileNotFoundError` para o CSV ou o arquivo `.joblib` | O arquivo de dados ou modelo não está presente. Confirme que os arquivos da entrega foram obtidos; não rode avaliação final nem gere um modelo novo apenas para eliminar o erro. |
 | `ModuleNotFoundError` para pandas, sklearn, yaml, joblib ou Jupyter | O kernel selecionado não é o `.venv` do projeto ou as dependências não foram instaladas. Repita a instalação do passo 9.0 e selecione o interpretador correto. |
 | A saída é diferente do exemplo | Confira que a configuração, o CSV e o artefato são os da mesma versão. Uma probabilidade diferente não é necessariamente um erro se o arquivo foi atualizado; não compare a saída didática como métrica. |
-| O notebook diz que o horário alcança o holdout | Pare a execução e não altere o corte para “fazer passar”. Confira `evaluation.final_test.start` e `target_horizon_hours` em `config/params.yaml`, além da ordem e do conteúdo do CSV. |
+| Erro de conexão ou `timeout` nas APIs | O fluxo +1h precisa de internet. Tente novamente mais tarde; não há dado local substituto. |
+| Mensagem de histórico insuficiente ou série não consecutiva | O IQAr usa janelas de até 24h; mantenha `application.recent_history_days` ≥ 2 (padrão 3) em `config/params.yaml`. |
 
-O script `python -m src.modelagem.Empacotar_Modelo_Final_Sprint5` retreina o modelo no período de treino e grava o mesmo caminho do artefato. Execute-o somente se houver uma solicitação explícita para regenerar esse pacote e após confirmar o split e a versão dos dados; não é necessário para a demonstração.
+O script `python -m src.modelagem.Empacotar_Modelo_Final_Sprint5` retreina o modelo no período de treino e grava o mesmo caminho do artefato. Execute-o somente se houver uma solicitação explícita para regenerar esse pacote e após confirmar o split e a versão dos dados; não é necessário para a previsão +1h.
 
 > **Não executar novamente:** `python -m src.modelagem.Avaliar_Modelo_Final_Sprint5`. Esse script consulta o holdout e grava relatórios do teste. A avaliação final já foi realizada uma única vez; não use os resultados para selecionar outro modelo, ajustar limiar ou repetir a avaliação.
 
@@ -349,4 +358,4 @@ O script `python -m src.modelagem.Empacotar_Modelo_Final_Sprint5` retreina o mod
 - [`src/transformacao/Features_Temporais.py`](../src/transformacao/Features_Temporais.py): construção retrospectiva das features temporais.
 - [`src/validacao/Separacao_Temporal.py`](../src/validacao/Separacao_Temporal.py): definição dos folds e do holdout temporal.
 - [`src/modelagem/Empacotar_Modelo_Final_Sprint5.py`](../src/modelagem/Empacotar_Modelo_Final_Sprint5.py): treinamento pré-teste e serialização do pipeline final.
-- [`notebooks/03_Demonstracao_Modelo_Final.ipynb`](../notebooks/03_Demonstracao_Modelo_Final.ipynb): demonstração segura de inferência histórica sem rótulos.
+- [`notebooks/03_Previsao_Proxima_Hora.ipynb`](../notebooks/03_Previsao_Proxima_Hora.ipynb): previsão da hora seguinte com dados recentes (fluxo completo: notebooks 01 a 03).

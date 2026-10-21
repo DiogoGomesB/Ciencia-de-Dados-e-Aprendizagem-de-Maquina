@@ -4,7 +4,7 @@
 **Trilha:** B — Qualidade do ar inadequada
 **Equipe:** Davi Gama dos Santos - 33121079, Diogo Gomes Barbosa - 35866276, Eudenis de Souza Vieira - 32751621, Gabriel Januário Alves - 35609991, João Pedro Barreto da Silva - 33297185
 **Última atualização:** 09/10/2026 — atualizar a cada sprint em que variáveis nasçam ou saiam
-**Versão:** v1.0 — conjunto final de features da Random Forest S5 documentado
+**Versão:** v1.1 — features da Random Forest S5 e fluxo operacional +1h documentados
 
 > Contrato das colunas entre sprints. Sprint 1: fontes e variáveis **brutas**. Sprint 2: log de limpeza, alvo formal, derivados iniciais e exclusões por vazamento. Sprint 4: features iteradas. Sprint 5: conferência com o model card — as colunas do modelo escolhido são estas.
 
@@ -28,6 +28,7 @@
 | --- | --- | --- | --- | --- | --- |
 | Open-Meteo Air Quality API | https://air-quality-api.open-meteo.com/v1/air-quality | Na validação de 08/10/2026, dados completos de 04/08/2022 a 31/08/2026; datas de referência anteriores a agosto/2022 retornaram poluentes nulos. | Horária (com valores horários interpolados pelo modelo) | Modelado — os dados de qualidade do ar são provenientes de modelos atmosféricos, não de uma estação de medição localizada exatamente no ponto do projeto. | Resolução espacial de aproximadamente 45 km para o CAMS Global fora da Europa; portanto, os valores representam uma grade/modelo atmosférico e não uma medição pontual da Universidade Braz Cubas. |
 | Open-Meteo Historical Weather API | https://archive-api.open-meteo.com/v1/archive | Consulta validada de 04/08/2022 a 31/08/2026; o ERA5 tem cobertura histórica anterior, mas não amplia o período conjunto sem dados de qualidade do ar. | Horária | Modelado/reanálise — os dados históricos são obtidos a partir de modelos e conjuntos de reanálise meteorológica. | A resolução espacial depende do conjunto utilizado; para ERA5, a documentação informa aproximadamente 25 km. |
+| Open-Meteo Forecast API (fluxo operacional +1h) | https://api.open-meteo.com/v1/forecast | Dias recentes até a hora atual (`past_days`, `forecast_days=1`); horas futuras são descartadas. | Horária | Modelado | Usada apenas na previsão +1h; não faz parte do treino. A Air Quality API também é consultada com `past_days` (documentada para 0–92 dias). |
 
 > **Trilha B:** poluentes Open-Meteo em geral são produto **modelado**, não medição de estação local — declarar na coluna acima.
 
@@ -76,6 +77,14 @@ As janelas de 24h deixam 23 valores iniciais indefinidos nos subíndices corresp
 
 ---
 
+## 2.2 Dados do fluxo operacional +1h (pós-Sprint 5)
+
+Mesmas colunas brutas da seção 2, obtidas para os últimos `application.recent_history_days` dias (padrão 3, mínimo 2 por causa das janelas de 24h do IQAr) até a hora cheia atual, com o clima vindo da Forecast API. Snapshot em `data/recent/dados_recentes.csv` (chave `application.recent_snapshot`; ignorado pelo git). O alvo não existe nesse fluxo: a hora seguinte ainda não ocorreu.
+
+Saída da previsão (uma linha): `horário dos dados até t`, `horário do evento previsto` (t + 1h), `probabilidade estimada de IQAr > 100`, `limiar congelado` (0,3) e `resultado da regra`. É uma estimativa experimental, sem métrica própria.
+
+---
+
 ## 3. Alvo de classificação *(implementado no período ampliado)*
 
 | Campo | Descrição |
@@ -112,8 +121,6 @@ Fonte: CETESB (2025), *Relatório de Metodologia para Avaliação da Qualidade d
 
 | Nome do atributo | Variável(is) de origem | Tipo de transformação | Janela/parâmetro (definido no treino) | Calculável no instante da previsão? | Justificativa | Sprint (2 ou 4) | Feature ou alvo? |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| Pendente | Pendente | Pendente | Pendente | Pendente | As features derivadas serão definidas após a análise exploratória detalhada e a avaliação dos modelos de referência. | 2 | Feature |
-| Pendente | Pendente | Pendente | Pendente | Pendente | Novos atributos poderão ser incluídos na Sprint 4 após avaliação das features desenvolvidas nas sprints anteriores. | 4 | Feature |
 | `delta_1h_ozone`, `delta_1h_pm2_5` | `ozone`, `pm2_5` | Diferença horária | 1 hora anterior | Sim, com a medição em *t* e em *t-1h* | Candidatas a representar a direção da mudança recente; triagem não demonstrou ganho consistente de F1 e ainda não foram selecionadas para o pipeline final. | 4 | Feature candidata |
 | `delta_1h_iqar_ozone`, `delta_1h_iqar_pm2_5` | `iqar_ozone`, `iqar_pm2_5` | Diferença horária | 1 hora anterior | Sim, com os subíndices disponíveis em *t* e em *t-1h* | Candidatas a representar a variação recente dos subíndices; triagem elevou os falsos positivos e não justificou seleção final. | 4 | Feature candidata |
 | `delta_1h_temperature_2m`, `delta_1h_relative_humidity_2m`, `delta_1h_precipitation`, `delta_1h_wind_speed_10m`, `delta_1h_pressure_msl` | Variáveis meteorológicas correspondentes | Diferença horária | 1 hora anterior | Sim, com observações disponíveis em *t* e em *t-1h* | Candidatas a representar mudanças meteorológicas recentes; a triagem conjunta não melhorou o equilíbrio de métricas e não as selecionou para o pipeline final. | 4 | Feature candidata |
@@ -179,5 +186,6 @@ As diferenças de 1h são calculadas como `valor(t) - valor(t-1h)`; as diferenç
 | v0.8 | 4 | 09/10/2026 | Features temporais candidatas e comparativo formal S3→S4 documentados. |
 | v0.9 | 4 | 09/10/2026 | Quatro features de contexto curto congeladas para o comparativo da Sprint 5. |
 | v1.0 | 5 | 09/10/2026 | Features do modelo final e resultados da avaliação final única documentados. |
+| v1.1 | Pós-5 | 20/10/2026 | Fonte Forecast API, dados recentes e saída do fluxo operacional +1h documentados. |
 | v0.4 | 5 | | Conferência com o modelo final / model card |
 | | | | |

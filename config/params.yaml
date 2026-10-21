@@ -7,7 +7,7 @@ location:
   longitude: -46.186832
   timezone: America/Sao_Paulo
 
-# Período de coleta (formato YYYY-MM-DD)
+# Período de coleta histórico (formato YYYY-MM-DD)
 # Período validado nas APIs: 04/08/2022 a 31/08/2026
 # Os arquivos do período são salvos com as datas no nome; os arquivos antigos de janeiro/2025 ficam preservados.
 collection:
@@ -36,10 +36,22 @@ apis:
   air_quality:
     url: https://air-quality-api.open-meteo.com/v1/air-quality
     timeout: 30
-  
+
   weather:
     url: https://archive-api.open-meteo.com/v1/archive
     timeout: 30
+
+  # Endpoint usado pela aplicação operacional (+1h) para obter horas recentes.
+  weather_forecast:
+    url: https://api.open-meteo.com/v1/forecast
+    timeout: 30
+
+# Configurações da aplicação operacional
+application:
+  # Quantidade de dias recentes buscados para montar janelas temporais e prever t+1h.
+  recent_history_days: 3
+  # Cópia dos dados recentes coletados, compartilhada entre os notebooks (sobrescrita a cada coleta).
+  recent_snapshot: data/recent/dados_recentes.csv
 
 # Caminhos de dados
 paths:

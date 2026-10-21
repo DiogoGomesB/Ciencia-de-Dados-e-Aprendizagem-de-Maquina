@@ -3,7 +3,7 @@
 **Trilha:** B — Qualidade do ar inadequada
 
 **Equipe:**
-**Scrum Master do Sprint:**
+**Scrum Master do Sprint:** Diogo Gomes Barbosa
 **Repositório GitHub:** (link)
 
 > Sprint 1: coleta bruta. Sprint 2: limpeza, split, alvo e features iniciais. Sprint 3: baselines. Esta sprint **evolui** as features a partir dos erros do baseline, **retreina Dummy + persistência + Naive Bayes no mesmo split** e congela o `ColumnTransformer` para a Sprint 5. Sem lift documentado, não há evolução — só colunas novas.

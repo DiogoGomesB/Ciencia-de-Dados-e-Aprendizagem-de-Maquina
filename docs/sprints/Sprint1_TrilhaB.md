@@ -98,7 +98,7 @@ O período definitivo utilizado no projeto ainda deverá ser validado e definido
 
 ## 5. Processo de coleta
 
-A coleta pode ser reproduzida pelo notebook [`01_Coleta_Dados.ipynb`](../../notebooks/01_Coleta_Dados.ipynb), que explica as configurações, as chamadas às APIs da Open-Meteo, a inspeção das respostas e a gravação dos arquivos JSON. A execução impede a sobrescrita de arquivos existentes. Como alternativa para execução pelo terminal, o script `src/coleta/Coleta_Dados.py` mantém o mesmo fluxo.
+A coleta histórica é reproduzida pelo script `src/coleta/Coleta_Dados.py`, que usa as configurações de `config/params.yaml`, chama as APIs da Open-Meteo e grava os arquivos JSON sem sobrescrever os existentes. (Na Sprint 1 havia um notebook equivalente; os notebooks atuais seguem o fluxo operacional de previsão +1h, descrito no README.)
 
 A estrutura utilizada na Sprint 1 mantém os dados brutos separados por fonte.
 
@@ -115,7 +115,7 @@ Os arquivos da pasta `data/raw/` representam os dados originais obtidos das APIs
 
 ### Integração das fontes
 
-O notebook [`02_Merge_Dados.ipynb`](../../notebooks/02_Merge_Dados.ipynb) demonstra como carregar os JSONs, conferir a cobertura e a unicidade dos horários, fazer a integração interna por `time` e salvar o CSV em `data/interim/`. O script `src/transformacao/Merge_Dados.py` continua disponível para execução pelo terminal. Nenhum dos dois substitui arquivos de saída existentes.
+A integração é feita pelo script `src/transformacao/Merge_Dados.py`: carrega os JSONs, confere a cobertura e a unicidade dos horários, faz a integração interna por `time` e salva o CSV em `data/interim/`, sem substituir arquivos de saída existentes.
 
 ---
 
@@ -284,8 +284,9 @@ Ciencia-de-Dados-e-Aprendizagem-de-Maquina/
 │   ├── interim/
 │   └── processed/
 ├── notebooks/
-│   ├── 01_Coleta_Dados.ipynb
-│   └── 02_Merge_Dados.ipynb
+│   ├── 01_Coleta_Dados_Recentes.ipynb
+│   ├── 02_Features_Recentes.ipynb
+│   └── 03_Previsao_Proxima_Hora.ipynb
 ├── src/
 │   ├── coleta/
 │   │   └── Coleta_Dados.py
@@ -316,7 +317,7 @@ Os diretórios e arquivos que ainda não foram utilizados poderão ser preenchid
 | Armazenamento dos dados brutos | Concluído           |
 | Validação inicial da coleta    | Concluído           |
 | Dicionário de Dados            | Concluído           |
-| Merge entre as fontes          | Pendente            |
+| Merge entre as fontes          | Concluído (Sprint 2) |
 | Limpeza dos dados              | Sprint 2            |
 | Definição formal do alvo       | Sprint 2            |
 | Criação de features            | Sprint 2 / Sprint 4 |

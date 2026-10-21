@@ -6,7 +6,7 @@
 
 **Equipe:** Davi Gama dos Santos - 33121079, Diogo Gomes Barbosa - 35866276, Eudenis de Souza Vieira - 32751621, Gabriel Januário Alves - 35609991, João Pedro Barreto da Silva - 33297185
 
-**Scrum Master do Sprint:** A preencher conforme definição da equipe.
+**Scrum Master do Sprint:** Diogo Gomes Barbosa
 
 **Repositório GitHub:** A preencher com o link do repositório.
 

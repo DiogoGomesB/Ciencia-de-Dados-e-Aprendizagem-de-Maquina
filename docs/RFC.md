@@ -44,7 +44,7 @@ A qualidade do ar é um fator relevante para o meio ambiente e para a saúde pú
 | Recorte geográfico (cidade/região) ou cultura e municípios (Trilha C) |O projeto será delimitado ao município de Mogi das Cruzes/SP, utilizando como referência um único ponto geográfico localizado na Universidade Braz Cubas, nas coordenadas aproximadas de latitude -23.514561 e longitude -46.186832. O ponto será utilizado como referência para as observações e não terá como objetivo representar toda a cidade.|
 | Período histórico considerado |**04/08/2022 a 31/08/2026.** O período de janeiro/2025 foi preservado como teste inicial. Em 08/10/2026, as duas APIs foram coletadas para o intervalo ampliado: 35.736 horários por fonte, sem valores ausentes e com timestamps alinhados; os arquivos foram persistidos em nomes separados pelo intervalo. Em agosto/2022, a qualidade do ar começou a retornar valores em 03/08 às 21h; 04/08 foi o primeiro dia completo observado. Datas de referência anteriores retornaram horários sem valores de poluentes.|
 | O que está *dentro* do escopo deste projeto |Coleta e integração de dados de qualidade do ar e meteorológicos; organização e limpeza dos dados; análise da qualidade da base; definição da variável-alvo; criação de características para a previsão de uma hora à frente; desenvolvimento, treinamento e avaliação de modelos de classificação nas etapas posteriores do projeto.|
-| O que está *fora* de escopo (explicitamente não será feito) |Representar a qualidade do ar de toda a cidade por meio de vários pontos de monitoramento; realizar previsões para outras cidades ou regiões; desenvolver um sistema de monitoramento em tempo real; criar um aplicativo ou serviço de produção para emissão de alertas; realizar implantação em ambiente produtivo.|
+| O que está *fora* de escopo (explicitamente não será feito) |Representar a qualidade do ar de toda a cidade por meio de vários pontos de monitoramento; realizar previsões para outras cidades ou regiões; desenvolver um serviço de monitoramento contínuo em tempo real; criar um aplicativo ou serviço de produção para emissão de alertas; realizar implantação em ambiente produtivo. (Após a Sprint 5 foi acrescentado um script/notebook experimental que prevê a próxima hora a partir dos dados mais recentes das APIs; ele não é alerta oficial nem serviço de produção.)|
 
 > Trilha C: *uma única cultura* e municípios de escala comparável. Declarar também o N esperado (municípios × safras): a produtividade do IBGE é em geral anual; N pequeno limita modelos complexos.
 
@@ -113,6 +113,7 @@ O projeto seguirá um fluxo composto pela coleta e integração dos dados de qua
 - Podem existir dados ausentes, duplicados ou valores inconsistentes, que deverão ser identificados e tratados durante as etapas de preparação e análise.
 - Existe a possibilidade de desbalanceamento entre as classes adequada e inadequada após a definição do limiar, o que será verificado nas etapas seguintes.
 - A disponibilidade dos dados depende do funcionamento e da estabilidade das APIs utilizadas para a coleta.
+- A previsão +1h operacional depende da disponibilidade das APIs no momento da execução; as horas futuras devolvidas pelas APIs são descartadas e o clima recente vem do endpoint de previsão, não do arquivo histórico.
 - O histórico utilizado pode não representar todas as condições atmosféricas possíveis, limitando a capacidade de generalização dos resultados.
 
 ---
@@ -179,12 +180,10 @@ As perguntas de planejamento acima foram respondidas; pendências operacionais d
 | v0.1 |15/09/2026 | Diogo Gomes e Davi Gama | Primeira versão do RFC (Sprint 1) |
 | v0.2 |14/09/2026 | Davi Gama e Diogo Gomes | Período histórico definido: 31/08/2022–31/08/2026 (seções 4, 6, 9, 12), substituindo o intervalo provisório de 01/01/2025–31/01/2025. |
 | v0.3 |08/10/2026 | Equipe | Cobertura das APIs validada para 04/08/2022–31/08/2026; classe positiva definida como IQAr > 100 e política para alvos ausentes registrada. |
-| v0.4 |08/10/2026 | Equipe | Metodologia CETESB, janelas, conversão de CO e alvo aplicados ao período ampliado; distribuição por classe documentada. |
-| v0.5 |08/10/2026 | Equipe | EDA inicial e estratégia de validação temporal/teste final definidas e implementadas. |
-| v0.4 |08/10/2026 | Equipe | Metodologia CETESB 2025 conferida; janelas de exposição, conversão de CO e cálculo do alvo em t+1h definidos e implementados. |
-| v0.6 |09/10/2026 | Equipe | EDA gráfica no desenvolvimento e protocolo aprovado para comparar os grupos de features. |
-| v0.7 |09/10/2026 | Equipe | Primeiros baselines e análise out-of-fold dos erros registrados; holdout não avaliado. |
+| v0.4 |08/10/2026 | Equipe | Metodologia CETESB 2025 conferida; janelas, conversão de CO e alvo em t+1h aplicados ao período ampliado; distribuição por classe documentada. |
+| v0.5 |08/10/2026 | Equipe | Período ampliado coletado, integrado e rotulado em arquivos próprios; EDA inicial e estratégia de validação temporal/teste final definidas e implementadas. |
 | v0.6 |09/10/2026 | Equipe | EDA gráfica no desenvolvimento concluída e protocolo de comparação dos grupos de features aprovado. |
-| v0.5 |08/10/2026 | Equipe | Período ampliado coletado, integrado e rotulado em arquivos próprios, preservando os dados de teste de janeiro/2025. |
+| v0.7 |09/10/2026 | Equipe | Primeiros baselines e análise out-of-fold dos erros registrados; naquele momento, holdout não avaliado. |
 | v0.8 | Sprint 4 | Equipe | Conjunto de features temporais comparado e congelado; resultados e trade-offs documentados. |
 | v0.9 | Sprint 5 | Equipe | Seleção pré-teste, avaliação única do holdout e pipeline final documentados. |
+| v1.0 | Pós-Sprint 5 | Equipe | Fluxo operacional experimental +1h a partir da hora atual (`src/aplicacao/`, notebooks 01–03); escopo ajustado. |

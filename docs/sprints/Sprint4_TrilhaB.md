@@ -155,9 +155,13 @@ Reportar os resultados semanais como diagnóstico de desenvolvimento, não como 
 
 ## 6. Diário de bordo (retrospectiva individual)
 
-| Integrante | O que fiz nesta Sprint | Dificuldades | O que pretendo manter/ajustar |
-|---|---|---|---|
-| | | | |
+|| Integrante                  | O que fiz nesta Sprint       | Dificuldades | O que pretendo manter/ajustar |
+|| --------------------------- | ---------------------------- | ------------ | ----------------------------- |
+|| Davi Gama dos Santos        | A preencher pelo integrante. | A preencher. | A preencher.                  |
+| Diogo Gomes Barbosa | Congelei o pipeline de preparacao (ColumnTransformer) e coordenei o checkpoint da Sprint Review. | Manter o mesmo transformer para todos os modelos comparados. | Manter o congelamento antes de cada comparacao e registrar a versao usada. |
+|| Eudenis de Souza Vieira     | A preencher pelo integrante. | A preencher. | A preencher.                  |
+|| Gabriel Januário Alves      | A preencher pelo integrante. | A preencher. | A preencher.                  |
+|| João Pedro Barreto da Silva | A preencher pelo integrante. | A preencher. | A preencher.        
 
 ---
 

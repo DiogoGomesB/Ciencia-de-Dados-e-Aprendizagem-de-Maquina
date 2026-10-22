@@ -150,7 +150,7 @@ O alvo depende de médias móveis CETESB e do maior subíndice em *t+1h*, não d
 | Integrante | O que fiz nesta Sprint | Dificuldades | O que pretendo manter/ajustar |
 |---|---|---|---|
 | Davi Gama dos Santos | A preencher pelo integrante. | A preencher. | A preencher. |
-| Diogo Gomes Barbosa | A preencher pelo integrante. | A preencher. | A preencher. |
+| Diogo Gomes Barbosa | Coordenei a sprint como Scrum Master e implementei o calculo do alvo CETESB (subindices, IQAr e rotulo em t+1h). | Aplicar corretamente as janelas de 8h e 24h e a conversao de CO de ug/m3 para ppm. | Manter testes automatizados para cada regra do alvo e revisar o board com mais frequencia. |
 | Eudenis de Souza Vieira | A preencher pelo integrante. | A preencher. | A preencher. |
 | Gabriel Januário Alves | A preencher pelo integrante. | A preencher. | A preencher. |
 | João Pedro Barreto da Silva | A preencher pelo integrante. | A preencher. | A preencher. |

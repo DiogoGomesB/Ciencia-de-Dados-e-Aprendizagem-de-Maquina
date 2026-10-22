@@ -375,3 +375,11 @@ Foram definidas as fontes de dados, implementado o processo inicial de coleta, a
 A coleta inicial apresentou 744 observações horárias em cada uma das duas fontes para o período de 01/01/2025 a 31/01/2025.
 
 As etapas de integração, limpeza, definição formal do alvo, criação de atributos e modelagem permanecem para as sprints seguintes, mantendo nesta primeira etapa a separação entre dados brutos e dados processados.
+
+|| Integrante                  | O que fiz nesta Sprint       | Dificuldades | O que pretendo manter/ajustar |
+|| --------------------------- | ---------------------------- | ------------ | ----------------------------- |
+|| Davi Gama dos Santos        | A preencher pelo integrante. | A preencher. | A preencher.                  |
+| Diogo Gomes Barbosa | A preencher pelo integrante. | A preencher. | A preencher.      
+|| Eudenis de Souza Vieira     | A preencher pelo integrante. | A preencher. | A preencher.                  |
+|| Gabriel Januário Alves      | A preencher pelo integrante. | A preencher. | A preencher.                  |
+|| João Pedro Barreto da Silva | A preencher pelo integrante. | A preencher. | A preencher.        

@@ -139,7 +139,7 @@ O board da equipe deverá refletir o estado real das tarefas realizadas durante 
 || Integrante                  | O que fiz nesta Sprint       | Dificuldades | O que pretendo manter/ajustar |
 || --------------------------- | ---------------------------- | ------------ | ----------------------------- |
 || Davi Gama dos Santos        | A preencher pelo integrante. | A preencher. | A preencher.                  |
-|| Diogo Gomes Barbosa         | A preencher pelo integrante. | A preencher. | A preencher.                  |
+| Diogo Gomes Barbosa | Organizei a sprint e montei o pipeline com imputacao pela mediana e padronizacao ajustadas so no treino. | Evitar vazamento ao ajustar o pre-processamento dentro de cada fold. | Manter tudo dentro de um unico Pipeline e documentar cada decisao. |
 || Eudenis de Souza Vieira     | A preencher pelo integrante. | A preencher. | A preencher.                  |
 || Gabriel Januário Alves      | A preencher pelo integrante. | A preencher. | A preencher.                  |
 || João Pedro Barreto da Silva | A preencher pelo integrante. | A preencher. | A preencher.                  |

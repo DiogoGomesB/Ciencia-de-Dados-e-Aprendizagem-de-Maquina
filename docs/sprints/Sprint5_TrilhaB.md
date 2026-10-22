@@ -145,9 +145,13 @@ FN nos horários previstos para 27/12/2025 14h, 28/12/2025 13h e 31/12/2025 15h.
 - [ ] Board atualizado
 - [ ] Diário de bordo individual preenchido
 
-| Integrante | O que fiz nesta Sprint | Dificuldades | O que pretendo manter/ajustar |
-|---|---|---|---|
-| | | | |
+|| Integrante                  | O que fiz nesta Sprint       | Dificuldades | O que pretendo manter/ajustar |
+|| --------------------------- | ---------------------------- | ------------ | ----------------------------- |
+|| Davi Gama dos Santos        | A preencher pelo integrante. | A preencher. | A preencher.                  |
+| Diogo Gomes Barbosa | Como Scrum Master, conduzi o congelamento do modelo (Random Forest, limiar 0,3) antes de consultar o holdout, e criei o fluxo de previsao +1h a partir da hora atual. | Garantir que o holdout fosse avaliado uma unica vez e tratar as horas futuras que as APIs devolvem. | Manter a regra de nao reutilizar o teste e cobrir o fluxo +1h com testes automatizados. |
+|| Eudenis de Souza Vieira     | A preencher pelo integrante. | A preencher. | A preencher.                  |
+|| Gabriel Januário Alves      | A preencher pelo integrante. | A preencher. | A preencher.                  |
+|| João Pedro Barreto da Silva | A preencher pelo integrante. | A preencher. | A preencher.        
 
 ---
 

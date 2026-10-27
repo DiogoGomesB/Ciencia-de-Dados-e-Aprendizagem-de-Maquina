@@ -376,10 +376,12 @@ A coleta inicial apresentou 744 observações horárias em cada uma das duas fon
 
 As etapas de integração, limpeza, definição formal do alvo, criação de atributos e modelagem permanecem para as sprints seguintes, mantendo nesta primeira etapa a separação entre dados brutos e dados processados.
 
+> **Proposta teórica para validação da equipe:** a divisão individual abaixo foi elaborada a partir das entregas documentadas da Sprint 1. Ela não confirma a contribuição real de cada integrante; revisem e ajustem os relatos antes de tratá-los como retrospectiva factual.
+
 || Integrante                  | O que fiz nesta Sprint       | Dificuldades | O que pretendo manter/ajustar |
 || --------------------------- | ---------------------------- | ------------ | ----------------------------- |
-|| Davi Gama dos Santos        | A preencher pelo integrante. | A preencher. | A preencher.                  |
-| Diogo Gomes Barbosa | A preencher pelo integrante. | A preencher. | A preencher.      
-|| Eudenis de Souza Vieira     | A preencher pelo integrante. | A preencher. | A preencher.                  |
-|| Gabriel Januário Alves      | A preencher pelo integrante. | A preencher. | A preencher.                  |
-|| João Pedro Barreto da Silva | A preencher pelo integrante. | A preencher. | A preencher.        
+|| Davi Gama dos Santos        | Contribuí para delimitar o problema, o ponto de referência em Mogi das Cruzes e o período inicial da coleta. | Transformar o tema amplo de qualidade do ar em um recorte geográfico e temporal viável. | Manter o escopo e as premissas registrados antes de iniciar as etapas técnicas. |
+| Diogo Gomes Barbosa | Como Scrum Master, organizei as atividades iniciais e contribuí para configurar e implementar a coleta das APIs da Open-Meteo. | Configurar os parâmetros das APIs e preservar os dados originais sem misturar coleta e transformação. | Manter a configuração centralizada e proteger os arquivos brutos contra alterações acidentais. |
+|| Eudenis de Souza Vieira     | Pesquisei a fonte de qualidade do ar e organizei as variáveis de poluentes previstas para a coleta. | Interpretar a cobertura e as unidades de dados modelados, que não são medições locais diretas. | Documentar origem, unidade e limitações de cada variável. |
+|| Gabriel Januário Alves      | Pesquisei a fonte meteorológica histórica e organizei as variáveis de clima para o período inicial. | Conferir se as variáveis e os horários retornados eram compatíveis com o objetivo do projeto. | Validar a resposta de cada fonte antes de avançar para a integração. |
+|| João Pedro Barreto da Silva | Contribuí para inspecionar a estrutura e a cobertura inicial dos arquivos e documentar as variáveis e limitações espaciais. | Distinguir a validação inicial das fontes da integração, que ficou para uma etapa posterior. | Manter o dicionário e os registros de validação alinhados aos dados efetivamente coletados. |

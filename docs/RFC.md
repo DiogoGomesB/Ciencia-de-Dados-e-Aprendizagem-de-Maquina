@@ -4,7 +4,7 @@
 | *Trilha* | B — Qualidade do ar inadequada |
 | *Equipe* | Davi Gama dos Santos - 33121079, Diogo Gomes Barbosa	- 35866276, Eudenis de Souza Vieira - 32751621, Gabriel Januário Alves - 35609991, João Pedro Barreto da Silva - 33297185 |
 | *Autores* | Davi Gama dos Santos, Diogo Gomes Barbosa, Eudenis de Souza Vieira, Gabriel Januário Alves e João Pedro Barreto da Silva |
-| *Status* | Em revisão |
+| *Status* | Aprovado |
 | *Data* | 15/09/2026 |
 | *Sprint de referência* | 1 |
 
@@ -53,8 +53,8 @@ A qualidade do ar é um fator relevante para o meio ambiente e para a saúde pú
 ## 5. Usuários e decisão apoiada
 
 Quem usaria o alerta gerado por este projeto? Que decisão concreta essa pessoa/instituição tomaria com base nele?
-Em um possível cenário de utilização, o alerta poderia ser utilizado por instituições de ensino, órgãos públicos ou equipes responsáveis pelo acompanhamento ambiental e da qualidade do ar. A partir da previsão de uma possível condição inadequada para a próxima hora, esses usuários poderiam acompanhar a situação com maior atenção e avaliar a necessidade de comunicar ou orientar a população sobre a piora prevista.
-No contexto deste projeto acadêmico, o alerta será utilizado principalmente para demonstrar a aplicação de Ciência de Dados e Aprendizagem de Máquina na previsão de qualidade do ar, não constituindo um sistema oficial de alerta à população.
+**Usuários definidos:** A Coordenação de Infraestrutura, Segurança e Esportes da Universidade Braz Cubas (UBC), em cooperação com as equipes de brigada ambiental universitária e a Defesa Civil de Mogi das Cruzes. A partir da previsão de uma possível condição inadequada para a próxima hora, esses gestores tomam ações imediatas de proteção a estudantes e grupos vulneráveis.
+**Decisão concreta apoiada:** (1) Suspensão ou remanejamento para ambientes fechados de aulas práticas esportivas e treinos ao ar livre; (2) Emissão de comunicado preventivo de cautela para a comunidade acadêmica e grupos vulneráveis (asmáticos, idosos, cardiopatas); (3) Ajuste de filtragem e fechamento de entradas de ar externo nos prédios do campus durante o episódio. O alerta demonstra a viabilidade técnica de antecipar tais eventos com 1h de antecedência.
 
 ---
 
@@ -138,7 +138,10 @@ Não foi fixado um valor mínimo numérico de desempenho antes dos experimentos.
 
 ## 11. Alternativas consideradas (opcional)
 
-Não preenchido nesta versão.
+Foram consideradas e descartadas fundamentadamente as seguintes abordagens:
+- **Redes Neurais Recorrentes (LSTM/GRU):** Descartadas em prol de modelos tabulares e árvores devido ao volume amostral de treino (~21 mil linhas horárias), custo computacional e necessidade de interpretabilidade imediata.
+- **Técnicas de Oversampling sintético (SMOTE / ADASYN):** Rejeitadas para preservar a integridade da dependência temporal das séries horárias; o desbalanceamento foi tratado via ponderação de classes (`class_weight='balanced'`) e calibração fina do limiar de decisão.
+- **Regressão contínua do IQAr:** Descartada em favor da classificação binária orientada ao gatilho regulatório CETESB de saúde pública (IQAr > 100).
 
 ---
 
@@ -187,3 +190,4 @@ As perguntas de planejamento acima foram respondidas; pendências operacionais d
 | v0.8 | Sprint 4 | Equipe | Conjunto de features temporais comparado e congelado; resultados e trade-offs documentados. |
 | v0.9 | Sprint 5 | Equipe | Seleção pré-teste, avaliação única do holdout e pipeline final documentados. |
 | v1.0 | Pós-Sprint 5 | Equipe | Fluxo operacional experimental +1h a partir da hora atual (`src/aplicacao/`, notebooks 01–03); escopo ajustado. |
+| v1.1 | Pós-Sprint 5 | Equipe | Formalização do usuário decisor (Coordenação UBC / Defesa Civil), alternativas de modelagem e encerramento do RFC como Aprovado. |

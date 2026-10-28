@@ -224,7 +224,52 @@ Na validação temporal 2024-Q4 havia 2.208 observações e 46 positivos. Foram 
 
 Depois de congelada a decisão, o holdout temporal de 01/01/2025 a 31/08/2026 foi avaliado uma única vez: 14.592 observações, 161 positivas. A variante escolhida obteve recall 0,9814, precisão 0,7822 e F1 0,8705, com 158 verdadeiros positivos (TP), 44 falsos positivos (FP), 3 falsos negativos (FN) e 14.387 verdadeiros negativos (TN). Uma das 86 semanas completas excedeu o teto de episódios; o máximo foi cinco episódios e 31 horas de alerta. Os três eventos FN registrados foram 27/12/2025 às 14h, 28/12/2025 às 13h e 31/12/2025 às 15h. A regressão logística `predict` padrão apresentou recall 1,0000 e F1 0,8846 no mesmo holdout, mas não substituiu a escolha congelada, pois o teste não pode ser reutilizado para seleção.
 
-O pipeline treinado somente com o período anterior ao teste foi empacotado em [`modelo_final_sprint5.joblib`](../models/modelo_final_sprint5.joblib). O notebook [`03_Previsao_Proxima_Hora.ipynb`](../notebooks/03_Previsao_Proxima_Hora.ipynb) (e o script `src/aplicacao/Prever_Proxima_Hora.py`) carrega esse artefato e o aplica aos dados mais recentes das APIs para estimar a hora seguinte. A saída é uma estimativa experimental; ela não mede desempenho, que continua sendo o do holdout descrito acima.
+O pipeline treinado somente com o período anterior ao teste foi empacotado em [`modelo_final_sprint5.joblib`](../models/modelo_final_sprint5.joblib). O notebook [`03_Previsao_Proxima_Hora.ipynb`](../notebooks/03_Previsao_Proxima_Hora.ipynb) (e o script `src/aplicacao/Prever_Proxima_Hora.py`) carrega esse artefato e o aplica aos dados mais recentes das APIs para estimar a hora seguinte (`+1h`), além de apresentar uma projeção experimental complementar para as próximas `7h` (turno) e `24h` (dia completo). A saída operacional é uma estimativa experimental; ela não mede desempenho, que continua sendo o do holdout descrito acima.
+
+### 8.1 Detalhamento técnico: qual árvore escolhemos, estrutura interna e importância das variáveis
+
+Em vez de uma única Árvore de Decisão isolada (`DecisionTreeClassifier`) — que tende a decorar ruídos do passado (*overfitting*) e produzir probabilidades extremas (0% ou 100%) —, o projeto escolheu uma **Floresta Aleatória (`RandomForestClassifier`) composta por 300 árvores de decisão independentes** (algoritmo CART com critério de impureza de Gini).
+
+#### Configuração e anatomia real das 300 árvores em `models/modelo_final_sprint5.joblib`
+- **`n_estimators=300`**: 300 árvores votam juntas; a probabilidade de $\text{IQAr} > 100$ é a média das probabilidades das 300 árvores, permitindo calibrar com estabilidade o limiar `0,3`.
+- **`class_weight="balanced"`**: como no treino (`21.121` horas) há `20.378` negativos e apenas `743` positivos (`3,52%`), cada exemplo positivo recebe peso ~27,4 vezes maior no cálculo de impureza de Gini, compensando o desbalanceamento sem recorrer a SMOTE (que violaria a estrutura temporal da série).
+- **`min_samples_leaf=2`**: obriga cada folha final de cada árvore a conter pelo menos 2 horas históricas, evitando folhas criadas para decorar uma única hora atípica.
+- **`max_features="sqrt"`**: em cada divisão (*split*), cada árvore sorteia $\sqrt{15} \approx 3$ variáveis entre as 15 disponíveis, garantindo diversidade entre as árvores.
+- **`random_state=42`**: garante reprodutibilidade exata do treinamento.
+- **Dimensões reais das árvores treinadas no artefato**:
+  - **Profundidade das árvores**: varia de **10 a 24 níveis** (mediana de **18 níveis**).
+  - **Número de folhas por árvore**: varia de **53 a 196 folhas** (mediana de **105 folhas**).
+
+#### Como o modelo e o limiar `0,3` foram escolhidos (Resumo em 5 passos)
+1. **Congelamento das 15 features (`FEATURES_SPRINT4`) e do pré-processamento**: subíndices individuais em $t$, meteorologia e janelas curtas de 3h/2h de $\text{O}_3$ e $\text{PM}_{2.5}$, com `SimpleImputer(strategy="median")` e `StandardScaler()` ajustados exclusivamente no treino.
+2. **Competição em `2024-Q4` no limiar padrão (`0,5`)**: a Random Forest obteve o maior F1-Score (`0,9375`, com `5 FP` e `1 FN`) frente à Regressão Logística (`F1 = 0,8762`, `13 FP`, `0 FN`), Persistência (`F1 = 0,8043`, `9 FP`, `9 FN`) e Naive Bayes (`F1 = 0,5576`, `73 FP`, `0 FN`).
+3. **Calibração do limiar (`0,3`, `0,5`, `0,7`) na validação**: reduzindo o limiar da Random Forest para **`0,3`**, os Falsos Negativos caíram para **zero (`Recall = 1,0000`)**, mantendo `13 FP` (`F1 = 0,8440`) e **respeitando o teto de até 3 episódios de alerta por semana em todas as 12 semanas completas** de `2024-Q4` (enquanto a Regressão Logística no limiar `0,7` violou o teto semanal com 4 episódios).
+4. **Avaliação única no holdout cego (`2025–2026`)**: com a decisão congelada antes de abrir o teste (`14.592` horas, `161` positivos), a Random Forest com limiar `0,3` atingiu **Recall de 98,14%** (`158 TP`, `3 FN`, `44 FP`, `F1 = 0,8705`).
+5. **Empacotamento**: pipeline completo ajustado nas `21.121` linhas de desenvolvimento e serializado em `models/modelo_final_sprint5.joblib`.
+
+#### Importância das variáveis na Random Forest treinada (`feature_importances_`)
+
+A tabela abaixo apresenta a importância relativa (redução média ponderada da impureza de Gini nas 300 árvores) extraída diretamente do modelo final empacotado:
+
+| Posição | Feature | Importância (%) | Interpretação no modelo |
+|---:|---|---:|---|
+| 1º | `iqar_ozone` | **38,93%** | Subíndice de ozônio no instante $t$ |
+| 2º | `media_3h_ozone` | **28,68%** | Média móvel das últimas 3h de ozônio (atributos S4) |
+| 3º | `iqar_pm2_5` | **7,67%** | Subíndice de material particulado fino ($\text{PM}_{2.5}$) em $t$ |
+| 4º | `iqar_pm10` | **5,79%** | Subíndice de material particulado inalável ($\text{PM}_{10}$) em $t$ |
+| 5º | `temperature_2m` | **4,33%** | Temperatura a 2m (associada à formação fotoquímica de ozônio) |
+| 6º | `media_3h_pm2_5` | **4,26%** | Média móvel das últimas 3h de $\text{PM}_{2.5}$ (atributos S4) |
+| 7º | `delta_2h_ozone` | **2,46%** | Variação do ozônio nas últimas 2h (tendência recente) |
+| 8º | `iqar_carbon_monoxide` | **2,33%** | Subíndice de monóxido de carbono ($\text{CO}$) |
+| 9º | `iqar_sulphur_dioxide` | **1,77%** | Subíndice de dióxido de enxofre ($\text{SO}_2$) |
+| 10º | `relative_humidity_2m` | **1,24%** | Umidade relativa do ar a 2m |
+| 11º | `pressure_msl` | **1,05%** | Pressão atmosférica ao nível do mar |
+| 12º | `iqar_nitrogen_dioxide` | **0,82%** | Subíndice de dióxido de nitrogênio ($\text{NO}_2$) |
+| 13º | `delta_2h_pm2_5` | **0,31%** | Variação de $\text{PM}_{2.5}$ nas últimas 2h |
+| 14º | `wind_speed_10m` | **0,28%** | Velocidade do vento a 10m |
+| 15º | `precipitation` | **0,09%** | Precipitação horária |
+
+> **Destaque analítico:** As duas variáveis mais importantes do modelo são `iqar_ozone` (**38,93%**) e a feature criada na Sprint 4 `media_3h_ozone` (**28,68%**), que juntas concentram **67,61%** do poder decisório da floresta, seguidas pelos indicadores de material particulado (`iqar_pm2_5`, `iqar_pm10` e `media_3h_pm2_5`, que somam **17,72%**).
 
 ## 9. Como executar e validar, passo a passo
 
@@ -327,6 +372,8 @@ Os testes cobrem cálculo do alvo, separação temporal, criação de features, 
 | `probabilidade estimada de IQAr > 100` | Saída numérica da classe positiva pelo pipeline. É um escore probabilístico do modelo, não uma garantia de que o evento ocorrerá e não uma probabilidade calibrada para uso clínico ou oficial. |
 | `limiar congelado` | Corte usado para transformar o escore em uma classe. Neste projeto é `0.3`, escolhido na validação temporal de 2024-Q4 antes da avaliação final. Não significa que 30% seja um nível universal de risco. |
 | `resultado da regra` | Se o escore for maior ou igual a 0,3, aparece `ALERTA (regra experimental)`; se for menor, aparece `Sem alerta pela regra`. O texto é apenas uma saída didática e não deve ser publicado como aviso oficial. |
+| `horizonte` *(na projeção +7h/+24h)* | Indica quantas horas à frente está o evento projetado (`+1h` até `+7h` para o turno, ou até `+24h` para o dia completo). |
+| `iqar projetado (CAMS)` *(na projeção +7h/+24h)* | Valor do índice IQAr calculado sobre a trajetória horária futura prevista diretamente pela API CAMS/Open-Meteo (`forecast_days=2`). |
 
 **O que o notebook não mostra:** ele não exibe o rótulo real (a hora seguinte ainda não aconteceu); não calcula acerto/erro; não mede qualidade do modelo; não usa horas posteriores a "agora" (as horas futuras que as APIs devolvem como previsão do dia são descartadas); e depende de dados modelados pelo CAMS/Open-Meteo, não de uma estação local. Para conhecer as métricas reais do experimento, consulte as tabelas de validação e teste na [Sprint 5](sprints/Sprint5_TrilhaB.md) e os relatórios já salvos em `reports/modeling/`. A avaliação do holdout foi feita uma única vez; não rode o script de avaliação final novamente.
 

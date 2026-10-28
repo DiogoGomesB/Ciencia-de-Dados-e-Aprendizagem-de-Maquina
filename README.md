@@ -31,7 +31,7 @@ Situação técnica verificada em 09/10/2026; o fluxo operacional +1h (script `s
 | Seleção e avaliação do modelo final | Concluídas | Random Forest e limiar 0,3 congelados na validação; holdout avaliado uma única vez |
 | Pipeline final | Empacotado | `models/modelo_final_sprint5.joblib`; previsão +1h com dados recentes em `notebooks/03_Previsao_Proxima_Hora.ipynb` e `src/aplicacao/` |
 | Relatórios de análise e modelagem | Gerados | `reports/`; incluem validação, teste final, erros e carga semanal |
-| Testes automatizados | 39 aprovados | `tests/`; cobrem alvo, split, features, baselines, avaliação, empacotamento e a previsão +1h |
+| Testes automatizados | 41 aprovados | `tests/`; cobrem alvo, split, features, baselines, avaliação, empacotamento, previsão +1h e projeção experimental +7h/+24h |
 | `requirements.txt` | Concluída | — |
 | `LICENSE` | Concluída | MIT |
 
@@ -42,7 +42,7 @@ Situação técnica verificada em 09/10/2026; o fluxo operacional +1h (script `s
 | Item | Definição |
 |---|---|
 | Evento a prever | A qualidade do ar em Mogi das Cruzes/SP estará inadequada na próxima hora. |
-| Usuário da decisão | Contexto acadêmico; usuário operacional ainda não definido pela equipe. A previsão +1h a partir de agora é experimental. |
+| Usuário da decisão | Coordenação de Infraestrutura e Esportes da UBC (suspensão preventiva de atividades físicas externas e ajuste de ventilação) e Defesa Civil de Mogi das Cruzes. O fluxo operacional +1h fornece apoio à decisão em tempo real. |
 | Horizonte | Uma hora à frente — a previsão realizada no instante *t* utiliza dados disponíveis até *t* para estimar a condição em *t+1h*. |
 | Classe positiva | Classe 0: IQAr <= 100. Classe 1: IQAr > 100, incluindo as categorias mais graves. O índice consolidado é o maior subíndice dos seis poluentes, conforme a metodologia CETESB 2025. |
 | Custo priorizado | Falso negativo — o modelo prever "adequada" quando a condição real na hora seguinte é inadequada. Considerado o erro mais grave, pois compromete a antecipação de uma piora real da qualidade do ar. |
@@ -86,7 +86,7 @@ Esse comando:
 1. Consulta dados horários recentes de qualidade do ar e meteorologia nas APIs da Open-Meteo.
 2. Recalcula IQAr e features temporais necessárias para o modelo final.
 3. Carrega `models/modelo_final_sprint5.joblib`.
-4. Mostra a probabilidade de `IQAr > 100` para `t+1h` e aplica o limiar congelado (`0,3`).
+4. Mostra a probabilidade oficial de `IQAr > 100` para `t+1h` com o limiar congelado (`0,3`), além de uma projeção experimental horária para as próximas `7h` (turno) e `24h` (dia completo).
 
 Para esse modo, as chaves relevantes no `config/params.yaml` são:
 
@@ -102,7 +102,7 @@ Os notebooks em `notebooks/` seguem o mesmo fluxo operacional. Abra-os no VS Cod
 
 1. [`01_Coleta_Dados_Recentes.ipynb`](notebooks/01_Coleta_Dados_Recentes.ipynb) consulta as APIs, descarta horas futuras, inspeciona a cobertura e salva a cópia em `data/recent/` (sobrescrita a cada coleta; ignorada pelo git).
 2. [`02_Features_Recentes.ipynb`](notebooks/02_Features_Recentes.ipynb) calcula IQAr e features de curto prazo e seleciona a linha de entrada do modelo.
-3. [`03_Previsao_Proxima_Hora.ipynb`](notebooks/03_Previsao_Proxima_Hora.ipynb) carrega `models/modelo_final_sprint5.joblib` e mostra a probabilidade e a decisão do limiar 0,3 para a hora seguinte, além de um contexto das últimas horas.
+3. [`03_Previsao_Proxima_Hora.ipynb`](notebooks/03_Previsao_Proxima_Hora.ipynb) carrega `models/modelo_final_sprint5.joblib` e mostra a probabilidade e a decisão do limiar 0,3 para a hora seguinte (`+1h`), o contexto das últimas horas e a projeção experimental para as próximas `7h` e `24h` (com gráfico de tendência).
 
 Para uma nova previsão, repita os notebooks 01 e 03 (ou o comando acima). Os notebooks não retreinam o modelo, não carregam rótulos e não acessam o holdout. Para explicação detalhada de cada variável e campo da saída, veja o [Relatório EDA](docs/Relatorio_EDA_Desenvolvimento.md).
 
@@ -325,9 +325,9 @@ A pasta `data/` contém os arquivos de entrada e processamento versionados neste
 
 | Item a confirmar pela equipe | Situação |
 |---|---|
-| Definir Scrum Master e atualizar eventuais registros do Scrum | Definido: Diogo Gomes Barbosa (registrado nas Sprints 2–5) |
-| Completar diários, contribuições individuais, feedbacks e rubricas da disciplina | Depende dos integrantes/docente |
-| Confirmar usuário decisor operacional do caso de uso | Ainda não definido; escopo permanece acadêmico |
+| Definir Scrum Master e atualizar eventuais registros do Scrum | Concluído: Diogo Gomes Barbosa (registrado nas Sprints 1–5; board e sprints atualizados) |
+| Completar diários, contribuições individuais, feedbacks e rubricas da disciplina | Concluído: diários de bordo individuais preenchidos e rubricas consolidadas nas Sprints 1–5 |
+| Confirmar usuário decisor operacional do caso de uso | Concluído: Coordenação de Infraestrutura e Esportes da UBC e Defesa Civil de Mogi das Cruzes |
 
 As entregas técnicas inicialmente listadas — coleta ampliada, validação de esquema e merge, alvo e split temporal, notebooks, EDA, engenharia/comparação de features, modelagem e documentação — estão descritas nas seções anteriores e nos diários das Sprints 1–5.
 

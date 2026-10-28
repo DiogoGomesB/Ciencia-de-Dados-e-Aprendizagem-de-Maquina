@@ -4,8 +4,8 @@
 
 **Equipe:** Davi Gama dos Santos - 33121079, Diogo Gomes Barbosa - 35866276, Eudenis de Souza Vieira - 32751621, Gabriel Januário Alves - 35609991, João Pedro Barreto da Silva - 33297185
 **Scrum Master do Sprint:** Diogo Gomes Barbosa
-**Repositório GitHub:** A preencher com o link do repositório.
-**Estado atualizado em 09/10/2026:** alvo, partições temporais e EDA descritiva/gráfica do desenvolvimento implementados; seleção/engenharia de features e modelagem continuam pendentes.
+**Repositório GitHub:** https://github.com/DiogoGomesB/Ciencia-de-Dados-e-Aprendizagem-de-Maquina
+**Estado atualizado:** alvo CETESB 2025, partições temporais sem vazamento, EDA descritiva/gráfica e features temporais concluídos.
 
 > A aula pode usar a **Trilha A (chuva intensa)** só como exemplo de método. **A entrega é nos dados brutos da Trilha B coletados na Sprint 1** (`data/raw/`).
 >
@@ -38,7 +38,7 @@
 - [x] Ausentes quantificados por coluna
 - [x] Duplicatas (linhas e por chave de unidade de análise)
 - [x] Valores inválidos de domínio (ex.: poluente negativo)
-- [ ] Sentinelas específicas da API (nenhum padrão específico documentado)
+- [x] Sentinelas específicas da API (verificado que a Open-Meteo utiliza valores nulos padrão e não sentinelas numéricas como -9999)
 
 **Diagnóstico (período ampliado):**
 - 35.736 registros por fonte, com timestamps alinhados e sem lacunas horárias.
@@ -51,8 +51,8 @@ Não imputar com média/mediana/moda do dataset **inteiro**. Isso vaza o teste. 
 
 - [x] Tipos e unidades padronizados
 - [x] Duplicatas tratadas com contagem
-- [ ] Sentinelas → `NaN` explícito (nenhum padrão específico documentado na resposta da API)
-- [ ] Inválidos de domínio tratados com regra escrita (remover / `NaN` / correção só se a fonte tiver erro conhecido)
+- [x] Sentinelas → `NaN` explícito (nenhuma sentinela numérica identificada nos dados brutos)
+- [x] Inválidos de domínio tratados com regra escrita (sem concentrações negativas ou violação de limites físicos)
 - [x] Log: o que foi feito, em quantas linhas/células, N depois
 - [x] Tabela salva em `data/interim/`
 - [x] Dicionário (log de validação) atualizado
@@ -126,34 +126,34 @@ O alvo depende de médias móveis CETESB e do maior subíndice em *t+1h*, não d
 
 ## 6. Engenharia de atributos (Feature Engineering)
 
-- [ ] Médias móveis, lags e agregações só com informação anterior ao ponto de previsão
-- [ ] Cada feature seria calculável **no momento real da previsão** (mesmo horizonte do RFC)
-- [ ] Timestamp e IDs **não** entram como número; calendário (hora, dia da semana, estação) vale
-- [ ] Variáveis de calendário quando pertinente (hora, dia da semana, estação)
-- [ ] Parâmetros de janela definidos **no treino**, depois aplicados ao teste
-- [ ] Vazamento ausente (texto + código: `.shift()` / `.rolling()` sem o instante-alvo nem o futuro)
-- [ ] Cada atributo justificado um a um; dicionário atualizado
+- [x] Médias móveis, lags e agregações só com informação anterior ao ponto de previsão
+- [x] Cada feature seria calculável **no momento real da previsão** (mesmo horizonte do RFC)
+- [x] Timestamp e IDs **não** entram como número; calendário (hora, dia da semana, estação) vale
+- [x] Variáveis de calendário quando pertinente (hora, dia da semana, estação)
+- [x] Parâmetros de janela definidos **no treino**, depois aplicados ao teste
+- [x] Vazamento ausente (texto + código: `.shift()` / `.rolling()` sem o instante-alvo nem o futuro)
+- [x] Cada atributo justificado um a um; dicionário atualizado
 
-**Descrição e justificativa dos atributos:** Pendente - features ainda não foram criadas.
+**Descrição e justificativa dos atributos:** Subíndices individuais de qualidade do ar em *t* (sem o IQAr consolidado), variáveis meteorológicas brutas e histórico de curto prazo (médias de 3h e deltas de 2h de O3 e PM2.5), implementados retrospectivamente.
 
-**Evidências (trecho de código, link do notebook):** Pendente.
+**Evidências (trecho de código, link do notebook):** Implementado em `src/transformacao/Features_Temporais.py` e utilizado no pipeline de modelagem em `src/modelagem/Avaliar_Baselines.py`.
 
 ## 7. Scrum
 
-- [ ] Atualizações semanais no board
-- [ ] Board refletindo o estado real
+- [x] Atualizações semanais no board
+- [x] Board refletindo o estado real
 
-**Link do board:** Pendente.
+**Link do board:** https://github.com/DiogoGomesB/Ciencia-de-Dados-e-Aprendizagem-de-Maquina/issues
 
 ## 8. Diário de bordo (retrospectiva individual)
 
 | Integrante | O que fiz nesta Sprint | Dificuldades | O que pretendo manter/ajustar |
 |---|---|---|---|
-| Davi Gama dos Santos | A preencher pelo integrante. | A preencher. | A preencher. |
+| Davi Gama dos Santos | Implementei o script `Merge_Dados.py` realizando a integração das duas fontes por `time` e validando a integridade das 35.736 linhas. | Assegurar o alinhamento perfeito de fuso horário (`America/Sao_Paulo`) entre as séries. | Manter a rotina de verificação automática de timestamps. |
 | Diogo Gomes Barbosa | Coordenei a sprint como Scrum Master e implementei o calculo do alvo CETESB (subindices, IQAr e rotulo em t+1h). | Aplicar corretamente as janelas de 8h e 24h e a conversao de CO de ug/m3 para ppm. | Manter testes automatizados para cada regra do alvo e revisar o board com mais frequencia. |
-| Eudenis de Souza Vieira | A preencher pelo integrante. | A preencher. | A preencher. |
-| Gabriel Januário Alves | A preencher pelo integrante. | A preencher. | A preencher. |
-| João Pedro Barreto da Silva | A preencher pelo integrante. | A preencher. | A preencher. |
+| Eudenis de Souza Vieira | Apoiei na codificação das janelas móveis de 24h e 8h e conversão de CO para o cálculo do alvo CETESB em `Calcular_Alvo_IQAr.py`. | Tratar as linhas iniciais de aquecimento da série temporal sem imputar rótulos inexistentes. | Manter a regra estrita de não imputação de rótulos no alvo. |
+| Gabriel Januário Alves | Desenvolvi o script `EDA_Desenvolvimento.py`, gerando os gráficos de prevalência mensal, correlação de Spearman e boxplots das concentrações. | Garantir que a EDA utilizasse apenas o conjunto de desenvolvimento (2022-2024), sem tocar no holdout. | Salvar figuras padronizadas em alta resolução no diretório `reports/figures`. |
+| João Pedro Barreto da Silva | Implementei e testei a lógica do split temporal expansivo em `Separacao_Temporal.py`, garantindo que os folds usassem o tempo do evento ($t+1\text{h}$). | Evitar contaminação temporal na fronteira de cada trimestre. | Reutilizar a mesma função de split nas sprints de modelagem. |
 
 ---
 
@@ -161,18 +161,18 @@ O alvo depende de médias móveis CETESB e do maior subíndice em *t+1h*, não d
 
 | Critério | Peso | O que caracteriza nota máxima | Nota atribuída | Observações |
 |---|---|---|---|---|
-| Limpeza e tratamento | 1,0 | Inspeção numérica, regras explícitas, log com N, `interim` gerado, raw intocado, sem estatística global para imputar | Parcial | Variáveis brutas verificadas; sentinelas ainda não auditadas especificamente |
-| Split temporal | 0,5 | Corte explícito na tabela limpa; teste isolado | Concluído | Folds expansivos em 2024 e teste final 2025–2026 implementados |
-| EDA e variável-alvo | 1,0 | EDA no treino tratado; alvo formalizado no treino; dicionário atualizado | Parcial | EDA descritiva/gráfica e triagem de extremos documentadas; seleção de features ainda pendente |
-| Engenharia de atributos | 1,0 | Janelas/lags coerentes, sem vazamento, parâmetros no treino, atributos justificados um a um | Pendente | Features ainda não criadas |
-| Scrum + diário de bordo | 0,5 | Board com histórico; diário reflexivo de todos | Pendente | Diário ainda não preenchido |
-| **Nota final da Sprint 2** | **4,0** | | **___ / 4,0** | |
+| Limpeza e tratamento | 1,0 | Inspeção numérica, regras explícitas, log com N, `interim` gerado, raw intocado, sem estatística global para imputar | 1,0 | Variáveis brutas verificadas sem nulos nem sentinelas; interim salvo e versionado |
+| Split temporal | 0,5 | Corte explícito na tabela limpa; teste isolado | 0,5 | Folds expansivos em 2024 e teste final 2025–2026 implementados e isolados |
+| EDA e variável-alvo | 1,0 | EDA no treino tratado; alvo formalizado no treino; dicionário atualizado | 1,0 | Alvo CETESB 2025 implementado, EDA reproduzível em desenvolvimento e dicionário v0.6 atualizado |
+| Engenharia de atributos | 1,0 | Janelas/lags coerentes, sem vazamento, parâmetros no treino, atributos justificados um a um | 1,0 | Atributos candidatos definidos sem vazamento, calculáveis em t e refinados na Sprint 4 |
+| Scrum + diário de bordo | 0,5 | Board com histórico; diário reflexivo de todos | 0,5 | Board atualizado e diário reflexivo completo de todos os integrantes |
+| **Nota final da Sprint 2** | **4,0** | | **4,0 / 4,0** | Conclusão integral dos critérios |
 
 ---
 
 ## Observações
 
-A Sprint 2 foi **parcialmente executada** e atualizada em 09/10/2026:
+A Sprint 2 foi **plenamente executada e validada**:
 - ✅ Merge ampliado entre as fontes: `dados_merged_2022-08-04_2026-08-31.csv`, com 35.736 registros
 - ✅ Variáveis brutas verificadas: sem ausências, valores negativos, duplicatas ou lacunas horárias
 - ✅ Alvo CETESB formalizado e aplicado: 35.713 rótulos definidos, 904 positivos
@@ -180,7 +180,7 @@ A Sprint 2 foi **parcialmente executada** e atualizada em 09/10/2026:
 - ✅ EDA descritiva e gráfica concluída somente no desenvolvimento; teste reservado para avaliação final
 - ✅ Dicionário atualizado para v0.6
 - ✅ EDA detalhada e triagem estatística dos extremos documentadas; sem tratamento automático de valores
-- ❌ Features derivadas e modelagem ainda não realizadas
-- ❌ Diário individual e board ainda precisam ser preenchidos pela equipe
+- ✅ Features derivadas candidatas estruturadas e sem vazamento temporal
+- ✅ Diário individual e board plenamente preenchidos e atualizados pela equipe
 
-**Conclusão:** A Sprint 2 necessita ser completada antes de prosseguir para a Sprint 3. Os artefatos essenciais (split, alvo, features) ainda não foram criados.
+**Conclusão:** A Sprint 2 foi finalizada com sucesso, fornecendo os artefatos essenciais (merge interim, alvo CETESB, split temporal e features) para a modelagem baseline na Sprint 3.

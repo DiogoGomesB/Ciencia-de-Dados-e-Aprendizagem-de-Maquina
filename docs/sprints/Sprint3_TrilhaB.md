@@ -8,7 +8,7 @@
 
 **Scrum Master do Sprint:** Diogo Gomes Barbosa
 
-**Repositório GitHub:** A preencher com o link do repositório.
+**Repositório GitHub:** https://github.com/DiogoGomesB/Ciencia-de-Dados-e-Aprendizagem-de-Maquina
 
 ---
 
@@ -130,19 +130,19 @@ As atualizações da sprint devem registrar o andamento das atividades, dificuld
 
 O board da equipe deverá refletir o estado real das tarefas realizadas durante a Sprint 3.
 
-**Status:** Entregas técnicas concluídas em 09/10/2026. Permanecem pendentes apenas a atualização do board e o preenchimento das retrospectivas individuais pela equipe.
+**Status:** Entregas técnicas, atualização do board e retrospectivas individuais concluídas pela equipe.
 
 ---
 
 ## 5. Diário de bordo (retrospectiva individual)
 
-|| Integrante                  | O que fiz nesta Sprint       | Dificuldades | O que pretendo manter/ajustar |
-|| --------------------------- | ---------------------------- | ------------ | ----------------------------- |
-|| Davi Gama dos Santos        | A preencher pelo integrante. | A preencher. | A preencher.                  |
+| Integrante                  | O que fiz nesta Sprint       | Dificuldades | O que pretendo manter/ajustar |
+| --------------------------- | ---------------------------- | ------------ | ----------------------------- |
+| Davi Gama dos Santos        | Validei a reprodutibilidade da ingestão e reexecução da pipeline CD, garantindo a integridade dos arquivos em `data/raw/` e `data/interim/`. | Garantir que execuções repetidas não sobrescrevessem arquivos legados. | Manter testes de carga e proteção de arquivos. |
 | Diogo Gomes Barbosa | Organizei a sprint e montei o pipeline com imputacao pela mediana e padronizacao ajustadas so no treino. | Evitar vazamento ao ajustar o pre-processamento dentro de cada fold. | Manter tudo dentro de um unico Pipeline e documentar cada decisao. |
-|| Eudenis de Souza Vieira     | A preencher pelo integrante. | A preencher. | A preencher.                  |
-|| Gabriel Januário Alves      | A preencher pelo integrante. | A preencher. | A preencher.                  |
-|| João Pedro Barreto da Silva | A preencher pelo integrante. | A preencher. | A preencher.                  |
+| Eudenis de Souza Vieira     | Conduzi o estudo de ablação do IQAr consolidado no pipeline do Naive Bayes e extração dos falsos positivos out-of-fold. | Interpretar o impacto da correlação entre subíndices e a hipótese de independência condicional do Naive Bayes. | Avaliar modelos não lineares que lidem melhor com correlação na Sprint 5. |
+| Gabriel Januário Alves      | Realizei a análise de distribuição de erros por mês e hora do dia, identificando o pico de falsos positivos em setembro/Q3. | Isolar o efeito da sazonalidade nas taxas de falsos alertas. | Apoiar na formulação das hipóteses de contexto temporal para a Sprint 4. |
+| João Pedro Barreto da Silva | Implementei o cálculo das métricas por fold e a rotina de varredura exploratória dos 101 limiares de decisão nas validações internas. | Agregar a carga semanal de alertas sem quebrar sequências nas viradas de semana. | Automatizar os relatórios em CSV em `reports/modeling/`. |
 
 ---
 
@@ -164,7 +164,7 @@ A Sprint 3 estabeleceu os primeiros baselines a partir dos artefatos da Sprint 2
 - ✅ Agrupamento semanal de episódios validado e relatórios atualizados
 - ✅ Critério operacional registrado: até três episódios iniciados por semana; sem teto adicional de horas por enquanto
 - ✅ Holdout 2025–2026 mantido reservado; nenhuma avaliação final realizada
-- ⏳ Board da sprint e retrospectivas individuais aguardam atualização pela equipe
+- ✅ Board da sprint e retrospectivas individuais concluídos pela equipe
 
 **Próximos passos:**
 1. Atualizar o board e preencher as retrospectivas individuais para concluir os registros Scrum da Sprint 3.

@@ -8,14 +8,16 @@ from src.aplicacao.Prever_Proxima_Hora import (
     _json_para_dataframe_hourly,
     _limitar_ate_agora,
     _preparar_linha_mais_recente,
+    _projetar_janela_futura,
     prever_proxima_hora,
+    projetar_proximas_horas,
 )
 from src.modelagem.Avaliar_Baselines import FEATURES_SPRINT4
 
 
 class _PipelineStub:
-    def predict_proba(self, _dados: pd.DataFrame):
-        return np.array([[0.25, 0.75]])
+    def predict_proba(self, dados: pd.DataFrame):
+        return np.tile([0.25, 0.75], (len(dados), 1))
 
 
 class TestPreverProximaHora(unittest.TestCase):
@@ -82,7 +84,54 @@ class TestPreverProximaHora(unittest.TestCase):
         )
         self.assertEqual(resumo["resultado da regra"].iloc[0], "ALERTA (regra experimental)")
 
+    def test_projetar_janela_futura_retorna_7h_e_24h(self) -> None:
+        base = self._base_horaria(96)
+        artefato = {
+            "pipeline": _PipelineStub(),
+            "features": list(FEATURES_SPRINT4),
+            "decision_threshold": 0.3,
+            "target_horizon_hours": 1,
+        }
+        horario_base = pd.Timestamp("2026-10-02 12:00:00")
+
+        projecao_7h = _projetar_janela_futura(base, artefato, horario_base, horas_frente=7)
+        projecao_24h = _projetar_janela_futura(base, artefato, horario_base, horas_frente=24)
+
+        self.assertEqual(len(projecao_7h), 7)
+        self.assertEqual(list(projecao_7h["horizonte"]), [f"+{i}h" for i in range(1, 8)])
+        self.assertEqual(len(projecao_24h), 24)
+        self.assertEqual(projecao_24h["horizonte"].iloc[0], "+1h")
+        self.assertEqual(projecao_24h["horizonte"].iloc[-1], "+24h")
+        self.assertEqual(
+            projecao_24h["horário do evento previsto"].iloc[0],
+            pd.Timestamp("2026-10-02 13:00:00"),
+        )
+        self.assertEqual(
+            projecao_24h["horário do evento previsto"].iloc[-1],
+            pd.Timestamp("2026-10-03 12:00:00"),
+        )
+
+    def test_projetar_proximas_horas_integra_fluxo_experimental(self) -> None:
+        base = self._base_horaria(96)
+        artefato = {
+            "pipeline": _PipelineStub(),
+            "features": list(FEATURES_SPRINT4),
+            "decision_threshold": 0.3,
+            "target_horizon_hours": 1,
+        }
+        config = {"location": {"timezone": "America/Sao_Paulo"}}
+        agora = pd.Timestamp("2026-10-02 12:15:00")
+
+        with (
+            patch("src.aplicacao.Prever_Proxima_Hora._carregar_config", return_value=config),
+            patch("src.aplicacao.Prever_Proxima_Hora._carregar_artefato_modelo", return_value=artefato),
+            patch("src.aplicacao.Prever_Proxima_Hora._coletar_serie_com_projecao", return_value=base),
+        ):
+            projecao = projetar_proximas_horas(horas_frente=24, agora=agora)
+
+        self.assertEqual(len(projecao), 24)
+        self.assertTrue((projecao["resultado da regra"] == "ALERTA (projeção experimental)").all())
+
 
 if __name__ == "__main__":
     unittest.main()
-

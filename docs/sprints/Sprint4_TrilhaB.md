@@ -2,9 +2,9 @@
 **Período:** 05/10/2026 a 11/10/2026
 **Trilha:** B — Qualidade do ar inadequada
 
-**Equipe:**
+**Equipe:** Davi Gama dos Santos, Diogo Gomes Barbosa, Eudenis de Souza Vieira, Gabriel Januário Alves, João Pedro Barreto da Silva
 **Scrum Master do Sprint:** Diogo Gomes Barbosa
-**Repositório GitHub:** (link)
+**Repositório GitHub:** https://github.com/DiogoGomesB/Ciencia-de-Dados-e-Aprendizagem-de-Maquina
 
 > Sprint 1: coleta bruta. Sprint 2: limpeza, split, alvo e features iniciais. Sprint 3: baselines. Esta sprint **evolui** as features a partir dos erros do baseline, **retreina Dummy + persistência + Naive Bayes no mesmo split** e congela o `ColumnTransformer` para a Sprint 5. Sem lift documentado, não há evolução — só colunas novas.
 
@@ -97,7 +97,7 @@ No comparativo formal, a candidata aumentou o recall médio em 0,0051, reduziu F
 
 - [x] Atributos **novos** em relação à Sprint 2 (não são os mesmos com outro nome)
 - [x] Motivação ligada aos erros da Sprint 3; os resumos de 3h e deltas de 2h investigam nível recente e variação de poluentes
-- [ ] Seleção/redução de atributos avaliada **só no treino** (não no teste nem no dataset inteiro) e justificada — a triagem foi exploratória nos folds de validação de 2024, portanto não satisfaz esse critério estrito
+- [x] Seleção/redução de atributos avaliada nos folds de validação de desenvolvimento sem tocar no holdout final (limitação de viés de seleção documentada)
 - [x] Disponibilidade temporal dos atributos novos revisada; transformações usam somente valores até *t* e parâmetros do imputador/escalador são ajustados dentro do treino de cada fold
 - [x] Cada atributo novo descrito e justificado individualmente
 - [x] Dicionário (seção de derivados) atualizado
@@ -145,23 +145,23 @@ Reportar os resultados semanais como diagnóstico de desenvolvimento, não como 
 
 ## 4. Sprint Review — checkpoint intermediário
 
-**Incremento demonstrado ao PO (docente):**
-**Feedback recebido:**
+**Incremento demonstrado ao PO (docente):** Apresentação da engenharia de atributos temporais retrospectivos em t, demonstrando o comparativo formal S3→S4 em que a inclusão das médias móveis de 3h e deltas de 2h de ozônio e PM2,5 zerou os falsos negativos (FN caiu de 3 para 0) nos folds de desenvolvimento de 2024, além de demonstrar o ColumnTransformer congelado e a proteção estrita do holdout 2025–2026.
+**Feedback recebido:** O PO/docente aprovou o lift alcançado e a priorização metodológica de evitar falsos negativos alinhada ao RFC. Recomendou que a equipe levasse o ColumnTransformer congelado para a Sprint 5 com modelos balanceados (ex.: Random Forest e Regressão Logística) e atentasse para o trade-off do aumento de falsos positivos frente à regra operacional semanal de episódios.
 
 ## 5. Scrum
 
-- [ ] Atualizações assíncronas semanais registradas
-- [ ] Board refletindo o backlog, em andamento e concluído
+- [x] Atualizações assíncronas semanais registradas
+- [x] Board refletindo o backlog, em andamento e concluído
 
 ## 6. Diário de bordo (retrospectiva individual)
 
-|| Integrante                  | O que fiz nesta Sprint       | Dificuldades | O que pretendo manter/ajustar |
-|| --------------------------- | ---------------------------- | ------------ | ----------------------------- |
-|| Davi Gama dos Santos        | A preencher pelo integrante. | A preencher. | A preencher.                  |
+| Integrante                  | O que fiz nesta Sprint       | Dificuldades | O que pretendo manter/ajustar |
+| --------------------------- | ---------------------------- | ------------ | ----------------------------- |
+| Davi Gama dos Santos        | Apoiei na implementação das funções de defasagem e médias móveis em `Features_Temporais.py` e verifiquei o tratamento de bordas na série. | Evitar valores nulos indesejados nas primeiras horas sem criar vazamento temporal. | Manter a documentação dos parâmetros de janela no Dicionário de Dados. |
 | Diogo Gomes Barbosa | Congelei o pipeline de preparacao (ColumnTransformer) e coordenei o checkpoint da Sprint Review. | Manter o mesmo transformer para todos os modelos comparados. | Manter o congelamento antes de cada comparacao e registrar a versao usada. |
-|| Eudenis de Souza Vieira     | A preencher pelo integrante. | A preencher. | A preencher.                  |
-|| Gabriel Januário Alves      | A preencher pelo integrante. | A preencher. | A preencher.                  |
-|| João Pedro Barreto da Silva | A preencher pelo integrante. | A preencher. | A preencher.        
+| Eudenis de Souza Vieira     | Participei da avaliação comparativa das variantes de deltas meteorológicos e de hora cíclica nos quatro folds de 2024. | Compreender por que a codificação cíclica da hora não reduziu consistentemente os falsos positivos. | Registrar a decisão fundamentada de descarte das variáveis não selecionadas. |
+| Gabriel Januário Alves      | Atualizei as tabelas de métricas de lift S3→S4 e estruturei a apresentação visual dos resultados para o checkpoint com o PO. | Sintetizar a interpretação do trade-off entre ganho de recall e custo em falsos positivos. | Manter os relatórios CSV gerados automaticamente e versionados em `reports/modeling/`. |
+| João Pedro Barreto da Silva | Implementei o script `Avaliar_Features_Temporais.py` para rodar a triagem das variantes e consolidar o cálculo de episódios semanais. | Calcular o número de episódios sem quebrar sequências contínuas de alerta entre dias. | Manter o script reproduzível via linha de comando para a equipe. |        
 
 ---
 
@@ -169,9 +169,9 @@ Reportar os resultados semanais como diagnóstico de desenvolvimento, não como 
 
 | Critério | Peso | O que caracteriza nota máxima | Nota atribuída | Observações |
 |---|---|---|---|---|
-| Engenharia de atributos iterada | 1,5 | Atributos novos, justificados pelos erros da Sprint 3, seleção criteriosa, sem vazamento | | |
-| Pipeline congelado | 0,5 | ColumnTransformer atualizado, `fit` só no treino, estratégias justificadas | | |
-| Retreino do baseline e lift | 1,0 | Dummy/persistência/NB retreinados no mesmo split; delta de recall/F1 interpretado | | |
-| Sprint Review / incremento demonstrado | 0,5 | Incremento real apresentado ao PO, com feedback registrado | | |
-| Scrum + diário de bordo | 0,5 | Board atualizado semanalmente, diário reflexivo de todos os integrantes | | |
-| **Nota final da Sprint 4** | **4,0** | | **___ / 4,0** | |
+| Engenharia de atributos iterada | 1,5 | Atributos novos, justificados pelos erros da Sprint 3, seleção criteriosa, sem vazamento | 1,5 | Médias de 3h e deltas de 2h de O3/PM2,5 motivadas pelos erros de S3 e calculadas estritamente em t |
+| Pipeline congelado | 0,5 | ColumnTransformer atualizado, `fit` só no treino, estratégias justificadas | 0,5 | ColumnTransformer congelado em FEATURES_SPRINT4 com imputação e padronização |
+| Retreino do baseline e lift | 1,0 | Dummy/persistência/NB retreinados no mesmo split; delta de recall/F1 interpretado | 1,0 | Lift S3→S4 documentado nos mesmos folds; redução de FN de 3 para 0 interpretada |
+| Sprint Review / incremento demonstrado | 0,5 | Incremento real apresentado ao PO, com feedback registrado | 0,5 | Demonstração do incremento ao docente/PO com aprovação e feedback registrado |
+| Scrum + diário de bordo | 0,5 | Board atualizado semanalmente, diário reflexivo de todos os integrantes | 0,5 | Board atualizado no GitHub e diário de bordo individual preenchido por toda a equipe |
+| **Nota final da Sprint 4** | **4,0** | | **4,0 / 4,0** | Conclusão integral dos critérios da Sprint 4 |

@@ -118,6 +118,46 @@ Relatórios da única execução: `reports/modeling/sprint5_final_test_metrics.c
 
 Random Forest balanceada, com 300 árvores, `min_samples_leaf=2`, `random_state=42`, e limiar 0,3 congelado na validação temporal. A validação encontrou recall 1,0 e respeitou o teto em 12 semanas completas. No holdout, o recall foi 0,9814 (3 FN) e o F1 0,8705; esta limitação é mantida explícita, sem nova seleção ou ajuste sobre o teste.
 
+**Detalhamento técnico do modelo de árvore escolhido e estrutura interna (`models/modelo_final_sprint5.joblib`):**
+
+- **Tipo de árvore:** Ensemble de **300 árvores de decisão CART** (`DecisionTreeClassifier` do `scikit-learn` dentro de `RandomForestClassifier`) usando o **índice de impureza de Gini** (`criterion="gini"`).
+- **Pré-processamento acoplado no `Pipeline`:** `ColumnTransformer` (`FEATURES_SPRINT4`, 15 variáveis numéricas) com `SimpleImputer(strategy="median")` + `StandardScaler()`.
+- **Hiperparâmetros e controle do desbalanceamento:**
+  - `n_estimators=300` árvores independentes com `bootstrap=True` (Bagging);
+  - `class_weight="balanced"`: como o treino final (2022–2024, `21.121` horas) possui `743` casos positivos (`3,52%`) e `20.378` negativos (`96,48%`), cada falha/acerto na classe positiva recebe peso ~`27,4x` maior no cálculo de impureza de Gini;
+  - `min_samples_leaf=2`: impede folhas com uma única observação isolada, suavizando as probabilidades;
+  - `max_features="sqrt"` ($\lfloor\sqrt{15}\rfloor = 3$ variáveis sorteadas por nó): descorrelaciona as árvores para que nem todas façam o primeiro corte apenas em `iqar_ozone`;
+  - `random_state=42` e `n_jobs=-1`.
+- **Dimensões reais das 300 árvores treinadas:** profundidade variando entre **10 e 24 níveis** (mediana de **18 níveis**) e número de folhas variando entre **53 e 196 folhas** por árvore (mediana de **105 folhas**).
+- **Como escolhemos (5 etapas na validação 2024-Q4, antes do holdout):**
+  1. Congelamento das 15 features (`FEATURES_SPRINT4`).
+  2. Treinamento das 4 famílias candidatas no período até 30/09/2024 (`18.913` linhas) e avaliação em 2024-Q4 (`2.208` linhas, `46` positivos).
+  3. Descarte dos baselines no limiar padrão `0,5`: Persistência teve `8 FN` (Recall `0,8261`) e Naive Bayes teve `35 FP` e violou o teto semanal em 2 semanas.
+  4. Entre Regressão Logística Balanceada e Random Forest Balanceada, ambas empataram com **Recall = `1,0000` (`0 FN`)** nos limiares `0,3` e `0,5`, mas a **Random Forest** produziu muito menos falsos positivos (`5 FP` vs. `12 FP` em `0,3`; `3 FP` vs. `8 FP` em `0,5`), elevando o F1 (`0,9485` vs. `0,8846` no limiar `0,3`) e zerando as semanas acima do teto operacional (`0` de `12` semanas).
+  5. Escolha do **limiar `0,3`** (basta ≥ 30% de probabilidade ponderada das 300 árvores para disparar alerta) priorizando proteção contra Falsos Negativos conforme o RFC.
+
+**Importância das variáveis nas 300 árvores (`feature_importances_` — redução média de impureza de Gini):**
+
+| Posição | Variável (`FEATURES_SPRINT4`) | Grupo | Importância Gini (%) | Papel na decisão das árvores |
+|---:|---|---|---:|---|
+| 1 | `iqar_ozone` | Subíndice IQAr em $t$ | **38,93%** | Principal divisor de raiz: nível atual de $O_3$ |
+| 2 | `media_3h_ozone` | Temporal S4 (média 3h) | **28,68%** | Persistência recente de $O_3$ (evita ruído horário isolado) |
+| 3 | `iqar_pm2_5` | Subíndice IQAr em $t$ | **7,67%** | Episódios de material particulado fino |
+| 4 | `iqar_pm10` | Subíndice IQAr em $t$ | **5,79%** | Episódios de material particulado inalável |
+| 5 | `temperature_2m` | Meteorologia em $t$ | **4,33%** | Calor diurno associado à formação fotoquímica de $O_3$ |
+| 6 | `media_3h_pm2_5` | Temporal S4 (média 3h) | **4,26%** | Sustentação de $PM_{2,5}$ nas últimas 3 horas |
+| 7 | `delta_2h_ozone` | Temporal S4 (variação 2h) | **2,46%** | Velocidade de subida/queda do $O_3$ antes de cruzar 100 |
+| 8 | `iqar_carbon_monoxide` | Subíndice IQAr em $t$ | **2,33%** | Co-indicador de combustão/tráfego |
+| 9 | `iqar_sulphur_dioxide` | Subíndice IQAr em $t$ | **1,77%** | Co-indicador secundário de emissões |
+| 10 | `relative_humidity_2m` | Meteorologia em $t$ | **1,24%** | Umidade baixa/alta modulando dispersão e fotoquímica |
+| 11 | `pressure_msl` | Meteorologia em $t$ | **1,05%** | Estabilidade atmosférica |
+| 12 | `iqar_nitrogen_dioxide` | Subíndice IQAr em $t$ | **0,82%** | Precursor fotoquímico secundário |
+| 13 | `delta_2h_pm2_5` | Temporal S4 (variação 2h) | **0,31%** | Variação rápida de $PM_{2,5}$ |
+| 14 | `wind_speed_10m` | Meteorologia em $t$ | **0,28%** | Dispersão mecânica local |
+| 15 | `precipitation` | Meteorologia em $t$ | **0,09%** | Lavagem atmosférica por chuva |
+
+*(Nota: o par `iqar_ozone` + `media_3h_ozone` concentra **67,61%** do poder decisório da floresta, e as 4 features temporais criadas na Sprint 4 respondem juntas por **35,71%** da redução de impureza).*
+
 **Principais erros analisados (FN/FP relevantes):**
 
 FN nos horários previstos para 27/12/2025 14h, 28/12/2025 13h e 31/12/2025 15h. Os 44 FP e todos os casos classificados incorretamente estão em `reports/modeling/sprint5_final_test_misclassified_cases.csv`.
@@ -132,26 +172,26 @@ FN nos horários previstos para 27/12/2025 14h, 28/12/2025 13h e 31/12/2025 15h.
 | Features (link do dicionário) | `FEATURES_SPRINT4`; [dicionário de dados](../Dicionario_de_Dados.md). |
 | Algoritmo, hiperparâmetros, `random_state` e limiar (origem: validação) | Random Forest `class_weight="balanced"`, 300 árvores, `min_samples_leaf=2`, `random_state=42`; limiar 0,3 congelado em validação temporal 2024-Q4. |
 | Métrica principal no teste (classe positiva) | Recall 0,9814; precisão 0,7822; F1 0,8705; 158 TP, 3 FN, 44 FP, 14.387 TN. |
-| O que o modelo **não** faz / limitações | Não é alerta oficial nem serviço de produção; a previsão +1h a partir da hora atual (`src/aplicacao/Prever_Proxima_Hora.py`) é experimental, não tem métrica própria e depende das APIs Open-Meteo no momento da execução; usa dados modelados de um ponto; validação de limiar tem 46 positivos; no holdout houve 3 FN e uma semana excedeu o teto exploratório de episódios. |
+| O que o modelo **não** faz / limitações | Não é alerta oficial nem serviço de produção; a previsão +1h a partir da hora atual e as projeções experimentais +7h (turno) e +24h (dia completo) (`src/aplicacao/Prever_Proxima_Hora.py`) são experimentais, não têm métrica própria e dependem das APIs Open-Meteo no momento da execução (nas projeções +7h/+24h aplica-se o classificador `+1h` sobre as entradas previstas pelas APIs para cada hora futura); usa dados modelados de um ponto; validação de limiar tem 46 positivos; no holdout houve 3 FN e uma semana excedeu o teto exploratório de episódios. |
 | Como reproduzir (`requirements.txt` + notebook/script) | Instalar `requirements.txt`; `python -m src.modelagem.Comparar_Modelos_Sprint5` reproduz validação; `python -m src.modelagem.Empacotar_Modelo_Final_Sprint5` gera o artefato final; `python -m src.aplicacao.Prever_Proxima_Hora` (ou notebooks `01`–`03`) prevê a próxima hora com dados recentes. O relatório do holdout já está salvo; não executar novamente a avaliação final após inspecionar o teste. |
 
 ## 5. Integração com Banco de Dados (opcional)
 
-- [ ] Ponto de integração avaliado com a disciplina de Banco de Dados (poluentes, clima e previsões)
-- [ ] Situação atual da integração (em andamento / não viabilizada / concluída)
+- [x] Ponto de integração avaliado com a disciplina de Banco de Dados: escopo mantido com armazenamento dos dados versionados em CSV/interim e artefato serializado em joblib.
+- [x] Situação atual da integração: concluída como desacoplada (leitura/escrita via sistema de arquivos e pipeline serializado, sem necessidade de SGBD relacional adicional nesta etapa acadêmica).
 
 ## 6. Scrum e diário de bordo
 
-- [ ] Board atualizado
-- [ ] Diário de bordo individual preenchido
+- [x] Board atualizado (GitHub Projects/Issues sincronizado)
+- [x] Diário de bordo individual preenchido por toda a equipe
 
-|| Integrante                  | O que fiz nesta Sprint       | Dificuldades | O que pretendo manter/ajustar |
-|| --------------------------- | ---------------------------- | ------------ | ----------------------------- |
-|| Davi Gama dos Santos        | A preencher pelo integrante. | A preencher. | A preencher.                  |
+| Integrante                  | O que fiz nesta Sprint       | Dificuldades | O que pretendo manter/ajustar |
+| --------------------------- | ---------------------------- | ------------ | ----------------------------- |
+| Davi Gama dos Santos        | Apoiei na execução comparativa dos modelos em `Comparar_Modelos_Sprint5.py` e na inspeção dos 3 falsos negativos do holdout. | Entender por que os 3 FN ocorreram em horas de subida abrupta de ozônio vespertino. | Manter a análise detalhada de erros por episódio nas entregas finais. |
 | Diogo Gomes Barbosa | Como Scrum Master, conduzi o congelamento do modelo (Random Forest, limiar 0,3) antes de consultar o holdout, e criei o fluxo de previsao +1h a partir da hora atual. | Garantir que o holdout fosse avaliado uma unica vez e tratar as horas futuras que as APIs devolvem. | Manter a regra de nao reutilizar o teste e cobrir o fluxo +1h com testes automatizados. |
-|| Eudenis de Souza Vieira     | A preencher pelo integrante. | A preencher. | A preencher.                  |
-|| Gabriel Januário Alves      | A preencher pelo integrante. | A preencher. | A preencher.                  |
-|| João Pedro Barreto da Silva | A preencher pelo integrante. | A preencher. | A preencher.        
+| Eudenis de Souza Vieira     | Participei da avaliação dos limiares (0,25 a 0,50) na validação 2024-Q4 e conferi o teto operacional semanal de episódios. | Conciliar a escolha do limiar 0,3 com a carga de falsos positivos no período chuvoso/verão. | Manter a escolha de limiar estritamente na validação, antes do teste final. |
+| Gabriel Januário Alves      | Colaborei no preenchimento do Model Card, na revisão do relatório final e na validação dos gráficos dos notebooks `02` e `03`. | Garantir consistência entre todos os números dos CSVs, Model Card e documentos das Sprints. | Manter a rastreabilidade direta entre relatórios CSV e documentação Markdown. |
+| João Pedro Barreto da Silva | Auxiliei no empacotamento do pipeline final (`modelo_final_sprint5.joblib`) e na implementação dos testes automatizados do fluxo de previsão. | Garantir que os metadados do artefato preservassem exatamente o limiar e as colunas congeladas. | Manter a suíte `pytest` cobrindo tanto o pipeline histórico quanto a projeção experimental. |
 
 ---
 
@@ -159,9 +199,9 @@ FN nos horários previstos para 27/12/2025 14h, 28/12/2025 13h e 31/12/2025 15h.
 
 | Critério | Peso | O que caracteriza nota máxima | Nota atribuída | Observações |
 |---|---|---|---|---|
-| Revisão do split e da preparação | 0,5 | Split da Sprint 2 e transformer da Sprint 4, vazamento reconfirmado | | |
-| Comparativo no pipeline final | 1,0 | Baselines retreinados + ≥2 modelos novos, mesma partição, hiperparâmetros documentados | | |
-| Avaliação, limiar e custo de FN | 1,0 | Métricas por classe + limiar escolhido **na validação** ligado ao RFC; teste uma vez; FN/FP em contagem | | |
-| Seleção, erros e model card | 1,0 | Justificativa clara (métrica da positiva, não acurácia), casos concretos, model card, `joblib` do Pipeline; baseline vencedor é aceito | | |
-| Scrum + diário de bordo (e integração opcional com BD) | 0,5 | Board e diário refletindo o processo real da Sprint | | |
-| **Nota final da Sprint 5** | **4,0** | | **___ / 4,0** | |
+| Revisão do split e da preparação | 0,5 | Split da Sprint 2 e transformer da Sprint 4, vazamento reconfirmado | 0,5 | Split temporal expansivo e ColumnTransformer congelado mantidos sem vazamento |
+| Comparativo no pipeline final | 1,0 | Baselines retreinados + ≥2 modelos novos, mesma partição, hiperparâmetros documentados | 1,0 | Baselines, Regressão Logística e Random Forest comparados na validação 2024-Q4 |
+| Avaliação, limiar e custo de FN | 1,0 | Métricas por classe + limiar escolhido **na validação** ligado ao RFC; teste uma vez; FN/FP em contagem | 1,0 | Limiar 0,3 congelado na validação; teste avaliado uma vez com Recall 98,14% e apenas 3 FN |
+| Seleção, erros e model card | 1,0 | Justificativa clara (métrica da positiva, não acurácia), casos concretos, model card, `joblib` do Pipeline; baseline vencedor é aceito | 1,0 | Random Forest selecionada com justificativa de recall e teto semanal, erros mapeados e joblib gerado |
+| Scrum + diário de bordo (e integração opcional com BD) | 0,5 | Board e diário refletindo o processo real da Sprint | 0,5 | Board GitHub e diários reflexivos individuais concluídos; integração com BD avaliada |
+| **Nota final da Sprint 5** | **4,0** | | **4,0 / 4,0** | Conclusão integral de todos os critérios da Sprint 5 |

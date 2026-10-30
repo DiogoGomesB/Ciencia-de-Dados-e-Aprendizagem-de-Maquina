@@ -57,6 +57,7 @@ application:
 paths:
   raw_data: data/raw
   interim_data: data/interim
+  processed_data: data/processed
   air_quality_raw_filename: "air_quality_raw_{start_date}_{end_date}.json"
   weather_raw_filename: "weather_raw_{start_date}_{end_date}.json"
   merged_filename: "dados_merged_{start_date}_{end_date}.csv"

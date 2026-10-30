@@ -158,7 +158,7 @@ As diferenças de 1h são calculadas como `valor(t) - valor(t-1h)`; as diferenç
 * No período ampliado, 35.713 rótulos foram definidos: 904 positivos e 34.809 negativos (2,53% positivos). Vinte e três linhas ficaram sem rótulo por aquecimento das janelas e pelo horizonte na última linha.
 * A base de janeiro/2025 teve 721 rótulos definidos: 15 positivos e 706 negativos (~2,1% positivos).
 * O alvo é uma estimativa baseada em dados horários modelados/interpolados pela Open-Meteo; não representa o IQAr oficial de uma estação CETESB.
-* A Sprint 2 foi parcialmente executada: coletas, merges, alvo CETESB, split temporal e EDA descritiva/gráfica do desenvolvimento foram concluídos; a Sprint 3 avançou com a comparação inicial de features e baselines.
+* A Sprint 2 foi plenamente executada: coletas, merges, alvo CETESB, split temporal e EDA descritiva/gráfica do desenvolvimento foram concluídos; a Sprint 3 avançou com a comparação inicial de features e baselines.
 * A EDA do desenvolvimento é reproduzida por `python -m src.analise.EDA_Desenvolvimento`; gráficos ficam em `reports/figures/eda_desenvolvimento/`. Ela usa somente rótulos com evento previsto até 31/12/2024.
 * A cerca exploratória `Q3 + 1,5 × IQR` sinalizou aproximadamente 5,3% das horas em cada uma das variáveis CO, PM10 e PM2,5; as excedências formam episódios e se sobrepõem. Os dados são modelados/interpolados e não há medição local independente; nenhum extremo foi removido ou limitado.
 * Os baselines Dummy prior, persistência pelo IQAr em `t` e Gaussian Naive Bayes foram avaliados nos quatro folds de validação de 2024; detalhes e matrizes de confusão ficam em `reports/modeling/`. O Gaussian Naive Bayes usa imputação por mediana e padronização ajustadas no treino de cada fold. O holdout 2025–2026 não foi usado.
@@ -177,7 +177,7 @@ As diferenças de 1h são calculadas como `valor(t) - valor(t-1h)`; as diferenç
 | v0.1 | 1 | 17/09/2026 | Fontes, variáveis brutas, informações iniciais sobre o conjunto de dados e limitações da coleta. |
 | v0.1 | 2 | 04/10/2026 | Log de limpeza atualizado (merge realizado); N em `interim` documentado. |
 | v0.2 | | 08/10/2026 | Período das APIs validado e registrado; critério do alvo e política de dados ausentes definidos. |
-| v0.2 | 2 | | Log de limpeza; N em `interim`; split; alvo; derivados iniciais; exclusões |
+| v0.2 | 2 | 04/10/2026 | Log de limpeza, N em `interim`, split, alvo, derivados iniciais e exclusões por vazamento. |
 | v0.3 | 2 | 08/10/2026 | Metodologia CETESB 2025 conferida; janelas, conversão de CO, subíndices e rótulo a t+1h implementados. |
 | v0.4 | 2 | 08/10/2026 | Período ampliado coletado, integrado e rotulado em arquivos separados; distribuição inicial documentada. |
 | v0.5 | 2 | 08/10/2026 | EDA inicial, folds expansivos em 2024 e teste final em 2025–2026 documentados; separação temporal implementada. |
@@ -187,5 +187,5 @@ As diferenças de 1h são calculadas como `valor(t) - valor(t-1h)`; as diferenç
 | v0.9 | 4 | 09/10/2026 | Quatro features de contexto curto congeladas para o comparativo da Sprint 5. |
 | v1.0 | 5 | 09/10/2026 | Features do modelo final e resultados da avaliação final única documentados. |
 | v1.1 | Pós-5 | 20/10/2026 | Fonte Forecast API, dados recentes e saída do fluxo operacional +1h documentados. |
-| v0.4 | 5 | | Conferência com o modelo final / model card |
-| | | | |
+| v1.2 | Pós-5 | 29/10/2026 | Projeções experimentais +7h/+24h e comparativo estendido das famílias de árvore (Árvore de Decisão, Random Forest e XGBoost). |
+

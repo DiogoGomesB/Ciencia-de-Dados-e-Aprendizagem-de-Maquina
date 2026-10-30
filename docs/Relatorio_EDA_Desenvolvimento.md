@@ -220,7 +220,7 @@ Foram avaliados atributos retrospectivos de ozônio e PM2,5 nos mesmos folds tem
 
 ### Sprint 5 — seleção pré-teste e avaliação final única
 
-Na validação temporal 2024-Q4 havia 2.208 observações e 46 positivos. Foram comparados Dummy, persistência, Gaussian Naive Bayes, regressão logística balanceada e Random Forest balanceada. A equipe congelou Random Forest com `class_weight="balanced"`, 300 árvores, `min_samples_leaf=2`, `random_state=42` e limiar 0,3: recall 1,0000, precisão 0,7797, F1 0,8440, 13 falsos positivos e no máximo três episódios em cada uma das 12 semanas completas da validação (máximo de 15 horas de alerta na semana de maior carga). A janela curta e o número reduzido de positivos limitam a confiança na escolha.
+Na validação temporal 2024-Q4 havia 2.208 observações e 46 positivos. Foram comparados Dummy, persistência, Gaussian Naive Bayes, regressão logística balanceada e Random Forest balanceada. A equipe congelou Random Forest com `class_weight="balanced"`, 300 árvores, `min_samples_leaf=2`, `random_state=42` e limiar 0,3: recall 1,0000, precisão 0,7797, F1 0,8762, 13 falsos positivos e no máximo três episódios em cada uma das 12 semanas completas da validação (máximo de 15 horas de alerta na semana de maior carga). A janela curta e o número reduzido de positivos limitam a confiança na escolha.
 
 Depois de congelada a decisão, o holdout temporal de 01/01/2025 a 31/08/2026 foi avaliado uma única vez: 14.592 observações, 161 positivas. A variante escolhida obteve recall 0,9814, precisão 0,7822 e F1 0,8705, com 158 verdadeiros positivos (TP), 44 falsos positivos (FP), 3 falsos negativos (FN) e 14.387 verdadeiros negativos (TN). Uma das 86 semanas completas excedeu o teto de episódios; o máximo foi cinco episódios e 31 horas de alerta. Os três eventos FN registrados foram 27/12/2025 às 14h, 28/12/2025 às 13h e 31/12/2025 às 15h. A regressão logística `predict` padrão apresentou recall 1,0000 e F1 0,8846 no mesmo holdout, mas não substituiu a escolha congelada, pois o teste não pode ser reutilizado para seleção.
 
@@ -243,7 +243,7 @@ Em vez de uma única Árvore de Decisão isolada (`DecisionTreeClassifier`) — 
 #### Como o modelo e o limiar `0,3` foram escolhidos (Resumo em 5 passos)
 1. **Congelamento das 15 features (`FEATURES_SPRINT4`) e do pré-processamento**: subíndices individuais em $t$, meteorologia e janelas curtas de 3h/2h de $\text{O}_3$ e $\text{PM}_{2.5}$, com `SimpleImputer(strategy="median")` e `StandardScaler()` ajustados exclusivamente no treino.
 2. **Competição em `2024-Q4` no limiar padrão (`0,5`)**: a Random Forest obteve o maior F1-Score (`0,9375`, com `5 FP` e `1 FN`) frente à Regressão Logística (`F1 = 0,8762`, `13 FP`, `0 FN`), Persistência (`F1 = 0,8043`, `9 FP`, `9 FN`) e Naive Bayes (`F1 = 0,5576`, `73 FP`, `0 FN`).
-3. **Calibração do limiar (`0,3`, `0,5`, `0,7`) na validação**: reduzindo o limiar da Random Forest para **`0,3`**, os Falsos Negativos caíram para **zero (`Recall = 1,0000`)**, mantendo `13 FP` (`F1 = 0,8440`) e **respeitando o teto de até 3 episódios de alerta por semana em todas as 12 semanas completas** de `2024-Q4` (enquanto a Regressão Logística no limiar `0,7` violou o teto semanal com 4 episódios).
+3. **Calibração do limiar (`0,3`, `0,5`, `0,7`) na validação**: reduzindo o limiar da Random Forest para **`0,3`**, os Falsos Negativos caíram para **zero (`Recall = 1,0000`)**, mantendo `13 FP` (`F1 = 0,8762`) e **respeitando o teto de até 3 episódios de alerta por semana em todas as 12 semanas completas** de `2024-Q4` (enquanto a Regressão Logística no limiar `0,7` violou o teto semanal com 4 episódios).
 4. **Avaliação única no holdout cego (`2025–2026`)**: com a decisão congelada antes de abrir o teste (`14.592` horas, `161` positivos), a Random Forest com limiar `0,3` atingiu **Recall de 98,14%** (`158 TP`, `3 FN`, `44 FP`, `F1 = 0,8705`).
 5. **Empacotamento**: pipeline completo ajustado nas `21.121` linhas de desenvolvimento e serializado em `models/modelo_final_sprint5.joblib`.
 
@@ -270,6 +270,26 @@ A tabela abaixo apresenta a importância relativa (redução média ponderada da
 | 15º | `precipitation` | **0,09%** | Precipitação horária |
 
 > **Destaque analítico:** As duas variáveis mais importantes do modelo são `iqar_ozone` (**38,93%**) e a feature criada na Sprint 4 `media_3h_ozone` (**28,68%**), que juntas concentram **67,61%** do poder decisório da floresta, seguidas pelos indicadores de material particulado (`iqar_pm2_5`, `iqar_pm10` e `media_3h_pm2_5`, que somam **17,72%**).
+
+### 8.2 Comparativo das Três Famílias de Árvores (Árvore de Decisão, Random Forest e XGBoost) e Latência
+
+Para sustentar o Artigo Técnico ([`docs/index.html`](index.html)) e o Dashboard ([`streamlit_app.py`](../streamlit_app.py)), o script [`src/modelagem/Experimento_Arvores_Artigo.py`](../src/modelagem/Experimento_Arvores_Artigo.py) avalia lado a lado a **Árvore de Decisão única (`DecisionTreeClassifier`)**, a **Random Forest (`RandomForestClassifier` — Bagging)** e o **XGBoost (`XGBClassifier` — Gradient Boosting)** frente aos baselines (`DummyClassifier`, `Persistência` e `GaussianNB`), medindo também os tempos de treinamento e de inferência:
+
+| Partição | Modelo | Limiar | Recall (Pos) | Precisão (Pos) | F1-Score | TP | FP | FN | Treino (s) | Inferência Lote (ms) |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| **Validação (2024-Q4)** | `dummy_prior` | 0,50 | 0,0000 | 0,0000 | 0,0000 | 0 | 0 | 46 | 0,0015 | 0,26 |
+| **Validação (2024-Q4)** | `persistencia_iqar_atual` | 0,50 | 0,8043 | 0,8043 | 0,8043 | 37 | 9 | 9 | 0,0000 | 0,44 |
+| **Validação (2024-Q4)** | `arvore_decisao_cart` (`max_depth=6`) | 0,30 | 1,0000 | 0,9020 | 0,9485 | 46 | 5 | 0 | 0,1344 | 3,95 |
+| **Validação (2024-Q4)** | `xgboost_balanced` (`300` árv.) | 0,30 | 0,9565 | 0,9362 | 0,9462 | 44 | 3 | 2 | 1,3241 | 12,37 |
+| **Validação (2024-Q4)** | **`random_forest_balanced` (`300` árv.)** | **0,30** | **1,0000** | **0,7797** | **0,8762** | **46** | **13** | **0** | **1,4000** | **123,35** |
+| **Holdout (2025–2026)** | `arvore_decisao_cart` (`max_depth=6`) | 0,30 | 0,8634 | 0,8081 | 0,8348 | 139 | 33 | **22** | 0,1152 | 11,48 |
+| **Holdout (2025–2026)** | `xgboost_balanced` (`300` árv.) | 0,30 | 0,9627 | **0,8857** | **0,9226** | 155 | **20** | **6** | 0,8553 | 38,28 |
+| **Holdout (2025–2026)** | **`random_forest_balanced` (Escolhido)** | **0,30** | **0,9814** | 0,7822 | 0,8705 | **158** | 44 | **3** | 1,6390 | 106,66 |
+
+> **Ordem dos experimentos:** a Random Forest com limiar `0,30` foi congelada na Sprint 5 antes da abertura do holdout. A Árvore de Decisão e o XGBoost foram treinados depois, para o artigo, com hiperparâmetros fixos (sem busca com `TimeSeriesSplit`). A comparação no holdout é ilustrativa e não foi usada para trocar o modelo. Na validação, a Árvore de Decisão teria vencido a Random Forest (mesmo `0 FN`, menos FP), mas caiu para `22 FN` no período seguinte — um exemplo concreto da alta variância de uma árvore única.
+
+- **Por que a Árvore de Decisão única perdeu estabilidade no Holdout?** Apesar de ir bem em `2024-Q4`, uma única árvore tem alta variância; ao enfrentar os `14.592` registros de `2025–2026`, deixou passar **22 Falsos Negativos** (`Recall = 86,34%`). Além disso, o estudo de profundidade ([`artigo_profundidade_arvore.csv`](../reports/modeling/artigo_profundidade_arvore.csv)) mostrou que sem limite de profundidade (`19` níveis e `80` folhas) a árvore memoriza 100% do treino (`F1 = 1,0000`), mas seu Recall na validação cai de `97,8%` para `84,8%` (*overfitting*).
+- **Por que a Random Forest superou o XGBoost no objetivo do alerta da UBC?** O XGBoost alcançou maior precisão (`88,57%`, `20 FP`) e maior F1 (`92,26%`), mas deixou passar o **dobro de Falsos Negativos (`6 FN` no holdout e `2 FN` na validação)** em comparação à Random Forest (`3 FN` no holdout e `0 FN` na validação, `Recall = 98,14%`). Como a falha de alerta (FN) é o erro crítico definido no RFC, a Random Forest no limiar `0,30` continua a escolha coerente com o objetivo, com latência por linha irrelevante (≈`0,007 ms`).
 
 ## 9. Como executar e validar, passo a passo
 

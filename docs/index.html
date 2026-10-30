@@ -1,0 +1,2879 @@
+<!DOCTYPE html>
+
+<html lang="pt-BR">
+
+<head>
+  <meta charset="utf-8" />
+  <meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport" />
+  <meta
+    content="ArPrev — Foco na antecipação de condições inadequadas: Artigo técnico sobre Árvore de Decisão CART, Random Forest e XGBoost na previsão de risco respiratório (IQAr &gt; 100) em Mogi das Cruzes - SP."
+    name="description" />
+  <title>ArPrev — Foco na Antecipação de Condições Inadequadas | Artigo Técnico (Trilha B - UBC)</title>
+  <!-- FAVICON -->
+  <link href="assets/logo.png" rel="icon" type="image/png" />
+  <!-- GOOGLE FONTS: PLUS JAKARTA SANS & JETBRAINS MONO -->
+  <link href="https://fonts.googleapis.com" rel="preconnect" />
+  <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&amp;display=swap"
+    rel="stylesheet" />
+  <style>
+    :root {
+      --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', "Cascadia Code", Consolas, "SF Mono", monospace;
+
+      --bg-page: #f8fafc;
+      --bg-surface: #ffffff;
+      --bg-surface-alt: #f1f5f9;
+      --bg-surface-soft: #f8fafc;
+
+      --text-main: #0f172a;
+      --text-muted: #475569;
+      --text-light: #64748b;
+
+      --border-subtle: #e2e8f0;
+      --border-medium: #cbd5e1;
+      --border-focus: #3b82f6;
+
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --primary-subtle: #eff6ff;
+
+      --accent-rf: #059669;
+      --accent-rf-subtle: #ecfdf5;
+
+      --accent-xgb: #6366f1;
+      --accent-xgb-subtle: #eef2ff;
+
+      --accent-cart: #0284c7;
+      --accent-cart-subtle: #f0f9ff;
+
+      --warn: #d97706;
+      --warn-subtle: #fffbeb;
+
+      --danger: #dc2626;
+      --danger-subtle: #fef2f2;
+
+      --shadow-xs: 0 1px 2px 0 rgba(15, 23, 42, 0.05);
+      --shadow-sm: 0 2px 4px -1px rgba(15, 23, 42, 0.06), 0 1px 2px -1px rgba(15, 23, 42, 0.04);
+      --shadow-md: 0 6px 16px -2px rgba(15, 23, 42, 0.08), 0 2px 6px -2px rgba(15, 23, 42, 0.04);
+      --shadow-lg: 0 14px 28px -4px rgba(15, 23, 42, 0.1), 0 4px 10px -3px rgba(15, 23, 42, 0.06);
+
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 18px;
+      --radius-xl: 24px;
+      --radius-full: 9999px;
+
+      --header-height: 68px;
+    }
+
+    /* RESET & BOX SIZING */
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      scroll-padding-top: calc(var(--header-height) + 16px);
+      -webkit-text-size-adjust: 100%;
+      overflow-x: hidden;
+      width: 100%;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background-color: var(--bg-page);
+      color: var(--text-main);
+      line-height: 1.75;
+      font-size: 16.5px;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      overflow-x: hidden;
+      width: 100%;
+      max-width: 100vw;
+      position: relative;
+    }
+
+    img,
+    svg,
+    video,
+    canvas {
+      max-width: 100%;
+      height: auto;
+    }
+
+    /* BARRA DE PROGRESSO DE LEITURA */
+    #progress-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 3.5px;
+      background: transparent;
+      z-index: 9999;
+    }
+
+    #progress-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #2563eb 0%, #10b981 50%, #6366f1 100%);
+      box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
+      transition: width 0.06s ease-out;
+    }
+
+    /* CABEÇALHO FIXO COM BLUR */
+    header.site-header {
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      background: rgba(11, 15, 25, 0.94);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      color: #ffffff;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+      min-height: var(--header-height);
+      display: flex;
+      align-items: center;
+      transition: background 0.2s ease, box-shadow 0.2s ease;
+      width: 100%;
+    }
+
+    .header-inner {
+      max-width: 1240px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 0.6rem 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-weight: 800;
+      font-size: 1.15rem;
+      letter-spacing: -0.02em;
+      color: #ffffff;
+      text-decoration: none;
+      flex-shrink: 0;
+    }
+
+    .brand-logo-img {
+      height: 36px;
+      width: 36px;
+      border-radius: 8px;
+      object-fit: cover;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .brand-badge {
+      background: var(--accent-rf);
+      color: #fff;
+      font-size: 0.72rem;
+      padding: 0.18rem 0.55rem;
+      border-radius: var(--radius-full);
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      box-shadow: 0 1px 4px rgba(5, 150, 105, 0.4);
+    }
+
+    nav.top-nav {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      font-size: 0.88rem;
+    }
+
+    nav.top-nav a {
+      color: #cbd5e1;
+      text-decoration: none;
+      font-weight: 500;
+      padding: 0.35rem 0.65rem;
+      border-radius: var(--radius-sm);
+      transition: all 0.15s ease;
+    }
+
+    nav.top-nav a:hover {
+      color: #ffffff;
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .mobile-only-actions {
+      display: none;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      flex-shrink: 0;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.45rem;
+      padding: 0.5rem 1rem;
+      border-radius: var(--radius-sm);
+      font-weight: 600;
+      font-size: 0.86rem;
+      text-decoration: none;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      white-space: nowrap;
+    }
+
+    .btn-primary {
+      background: #2563eb;
+      color: #ffffff;
+      box-shadow: 0 2px 8px rgba(37, 99, 235, 0.35);
+    }
+
+    .btn-primary:hover {
+      background: #1d4ed8;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.45);
+    }
+
+    .btn-outline {
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      background: rgba(255, 255, 255, 0.05);
+      color: #f8fafc;
+    }
+
+    .btn-outline:hover {
+      background: rgba(255, 255, 255, 0.12);
+      border-color: rgba(255, 255, 255, 0.4);
+      transform: translateY(-1px);
+    }
+
+    /* BOTÃO MOBILE MENU TOGGLE */
+    .mobile-menu-btn {
+      display: none;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #fff;
+      padding: 0.45rem 0.75rem;
+      border-radius: var(--radius-sm);
+      font-size: 1.25rem;
+      line-height: 1;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .mobile-menu-btn:hover {
+      background: rgba(255, 255, 255, 0.18);
+    }
+
+    /* HERO SECTION */
+    .hero {
+      background: radial-gradient(circle at 85% 15%, rgba(99, 102, 241, 0.18) 0%, transparent 45%),
+        radial-gradient(circle at 15% 85%, rgba(16, 185, 129, 0.14) 0%, transparent 40%),
+        linear-gradient(135deg, #090d16 0%, #0f172a 45%, #172554 100%);
+      color: #ffffff;
+      padding: clamp(2.5rem, 5vw, 4.5rem) 1.25rem clamp(2.5rem, 4vw, 3.5rem);
+      border-bottom: 4px solid var(--accent-rf);
+      position: relative;
+      overflow: hidden;
+      width: 100%;
+    }
+
+    .hero-inner {
+      max-width: 1060px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .hero-top-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      color: #6ee7b7;
+      font-weight: 700;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      padding: 0.35rem 0.85rem;
+      border-radius: var(--radius-full);
+      margin-bottom: 1.5rem;
+      backdrop-filter: blur(8px);
+    }
+
+    .hero-title-wrap {
+      display: flex;
+      align-items: center;
+      gap: 1.75rem;
+      margin-bottom: 1.25rem;
+      flex-wrap: wrap;
+    }
+
+    .hero-logo-img {
+      width: clamp(84px, 11vw, 110px);
+      height: clamp(84px, 11vw, 110px);
+      border-radius: var(--radius-lg);
+      object-fit: cover;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+      border: 2px solid rgba(255, 255, 255, 0.25);
+      flex-shrink: 0;
+    }
+
+    .hero-title-content {
+      flex: 1;
+      min-width: 280px;
+    }
+
+    .hero h1 {
+      font-size: clamp(1.85rem, 4.2vw, 2.9rem);
+      line-height: 1.18;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin-bottom: 0.45rem;
+      background: linear-gradient(135deg, #ffffff 40%, #bae6fd 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      word-break: break-word;
+    }
+
+    .hero-article-topic {
+      font-size: clamp(1.05rem, 2vw, 1.3rem);
+      font-weight: 600;
+      color: #93c5fd;
+      line-height: 1.4;
+      word-break: break-word;
+    }
+
+    .hero p.subtitle {
+      font-size: clamp(0.98rem, 1.7vw, 1.15rem);
+      color: #cbd5e1;
+      margin-top: 1rem;
+      margin-bottom: 1.6rem;
+      max-width: 920px;
+      line-height: 1.7;
+    }
+
+    /* AUTORES E METADADOS */
+    .authors-mini {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.55rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .author-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      padding: 0.3rem 0.75rem;
+      border-radius: var(--radius-full);
+      font-size: 0.82rem;
+      color: #f1f5f9;
+      font-weight: 500;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+
+    .author-pill:hover {
+      background: rgba(255, 255, 255, 0.15);
+      border-color: rgba(255, 255, 255, 0.25);
+      transform: translateY(-1px);
+    }
+
+    .avatar-circle {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: var(--accent-rf);
+      color: #fff;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.68rem;
+    }
+
+    .meta-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.25rem;
+      font-size: 0.86rem;
+      color: #94a3b8;
+      padding-top: 1.1rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .meta-bar strong {
+      color: #e2e8f0;
+    }
+
+    /* HERO STAT CARDS */
+    .hero-stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1rem;
+      margin-top: 2rem;
+    }
+
+    .stat-card {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: var(--radius-md);
+      padding: 1.1rem 0.85rem;
+      text-align: center;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .stat-card:hover {
+      background: rgba(255, 255, 255, 0.09);
+      border-color: rgba(255, 255, 255, 0.28);
+      transform: translateY(-3px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+    }
+
+    .stat-val {
+      font-size: clamp(1.5rem, 2.6vw, 2.1rem);
+      font-weight: 800;
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+      background: linear-gradient(135deg, #ffffff 40%, #93c5fd 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .stat-card.stat-rf .stat-val {
+      background: linear-gradient(135deg, #ffffff 30%, #6ee7b7 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .stat-lbl {
+      font-size: 0.74rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #94a3b8;
+      margin-top: 0.35rem;
+    }
+
+    .stat-sub {
+      font-size: 0.72rem;
+      color: #cbd5e1;
+      margin-top: 0.15rem;
+    }
+
+    /* HERO CTA BUTTONS */
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.85rem;
+      margin-top: 2rem;
+    }
+
+    .btn-hero {
+      padding: 0.65rem 1.35rem;
+      font-size: 0.95rem;
+      font-weight: 700;
+      border-radius: var(--radius-sm);
+    }
+
+    /* ÍNDICE MÓVEL STICKY NO TOPO (visível só em telas < 960px) */
+    .toc-mobile-card {
+      display: none;
+      margin: 1.25rem auto 0;
+      max-width: 1240px;
+      padding: 0 1.25rem;
+      position: sticky;
+      top: calc(var(--header-height) + 8px);
+      z-index: 800;
+    }
+
+    .toc-details-mobile {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-medium);
+      border-radius: var(--radius-md);
+      box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
+      overflow: hidden;
+    }
+
+    .toc-details-mobile summary {
+      padding: 0.8rem 1.1rem;
+      font-weight: 700;
+      font-size: 0.92rem;
+      color: var(--primary-dark);
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      user-select: none;
+      background: #ffffff;
+    }
+
+    .toc-details-mobile .toc-mobile-list {
+      list-style: none;
+      padding: 0.6rem 0.85rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      max-height: 52vh;
+      overflow-y: auto;
+      background: var(--bg-surface-alt);
+      border-top: 1px solid var(--border-subtle);
+    }
+
+    .toc-details-mobile a {
+      color: var(--text-main);
+      text-decoration: none;
+      padding: 0.45rem 0.65rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.88rem;
+      display: block;
+      background: #ffffff;
+      border: 1px solid var(--border-subtle);
+      transition: background 0.15s;
+    }
+
+    .toc-details-mobile a:hover {
+      background: var(--primary-subtle);
+      color: var(--primary);
+      border-color: var(--primary);
+    }
+
+    /* LAYOUT PRINCIPAL (DESKTOP GRID) */
+    .layout {
+      max-width: 1240px;
+      margin: 2.25rem auto;
+      padding: 0 1.25rem;
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 2.5rem;
+      align-items: start;
+      width: 100%;
+    }
+
+    /* TOC LATERAL DESKTOP */
+    aside.toc-desktop {
+      position: sticky;
+      top: calc(var(--header-height) + 20px);
+      max-height: calc(100vh - var(--header-height) - 40px);
+      overflow-y: auto;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 1.35rem 1.15rem;
+      box-shadow: var(--shadow-sm);
+      scrollbar-width: thin;
+      scrollbar-color: #cbd5e1 transparent;
+    }
+
+    aside.toc-desktop::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    aside.toc-desktop::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+
+    aside.toc-desktop h2 {
+      font-size: 0.82rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-light);
+      margin-bottom: 0.85rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+    }
+
+    aside.toc-desktop ol {
+      list-style: none;
+      font-size: 0.88rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+
+    aside.toc-desktop a {
+      color: var(--text-muted);
+      text-decoration: none;
+      display: block;
+      padding: 0.38rem 0.6rem;
+      border-radius: var(--radius-sm);
+      transition: all 0.15s ease;
+      font-weight: 500;
+      line-height: 1.4;
+      border-left: 2px solid transparent;
+    }
+
+    aside.toc-desktop a:hover {
+      background: var(--bg-surface-alt);
+      color: var(--primary);
+      border-left-color: var(--border-medium);
+    }
+
+    aside.toc-desktop a.active {
+      background: var(--primary-subtle);
+      color: var(--primary);
+      font-weight: 700;
+      border-left-color: var(--primary);
+    }
+
+    /* CORPO DO ARTIGO E SEÇÕES */
+    main.article-body {
+      min-width: 0;
+      max-width: 100%;
+      overflow-x: hidden;
+    }
+
+    section.card-section {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: clamp(1.4rem, 3.5vw, 2.4rem);
+      margin-bottom: 2.25rem;
+      box-shadow: var(--shadow-sm);
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+      overflow-wrap: break-word;
+      word-wrap: break-word;
+      word-break: break-word;
+    }
+
+    section.card-section:hover {
+      border-color: var(--border-medium);
+      box-shadow: var(--shadow-md);
+    }
+
+    h2.section-title {
+      font-size: clamp(1.35rem, 2.5vw, 1.8rem);
+      color: #0f172a;
+      margin-bottom: 1.25rem;
+      padding-bottom: 0.65rem;
+      border-bottom: 2px solid var(--bg-surface-alt);
+      letter-spacing: -0.02em;
+      font-weight: 800;
+      word-break: break-word;
+    }
+
+    h3 {
+      font-size: clamp(1.1rem, 1.8vw, 1.35rem);
+      color: var(--text-main);
+      margin: 1.6rem 0 0.75rem;
+      letter-spacing: -0.01em;
+      font-weight: 700;
+      word-break: break-word;
+    }
+
+    p {
+      margin-bottom: 1.15rem;
+      color: #334155;
+      overflow-wrap: break-word;
+      word-break: break-word;
+    }
+
+    strong {
+      color: var(--text-main);
+      font-weight: 700;
+    }
+
+    ul,
+    ol {
+      margin: 0 0 1.25rem 1.4rem;
+      color: #334155;
+    }
+
+    li {
+      margin-bottom: 0.5rem;
+      padding-left: 0.2rem;
+      overflow-wrap: break-word;
+    }
+
+    /* TERMOS TÉCNICOS DESTACADOS NA PRIMEIRA OCORRÊNCIA */
+    .term {
+      background: #eff6ff;
+      border-bottom: 2px solid #3b82f6;
+      padding: 0.08rem 0.35rem;
+      border-radius: 4px;
+      font-weight: 600;
+      color: #1d4ed8;
+      display: inline-block;
+    }
+
+    /* BADGES DOS TRÊS MODELOS */
+    .model-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.78rem;
+      font-weight: 700;
+      padding: 0.25rem 0.7rem;
+      border-radius: var(--radius-full);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 0.85rem;
+    }
+
+    .model-badge-cart {
+      background: var(--accent-cart-subtle);
+      color: var(--accent-cart);
+      border: 1px solid #bae6fd;
+    }
+
+    .model-badge-rf {
+      background: var(--accent-rf-subtle);
+      color: var(--accent-rf);
+      border: 1px solid #a7f3d0;
+      box-shadow: 0 2px 6px rgba(5, 150, 105, 0.15);
+    }
+
+    .model-badge-xgb {
+      background: var(--accent-xgb-subtle);
+      color: var(--accent-xgb);
+      border: 1px solid #c7d2fe;
+    }
+
+    /* CALLOUTS E AVISOS */
+    .callout {
+      border-left: 4px solid var(--primary);
+      background: var(--bg-surface-soft);
+      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+      padding: 1.1rem 1.35rem;
+      margin: 1.5rem 0;
+      border-top: 1px solid var(--border-subtle);
+      border-right: 1px solid var(--border-subtle);
+      border-bottom: 1px solid var(--border-subtle);
+      overflow-wrap: break-word;
+    }
+
+    .callout.warn {
+      border-left-color: var(--warn);
+      background: #fffbeb;
+      border-top-color: #fef3c7;
+      border-right-color: #fef3c7;
+      border-bottom-color: #fef3c7;
+    }
+
+    .callout.success {
+      border-left-color: var(--accent-rf);
+      background: #ecfdf5;
+      border-top-color: #d1fae5;
+      border-right-color: #d1fae5;
+      border-bottom-color: #d1fae5;
+    }
+
+    /* CAIXAS EXPANSÍVEIS DE MATEMÁTICA */
+    details.math-box {
+      background: #f8fafc;
+      border: 1px solid var(--border-medium);
+      border-radius: var(--radius-md);
+      padding: 0.9rem 1.25rem;
+      margin: 1.35rem 0;
+      transition: background 0.15s ease;
+      overflow-wrap: break-word;
+    }
+
+    details.math-box summary {
+      cursor: pointer;
+      font-weight: 700;
+      color: #1e3a8a;
+      user-select: none;
+      font-size: 0.98rem;
+    }
+
+    details.math-box summary:hover {
+      color: var(--primary);
+    }
+
+    details.math-box .math-content {
+      margin-top: 0.95rem;
+      padding-top: 0.95rem;
+      border-top: 1px solid var(--border-subtle);
+      font-size: 0.95rem;
+    }
+
+    .formula {
+      display: block;
+      background: #ffffff;
+      border: 1px solid var(--border-subtle);
+      padding: 0.85rem 1.1rem;
+      border-radius: var(--radius-sm);
+      font-family: "Cambria Math", "Times New Roman", serif;
+      font-size: 1.05rem;
+      text-align: center;
+      margin: 0.9rem 0;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.03);
+      max-width: 100%;
+    }
+
+    /* DIAGRAMA SVG RESPONSIVO */
+    .svg-diagram-wrap {
+      width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      background: #f8fafc;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-subtle);
+      padding: 0.75rem;
+      margin: 1.4rem 0;
+    }
+
+    .svg-diagram-wrap svg {
+      min-width: 660px;
+      max-width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    /* DICA DE SCROLL PARA TABELAS E DIAGRAMAS */
+    .table-scroll-hint {
+      display: none;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--primary-dark);
+      background: var(--primary-subtle);
+      border: 1px solid #bfdbfe;
+      padding: 0.35rem 0.65rem;
+      border-radius: 6px;
+      margin-bottom: 0.5rem;
+    }
+
+    /* TABELAS MODERNAS E RESPONSIVAS */
+    .table-wrap {
+      width: 100%;
+      max-width: 100%;
+      overflow-x: auto;
+      margin: 0.8rem 0 1.5rem;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-sm);
+      background: #ffffff;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    table {
+      width: 100%;
+      min-width: 580px;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+      background: var(--bg-surface);
+      text-align: left;
+    }
+
+    /* Tabela de resultados larga tem min-width maior para não espremer métricas */
+    #resultados table {
+      min-width: 780px;
+    }
+
+    #quadro-comparativo table {
+      min-width: 720px;
+    }
+
+    th,
+    td {
+      padding: 0.75rem 0.95rem;
+      border-bottom: 1px solid var(--border-subtle);
+      vertical-align: top;
+    }
+
+    th {
+      background: var(--bg-surface-alt);
+      font-weight: 700;
+      color: var(--text-main);
+      white-space: nowrap;
+      font-size: 0.82rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      position: sticky;
+      top: 0;
+    }
+
+    tr:hover td {
+      background: rgba(241, 245, 249, 0.6);
+    }
+
+    tr.highlight-row {
+      background: #ecfdf5 !important;
+      font-weight: 600;
+    }
+
+    tr.highlight-row td {
+      background: #ecfdf5 !important;
+      border-bottom-color: #a7f3d0;
+    }
+
+    /* BADGES DE MÉTRICAS */
+    .pill-badge {
+      display: inline-block;
+      padding: 0.15rem 0.5rem;
+      border-radius: var(--radius-full);
+      font-weight: 700;
+      font-size: 0.82rem;
+      white-space: nowrap;
+    }
+
+    .pill-badge-success {
+      background: #d1fae5;
+      color: #065f46;
+    }
+
+    .pill-badge-danger {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    /* FIGURAS E IMAGENS */
+    figure.article-fig {
+      margin: 1.75rem 0;
+      background: #ffffff;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 1rem;
+      text-align: center;
+      box-shadow: var(--shadow-sm);
+      transition: all 0.2s ease;
+      width: 100%;
+      max-width: 100%;
+      overflow: hidden;
+    }
+
+    figure.article-fig:hover {
+      box-shadow: var(--shadow-md);
+      border-color: var(--border-medium);
+    }
+
+    figure.article-fig img {
+      max-width: 100%;
+      height: auto;
+      border-radius: var(--radius-sm);
+      display: block;
+      margin: 0 auto;
+    }
+
+    figure.article-fig figcaption {
+      margin-top: 0.85rem;
+      font-size: 0.86rem;
+      color: var(--text-muted);
+      text-align: left;
+      line-height: 1.6;
+      word-break: break-word;
+    }
+
+    /* BLOCOS DE CÓDIGO ESTILO TERMINAL MODERNO */
+    .code-card {
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      border: 1px solid #1e293b;
+      background: #0b0f19;
+      margin: 1.5rem 0;
+      box-shadow: var(--shadow-md);
+      max-width: 100%;
+    }
+
+    .code-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.65rem 1.1rem;
+      background: #111827;
+      border-bottom: 1px solid #1f2937;
+      gap: 0.5rem;
+    }
+
+    .window-dots {
+      display: flex;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+
+    .dot-red {
+      background: #ef4444;
+    }
+
+    .dot-yellow {
+      background: #f59e0b;
+    }
+
+    .dot-green {
+      background: #10b981;
+    }
+
+    .code-title {
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      color: #94a3b8;
+      font-weight: 500;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .copy-btn {
+      background: #1f2937;
+      border: 1px solid #374151;
+      color: #f3f4f6;
+      padding: 0.3rem 0.75rem;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      transition: all 0.15s ease;
+      flex-shrink: 0;
+    }
+
+    .copy-btn:hover {
+      background: #374151;
+      color: #ffffff;
+      border-color: #4b5563;
+    }
+
+    pre {
+      background: #0b0f19;
+      color: #e2e8f0;
+      padding: 1.25rem;
+      overflow-x: auto;
+      font-family: var(--font-mono);
+      font-size: 0.86rem;
+      line-height: 1.6;
+      margin: 0;
+      -webkit-overflow-scrolling: touch;
+      max-width: 100%;
+    }
+
+    code {
+      font-family: var(--font-mono);
+      font-size: 0.88em;
+      background: #e2e8f0;
+      color: #0f172a;
+      padding: 0.12rem 0.38rem;
+      border-radius: 4px;
+      overflow-wrap: break-word;
+    }
+
+    pre code {
+      background: transparent;
+      color: inherit;
+      padding: 0;
+      overflow-wrap: normal;
+    }
+
+    .kw {
+      color: #93c5fd;
+      font-weight: bold;
+    }
+
+    .cm {
+      color: #94a3b8;
+      font-style: italic;
+    }
+
+    .st {
+      color: #86efac;
+    }
+
+    .nu {
+      color: #fca5a5;
+    }
+
+    /* CARTÕES DOS AUTORES */
+    .authors-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1.25rem;
+      margin-top: 1.25rem;
+    }
+
+    .author-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 1.35rem 1rem;
+      text-align: center;
+      box-shadow: var(--shadow-sm);
+      transition: all 0.25s ease;
+      overflow-wrap: break-word;
+    }
+
+    .author-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-md);
+      border-color: var(--primary);
+    }
+
+    .author-card .avatar-lg {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #2563eb 0%, #1e3a8a 100%);
+      color: #fff;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 1.15rem;
+      margin-bottom: 0.75rem;
+      box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3);
+    }
+
+    .author-card h4 {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 0.25rem;
+    }
+
+    .author-role-badge {
+      display: inline-block;
+      background: var(--primary-subtle);
+      color: var(--primary);
+      font-size: 0.74rem;
+      font-weight: 700;
+      padding: 0.15rem 0.5rem;
+      border-radius: var(--radius-full);
+      margin-bottom: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .author-bio {
+      font-size: 0.82rem;
+      color: #334155;
+      line-height: 1.55;
+      margin-bottom: 0.85rem;
+      text-align: left;
+    }
+
+    .author-bio strong {
+      color: var(--text-main);
+    }
+
+    .author-links {
+      display: flex;
+      justify-content: center;
+      gap: 0.75rem;
+      padding-top: 0.65rem;
+      border-top: 1px solid var(--border-subtle);
+    }
+
+    .author-links a {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--primary);
+      text-decoration: none;
+      padding: 0.25rem 0.65rem;
+      border-radius: var(--radius-sm);
+      background: var(--bg-surface-alt);
+      transition: all 0.15s ease;
+      min-height: 36px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .author-links a:hover {
+      background: var(--primary);
+      color: #ffffff;
+    }
+
+    /* RODAPÉ ELEGANTE */
+    footer.site-footer {
+      background: #090d16;
+      color: #cbd5e1;
+      padding: 3.5rem 1.25rem 2.5rem;
+      margin-top: 4rem;
+      font-size: 0.92rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      width: 100%;
+    }
+
+    .footer-inner {
+      max-width: 1240px;
+      margin: 0 auto;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 2rem;
+    }
+
+    footer a {
+      color: #93c5fd;
+      text-decoration: none;
+      transition: color 0.15s;
+    }
+
+    footer a:hover {
+      color: #ffffff;
+      text-decoration: underline;
+    }
+
+    /* BOTÃO VOLTAR AO TOPO */
+    #backToTop {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      width: 46px;
+      height: 46px;
+      border-radius: 50%;
+      background: #0f172a;
+      color: #ffffff;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      box-shadow: var(--shadow-lg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: 999;
+      font-size: 1.25rem;
+    }
+
+    #backToTop.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    #backToTop:hover {
+      background: var(--primary);
+      transform: translateY(-3px);
+      box-shadow: 0 8px 20px rgba(37, 99, 235, 0.4);
+    }
+
+    /* =========================================================================
+       MEDIA QUERIES ULTRA RESPONSIVAS (TABLET, MOBILE E SMARTPHONE PEQUENO)
+       ========================================================================= */
+
+    @media (max-width: 1080px) {
+      .hero-stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 960px) {
+      .layout {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+        margin-top: 1rem;
+      }
+
+      aside.toc-desktop {
+        display: none !important;
+      }
+
+      .toc-mobile-card {
+        display: block;
+      }
+
+      .table-scroll-hint {
+        display: block;
+      }
+
+      nav.top-nav {
+        display: none;
+        flex-direction: column;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: #0b1120;
+        padding: 1.1rem 1.25rem;
+        border-bottom: 2px solid #2563eb;
+        gap: 0.4rem;
+        box-shadow: 0 16px 32px rgba(0, 0, 0, 0.4);
+      }
+
+      nav.top-nav.open {
+        display: flex;
+      }
+
+      nav.top-nav a {
+        padding: 0.65rem 0.85rem;
+        font-size: 0.95rem;
+        border-radius: 6px;
+        background: rgba(255, 255, 255, 0.04);
+      }
+
+      .mobile-only-actions {
+        display: block;
+      }
+
+      .mobile-menu-btn {
+        display: block;
+      }
+
+      .header-actions {
+        display: none;
+      }
+    }
+
+    @media (max-width: 640px) {
+      body {
+        font-size: 15.5px;
+        line-height: 1.7;
+      }
+
+      header.site-header {
+        --header-height: 60px;
+      }
+
+      .header-inner {
+        padding: 0.5rem 1rem;
+      }
+
+      .brand {
+        font-size: 1.05rem;
+        gap: 0.55rem;
+      }
+
+      .brand-badge {
+        font-size: 0.65rem;
+        padding: 0.12rem 0.45rem;
+      }
+
+      /* Hero centralizado no celular */
+      .hero {
+        padding: 2rem 1rem 2rem;
+        text-align: center;
+      }
+
+      .hero-top-badge {
+        margin: 0 auto 1.2rem;
+        font-size: 0.72rem;
+      }
+
+      .hero-title-wrap {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: 1rem;
+      }
+
+      .hero-logo-img {
+        width: 82px;
+        height: 82px;
+        margin: 0 auto;
+      }
+
+      .hero-title-content {
+        min-width: 0;
+        width: 100%;
+      }
+
+      .hero h1 {
+        font-size: 1.85rem;
+        line-height: 1.2;
+        text-align: center;
+      }
+
+      .hero-article-topic {
+        font-size: 1.05rem;
+        text-align: center;
+      }
+
+      .hero p.subtitle {
+        font-size: 0.96rem;
+        text-align: center;
+        margin-top: 0.85rem;
+        margin-bottom: 1.35rem;
+      }
+
+      .authors-mini {
+        justify-content: center;
+        gap: 0.4rem;
+      }
+
+      .author-pill {
+        font-size: 0.78rem;
+        padding: 0.25rem 0.6rem;
+      }
+
+      .meta-bar {
+        flex-direction: column;
+        gap: 0.35rem;
+        align-items: center;
+        text-align: center;
+        font-size: 0.8rem;
+      }
+
+      .hero-stats-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 0.65rem;
+        margin-top: 1.6rem;
+      }
+
+      .stat-card {
+        padding: 0.85rem 0.5rem;
+      }
+
+      .stat-val {
+        font-size: 1.45rem;
+      }
+
+      .stat-lbl {
+        font-size: 0.68rem;
+      }
+
+      .stat-sub {
+        font-size: 0.68rem;
+      }
+
+      .hero-actions {
+        flex-direction: column;
+        gap: 0.65rem;
+        margin-top: 1.6rem;
+      }
+
+      .btn-hero {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        font-size: 0.92rem;
+        justify-content: center;
+      }
+
+      /* Seções com padding compacto no celular */
+      section.card-section {
+        padding: 1.25rem 0.9rem;
+        border-radius: var(--radius-md);
+        margin-bottom: 1.5rem;
+      }
+
+      .layout {
+        padding: 0 0.85rem;
+      }
+
+      .toc-mobile-card {
+        padding: 0 0.85rem;
+      }
+
+      /* Código no celular */
+      pre {
+        padding: 1rem 0.75rem;
+        font-size: 0.8rem;
+      }
+
+      .code-header {
+        flex-wrap: wrap;
+        padding: 0.55rem 0.75rem;
+      }
+
+      /* Autores em 1 coluna */
+      .authors-grid {
+        grid-template-columns: 1fr;
+      }
+
+      #backToTop {
+        bottom: 18px;
+        right: 18px;
+        width: 42px;
+        height: 42px;
+      }
+
+      .footer-inner {
+        flex-direction: column;
+        gap: 1.5rem;
+      }
+    }
+
+    @media (max-width: 380px) {
+      .brand-badge {
+        display: none;
+      }
+
+      .hero h1 {
+        font-size: 1.65rem;
+      }
+
+      .hero-stats-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .author-photo-wrap {
+      width: 76px;
+      height: 76px;
+      margin: 0 auto 0.85rem;
+      position: relative;
+    }
+
+    .author-photo-img {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid var(--primary);
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+      display: block;
+    }
+
+    .author-photo-wrap .avatar-lg {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #2563eb 0%, #1e3a8a 100%);
+      color: #fff;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 1.25rem;
+      box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3);
+      margin-bottom: 0;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- BARRA DE PROGRESSO DE LEITURA -->
+  <div id="progress-container">
+    <div id="progress-bar"></div>
+  </div>
+  <!-- CABEÇALHO DE NAVEGAÇÃO SUPERIOR -->
+  <header class="site-header" id="topo">
+    <div class="header-inner">
+      <a class="brand" href="#topo" title="Ir para o topo do ArPrev">
+        <img alt="ArPrev Logo" class="brand-logo-img" src="assets/logo.png" />
+        <span>ArPrev</span>
+        <span class="brand-badge">Trilha B · UBC</span>
+      </a>
+      <!-- MENU PRINCIPAL -->
+      <nav aria-label="Navegação do artigo" class="top-nav" id="topNav">
+        <a href="#introducao">Introdução</a>
+        <a href="#exemplo-pratico">Exemplo Prático</a>
+        <a href="#arvore-decisao">CART</a>
+        <a href="#random-forest">Random Forest</a>
+        <a href="#xgboost">XGBoost</a>
+        <a href="#resultados">Resultados</a>
+        <a href="#recomendacao">Recomendação</a>
+        <a href="#autores">Equipe</a>
+        <div class="mobile-only-actions">
+          <div
+            style="display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid rgba(255,255,255,0.15);">
+            <a class="btn btn-primary"
+              href="https://github.com/DiogoGomesB/Ciencia-de-Dados-e-Aprendizagem-de-Maquina/blob/main/streamlit_app.py"
+              rel="noopener" style="justify-content: center; width: 100%;" target="_blank">
+              <span>📡</span> Abrir Dashboard Streamlit
+            </a>
+            <a class="btn btn-outline" href="https://github.com/DiogoGomesB/Ciencia-de-Dados-e-Aprendizagem-de-Maquina"
+              rel="noopener" style="justify-content: center; width: 100%;" target="_blank">
+              <span>💻</span> Ver Repositório GitHub
+            </a>
+          </div>
+        </div>
+      </nav>
+      <!-- BOTÕES DE AÇÃO -->
+      <div class="header-actions">
+        <a class="btn btn-primary"
+          href="https://github.com/DiogoGomesB/Ciencia-de-Dados-e-Aprendizagem-de-Maquina/blob/main/streamlit_app.py"
+          rel="noopener" target="_blank">
+          <span>📡</span> Dashboard Streamlit
+        </a>
+        <a class="btn btn-outline" href="https://github.com/DiogoGomesB/Ciencia-de-Dados-e-Aprendizagem-de-Maquina"
+          rel="noopener" target="_blank">
+          <span>💻</span> GitHub
+        </a>
+      </div>
+      <!-- BOTÃO MOBILE TOGGLE -->
+      <button aria-label="Abrir menu de navegação" class="mobile-menu-btn" id="mobileMenuBtn">
+        ☰
+      </button>
+    </div>
+  </header>
+  <!-- SEÇÃO HERO DE ALTO IMPACTO -->
+  <section class="hero">
+    <div class="hero-inner">
+      <div class="hero-top-badge">
+        <span>🌱</span> Projeto ArPrev · Ciência de Dados e Aprendizado de Máquina (2026/2)
+      </div>
+      <div class="hero-title-wrap">
+        <img alt="Logo Oficial ArPrev" class="hero-logo-img" src="assets/logo.png" />
+        <div class="hero-title-content">
+          <h1>ArPrev: Foco na Antecipação de Condições Inadequadas</h1>
+          <div class="hero-article-topic">Do Dado Público ao Alerta no Ar: Árvore de Decisão, Random Forest e XGBoost na
+            Previsão de Risco Respiratório</div>
+        </div>
+      </div>
+      <p class="subtitle">
+        Como construímos um sistema vivo de classificação binária a partir de <strong>35.736 horas</strong> de dados
+        abertos em Mogi das Cruzes – SP (Universidade Braz Cubas) para antecipar episódios de qualidade do ar inadequada
+        (IQAr &gt; 100) — e o que o nosso experimento revelou ao comparar uma árvore única (CART), Bagging (Random
+        Forest) e Boosting (XGBoost).
+      </p>
+      <!-- AUTORES MINI -->
+      <div aria-label="Equipe do projeto" class="authors-mini">
+        <span class="author-pill"><span class="avatar-circle">DG</span> Davi Gama dos Santos</span>
+        <span class="author-pill"><span class="avatar-circle">DB</span> Diogo Gomes Barbosa</span>
+        <span class="author-pill"><span class="avatar-circle">EV</span> Eudenis de Souza Vieira</span>
+        <span class="author-pill"><span class="avatar-circle">GA</span> Gabriel Januário Alves</span>
+        <span class="author-pill"><span class="avatar-circle">JP</span> João Pedro Barreto da Silva</span>
+      </div>
+      <!-- BARRA DE METADADOS -->
+      <div class="meta-bar">
+        <span>📅 <strong>Publicação:</strong> 29/10/2026</span>
+        <span>🔄 <strong>Revisão Final:</strong> 29/10/2026</span>
+        <span>📍 <strong>Local de Estudo:</strong> Campus UBC, Mogi das Cruzes – SP (-23.514561, -46.186832)</span>
+        <span>⚖️ <strong>Licença:</strong> MIT</span>
+      </div>
+      <!-- 4 HERO STAT CARDS -->
+      <div class="hero-stats-grid">
+        <div class="stat-card">
+          <div class="stat-val">35.736 h</div>
+          <div class="stat-lbl">Série Histórica</div>
+          <div class="stat-sub">2022–2026 contínuo</div>
+        </div>
+        <div class="stat-card stat-rf">
+          <div class="stat-val">98,14%</div>
+          <div class="stat-lbl">Recall no Holdout</div>
+          <div class="stat-sub">Random Forest (300 árvores)</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val">Apenas 3 FN</div>
+          <div class="stat-lbl">Segurança Operacional</div>
+          <div class="stat-sub">em 161 alertas reais</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val">0,007 ms</div>
+          <div class="stat-lbl">Latência de Predição</div>
+          <div class="stat-sub">por consulta individual</div>
+        </div>
+      </div>
+      <!-- HERO ACTIONS CTA -->
+      <div class="hero-actions">
+        <a class="btn btn-primary btn-hero"
+          href="https://github.com/DiogoGomesB/Ciencia-de-Dados-e-Aprendizagem-de-Maquina/blob/main/streamlit_app.py"
+          rel="noopener" target="_blank">
+          <span>📡</span> Abrir Dashboard Streamlit
+        </a>
+        <a class="btn btn-outline btn-hero" href="#introducao">
+          <span>📖</span> Iniciar Leitura do Artigo
+        </a>
+        <a class="btn btn-outline btn-hero"
+          href="https://github.com/DiogoGomesB/Ciencia-de-Dados-e-Aprendizagem-de-Maquina" rel="noopener"
+          target="_blank">
+          <span>💻</span> Ver Repositório no GitHub
+        </a>
+      </div>
+    </div>
+  </section>
+  <!-- ÍNDICE RETRÁTIL PARA MOBILE (visível em telas < 960px) -->
+  <div class="toc-mobile-card">
+    <details class="toc-details-mobile">
+      <summary>
+        <span>📑 Índice Navegável do Artigo (12 Seções)</span>
+        <span style="font-size: 0.8rem; opacity: 0.7;">▼ Toque para abrir</span>
+      </summary>
+      <ol class="toc-mobile-list">
+        <li><a href="#introducao" onclick="closeMobileToc()">1. Introdução e o Problema</a></li>
+        <li><a href="#pipeline-dados" onclick="closeMobileToc()">2. Dados e Pipeline sem Vazamento</a></li>
+        <li><a href="#exemplo-pratico" onclick="closeMobileToc()">3. Exemplo Pequeno na Prática</a></li>
+        <li><a href="#arvore-decisao" onclick="closeMobileToc()">4. Árvore de Decisão (CART)</a></li>
+        <li><a href="#random-forest" onclick="closeMobileToc()">5. Random Forest (Bagging)</a></li>
+        <li><a href="#xgboost" onclick="closeMobileToc()">6. XGBoost (Boosting)</a></li>
+        <li><a href="#quadro-comparativo" onclick="closeMobileToc()">7. Quadro Comparativo</a></li>
+        <li><a href="#codigo-python" onclick="closeMobileToc()">8. Código em Python</a></li>
+        <li><a href="#resultados" onclick="closeMobileToc()">9. Resultados e Latência</a></li>
+        <li><a href="#recomendacao" onclick="closeMobileToc()">10. Recomendação do Grupo</a></li>
+        <li><a href="#limitacoes-referencias" onclick="closeMobileToc()">11. Limitações e Referências</a></li>
+        <li><a href="#autores" onclick="closeMobileToc()">12. Equipe de Desenvolvimento</a></li>
+      </ol>
+    </details>
+  </div>
+  <!-- CORPO PRINCIPAL DO ARTIGO (LAYOUT 2 COLUNAS NO DESKTOP) -->
+  <div class="layout">
+    <!-- ÍNDICE LATERAL FIXO (DESKTOP) -->
+    <aside aria-label="Índice do artigo" class="toc-desktop">
+      <h2>📑 Índice Navegável</h2>
+      <ol id="desktopTocList">
+        <li><a href="#introducao">1. Introdução e o Problema</a></li>
+        <li><a href="#pipeline-dados">2. Dados e Pipeline sem Vazamento</a></li>
+        <li><a href="#exemplo-pratico">3. Exemplo Pequeno na Prática</a></li>
+        <li><a href="#arvore-decisao">4. Árvore de Decisão (CART)</a></li>
+        <li><a href="#random-forest">5. Random Forest (Bagging)</a></li>
+        <li><a href="#xgboost">6. XGBoost (Boosting)</a></li>
+        <li><a href="#quadro-comparativo">7. Quadro Comparativo</a></li>
+        <li><a href="#codigo-python">8. Código em Python</a></li>
+        <li><a href="#resultados">9. Resultados e Latência</a></li>
+        <li><a href="#recomendacao">10. Recomendação do Grupo</a></li>
+        <li><a href="#limitacoes-referencias">11. Limitações e Referências</a></li>
+        <li><a href="#autores">12. Equipe de Desenvolvimento</a></li>
+      </ol>
+    </aside>
+    <!-- CONTEÚDO TÉCNICO DAS 12 SEÇÕES -->
+    <main class="article-body">
+      SEÇÃO 1: INTRODUÇÃO <section class="card-section" id="introducao">
+        <h2 class="section-title">1. Introdução: Quando um Dia de Sol Esconde Risco Respiratório</h2>
+        <p>
+          Imagine uma tarde ensolarada de setembro às 16h no campus da <strong>Universidade Braz Cubas (UBC)</strong>,
+          em Mogi das Cruzes – SP. O céu parece limpo, turmas de Educação Física iniciam treinos ao ar livre, mas a
+          combinação de calor intenso, radiação solar e vento fraco acelerou reações fotoquímicas na baixa atmosfera. Em
+          menos de uma hora, a concentração de ozônio troposférico (O<sub>3</sub>) faz o <strong>Índice de Qualidade do
+            Ar (IQAr)</strong> ultrapassar <strong>100 pontos</strong> — limite técnico em que a <a
+            href="https://cetesb.sp.gov.br/ar/padroes-de-qualidade-do-ar/" rel="noopener" target="_blank">CETESB</a>
+          classifica o ar como <em>Inadequado (Ruim, Muito Ruim ou Péssimo)</em>.
+        </p>
+        <p>
+          Se você já programa em Python usando <code>if/else</code>, laços e listas, mas está dando os primeiros passos
+          em Aprendizado de Máquina, este artigo foi escrito para você. Aqui vamos construir e comparar três dos
+          algoritmos mais importantes da ciência de dados para problemas tabulares: a <strong>Árvore de
+            Decisão</strong>, a <strong>Random Forest</strong> e o <strong>XGBoost</strong>.
+        </p>
+        <div class="callout success">
+          <strong>O que você vai aprender neste artigo:</strong>
+          <ul>
+            <li>Como transformar séries horárias de poluentes e clima em um problema de <span class="term">classificação
+                binária</span> (quando o modelo responde apenas <em>Sim/1: emitir alerta</em> ou <em>Não/0: ar
+                adequado</em>);</li>
+            <li>Por que dividir séries temporais por sorteio aleatório causa <span class="term">vazamento de dados (data
+                leakage)</span> (usar informação do futuro para prever o passado);</li>
+            <li>Como funciona uma <strong>Árvore de Decisão</strong> por dentro, por que a <strong>Random Forest (<span
+                  class="term">bagging</span>)</strong> reduz a variância e por que o <strong>XGBoost (<span
+                  class="term">boosting</span>)</strong> reduz o viés;</li>
+            <li>Qual dos três modelos venceu o nosso experimento real de 14.592 horas inéditas e por que a escolha
+              depende diretamente do custo de um alarme que falha.</li>
+          </ul>
+        </div>
+      </section> SEÇÃO 2: DADOS E PIPELINE <section class="card-section" id="pipeline-dados">
+        <h2 class="section-title">2. Dados Abertos, Alvo CETESB e Pipeline sem Vazamento Temporal</h2>
+        <p>
+          Coletamos <strong>35.736 observações horárias</strong> (de <code>04/08/2022</code> a <code>31/08/2026</code>)
+          integrando duas APIs públicas sem necessidade de chave paga: a <strong>Open-Meteo Air Quality API</strong>
+          (modelo global CAMS/ECMWF para 6 poluentes: PM<sub>10</sub>, PM<sub>2,5</sub>, CO, NO<sub>2</sub>,
+          SO<sub>2</sub> e O<sub>3</sub>) e a <strong>Open-Meteo Historical Weather API</strong> (temperatura a 2m,
+          umidade relativa, precipitação, velocidade do vento e pressão ao nível do mar).
+        </p>
+        <p>
+          Para definir matematicamente a classe positiva sem arbitrariedade, aplicamos a metodologia oficial da
+          <strong>Tabela 2.7 da CETESB (2025)</strong>: cada poluente recebe um subíndice por interpolação linear em sua
+          respectiva janela móvel (24h para PM<sub>10</sub>, PM<sub>2,5</sub> e SO<sub>2</sub>; 8h para O<sub>3</sub> e
+          CO; 1h para NO<sub>2</sub>), e o <code>IQAr</code> consolidado é o maior dos seis subíndices. Nosso horizonte
+          é estrito de <strong>1 hora à frente (<code>t + 1h</code>)</strong>: usando apenas atributos conhecidos até a
+          hora <em>t</em>, queremos prever se <code>IQAr(t + 1h) &gt; 100</code>.
+        </p>
+        <figure class="article-fig">
+          <img
+            alt="Diagrama em blocos mostrando as quatro etapas do pipeline: coleta Open-Meteo em data/raw, cálculo do IQAr CETESB e engenharia temporal, validação em 2024 e avaliação única no holdout 2025-2026."
+            src="diagramas/diagrama_pipeline.jpg" />
+          <figcaption><strong>Figura 1 — Arquitetura do Pipeline da Trilha B:</strong> os dados brutos em JSON nunca são
+            editados; o cálculo de médias móveis e subíndices respeita a causalidade temporal até o instante <em>t</em>.
+          </figcaption>
+        </figure>
+        <h3>O perigo do vazamento temporal e a nossa divisão cronológica</h3>
+        <p>
+          Em qualidade do ar, a medição das 15h é muito parecida com a das 14h e a das 16h. Se embaralhássemos os dados
+          aleatoriamente (75% sorteados para treino e 25% para teste), o modelo treinaria com as horas 14h e 16h do
+          mesmo dia para "prever" as 15h — trapaceando com informações do futuro. Por isso, aplicamos uma
+          <strong>divisão estritamente cronológica</strong>:
+        </p>
+        <ul>
+          <li><strong>Desenvolvimento / Treino histórico (<code>04/08/2022</code> a <code>31/12/2024</code>):</strong>
+            <code>21.121</code> horas válidas, contendo <code>743</code> episódios positivos (<strong>3,52%</strong>).
+            Dentro de 2024, usamos 4 trimestres de validação expansiva (<code>2024-Q1</code> a <code>2024-Q4</code>)
+            para escolher atributos e <span class="term">hiperparâmetros</span> (configurações externas definidas antes
+            do treino, como número de árvores ou profundidade máxima).
+          </li>
+          <li><strong>Teste Final / Holdout (<code>01/01/2025</code> a <code>31/08/2026</code>):</strong> os registros
+            mais recentes (<code>14.592</code> horas, com <code>161</code> positivos = <strong>1,10%</strong>), mantidos
+            isolados e avaliados uma única vez.</li>
+        </ul>
+        <figure class="article-fig">
+          <img
+            alt="Esquema visual do split temporal expansivo nos quatro trimestres de 2024 e o conjunto de teste final reservado em 2025-2026."
+            src="diagramas/diagrama_split_temporal.jpg" />
+          <figcaption><strong>Figura 2 — Divisão Temporal Estrita:</strong> o passado sempre treina e o período mais
+            recente sempre testa. O pré-processador (mediana e padronização) é ajustado exclusivamente no treino.
+          </figcaption>
+        </figure>
+      </section> SEÇÃO 3: EXEMPLO PEQUENO NA PRÁTICA <section class="card-section" id="exemplo-pratico">
+        <h2 class="section-title">3. Exemplo Pequeno na Prática (Antes da Matemática)</h2>
+        <p>
+          Antes de falar em fórmulas ou centenas de árvores, vamos olhar para <strong>6 linhas ilustrativas</strong>
+          (valores simplificados, construídos para imitar o padrão típico de uma tarde de ozônio alto em Mogi das
+          Cruzes) no instante <em>t</em> e ver como nós mesmos criaríamos uma regra de alerta para a próxima hora (<em>t
+            + 1h</em>):
+        </p>
+        <div class="table-scroll-hint">👉 Deslize horizontalmente na tabela para ver todas as métricas e colunas</div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Hora (<em>t</em>)</th>
+                <th><code>iqar_ozone</code> em <em>t</em></th>
+                <th><code>media_3h_ozone</code> (µg/m³)</th>
+                <th><code>temperature_2m</code> (°C)</th>
+                <th><code>iqar_pm2_5</code> em <em>t</em></th>
+                <th>Resultado Real em <em>t + 1h</em></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>09:00</td>
+                <td>31,0</td>
+                <td>42,0</td>
+                <td>20,4 °C</td>
+                <td>22,5</td>
+                <td>✅ 0 (Ar Adequado)</td>
+              </tr>
+              <tr>
+                <td>11:00</td>
+                <td>54,2</td>
+                <td>68,3</td>
+                <td>25,1 °C</td>
+                <td>24,0</td>
+                <td>✅ 0 (Ar Adequado)</td>
+              </tr>
+              <tr>
+                <td>13:00</td>
+                <td>89,5</td>
+                <td>112,0</td>
+                <td>28,6 °C</td>
+                <td>27,1</td>
+                <td>⚠️ 0 (Quase subiu, mas vento dispersou)</td>
+              </tr>
+              <tr class="highlight-row">
+                <td>14:00</td>
+                <td>96,8</td>
+                <td>138,5</td>
+                <td>31,2 °C</td>
+                <td>35,4</td>
+                <td>🚨 1 (Alerta: IQAr passou de 100 às 15h!)</td>
+              </tr>
+              <tr class="highlight-row">
+                <td>15:00</td>
+                <td>108,4</td>
+                <td>154,0</td>
+                <td>31,8 °C</td>
+                <td>36,0</td>
+                <td>🚨 1 (Alerta: IQAr continuou &gt; 100 às 16h!)</td>
+              </tr>
+              <tr>
+                <td>21:00</td>
+                <td>45,0</td>
+                <td>59,0</td>
+                <td>19,8 °C</td>
+                <td>18,2</td>
+                <td>✅ 0 (Ar Adequado)</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          Repare no padrão: às 09h, 11h e 21h, o subíndice atual de ozônio (<code>iqar_ozone</code>) está abaixo de
+          <code>84</code> e o ar seguinte é adequado. Já entre 13h e 15h, quando <code>iqar_ozone</code> passa de cerca
+          de <code>84</code>, precisamos de uma segunda pergunta para desempatar: <em>"A média das últimas 3 horas de
+            ozônio (<code>media_3h_ozone</code>) já passou de cerca de 118 µg/m³?"</em> (são exatamente os cortes que a
+          árvore real aprendeu, como veremos na Figura 4). Se sim, o alerta dispara! Essa sequência hierárquica de
+          perguntas <code>if/else</code> aprendida automaticamente a partir dos dados é exatamente uma <strong>Árvore de
+            Decisão</strong>.
+        </p>
+        <!-- Esquema SVG Comparativo das 3 Arquiteturas -->
+        <figure class="article-fig">
+          <div class="svg-diagram-wrap">
+            <div class="table-scroll-hint" style="margin-bottom: 0.5rem; display: block;">👉 Toque e arraste para o lado
+              para explorar o diagrama completo</div><svg
+              aria-label="Diagrama comparando Árvore de Decisão única, Random Forest em paralelo por votação (Bagging) e XGBoost em sequência corrigindo erros (Boosting)."
+              height="auto" role="img" viewbox="0 0 920 270" width="100%">
+              <rect fill="#f8fafc" height="270" rx="10" width="920"></rect>
+              <!-- Bloco 1: Árvore de Decisão -->
+              <rect fill="#ffffff" height="238" rx="8" stroke="#cbd5e1" width="276" x="16" y="16"></rect>
+              <text fill="#1e3a8a" font-size="14" font-weight="bold" text-anchor="middle" x="154" y="42">1. Árvore de
+                Decisão (Única)</text>
+              <rect fill="#dbeafe" height="30" rx="6" stroke="#2563eb" width="110" x="99" y="62"></rect>
+              <text fill="#1e3a8a" font-size="11.5" text-anchor="middle" x="154" y="81">iqar_ozone &gt; 83,6?</text>
+              <line stroke="#64748b" stroke-width="2" x1="125" x2="75" y1="92" y2="128"></line>
+              <line stroke="#64748b" stroke-width="2" x1="183" x2="225" y1="92" y2="128"></line>
+              <rect fill="#dcfce7" height="28" rx="6" stroke="#059669" width="86" x="32" y="128"></rect>
+              <text fill="#065f46" font-size="11" text-anchor="middle" x="75" y="146">Normal (0)</text>
+              <rect fill="#fef3c7" height="28" rx="6" stroke="#d97706" width="106" x="170" y="128"></rect>
+              <text fill="#92400e" font-size="11" text-anchor="middle" x="223" y="146">media_3h &gt; 117,8?</text>
+              <line stroke="#64748b" stroke-width="2" x1="205" x2="175" y1="156" y2="190"></line>
+              <line stroke="#64748b" stroke-width="2" x1="242" x2="262" y1="156" y2="190"></line>
+              <rect fill="#dcfce7" height="26" rx="5" stroke="#059669" width="74" x="135" y="190"></rect>
+              <text fill="#065f46" font-size="10.5" text-anchor="middle" x="172" y="207">Normal (0)</text>
+              <rect fill="#fee2e2" height="26" rx="5" stroke="#dc2626" width="64" x="220" y="190"></rect>
+              <text fill="#991b1b" font-size="10.5" font-weight="bold" text-anchor="middle" x="252" y="207">Risco
+                (1)</text>
+              <text fill="#475569" font-size="11" text-anchor="middle" x="154" y="238">Fácil de ler, mas alta
+                variância</text>
+              <!-- Bloco 2: Random Forest -->
+              <rect fill="#ffffff" height="238" rx="8" stroke="#059669" stroke-width="2" width="276" x="322" y="16">
+              </rect>
+              <text fill="#065f46" font-size="14" font-weight="bold" text-anchor="middle" x="460" y="42">2. Random
+                Forest (Bagging)</text>
+              <rect fill="#eff6ff" height="52" rx="6" stroke="#3b82f6" width="70" x="340" y="66"></rect>
+              <text fill="#1e40af" font-size="11" font-weight="bold" text-anchor="middle" x="375" y="88">Árvore 1</text>
+              <text fill="#475569" font-size="9.5" text-anchor="middle" x="375" y="105">Amostra A</text>
+              <rect fill="#eff6ff" height="52" rx="6" stroke="#3b82f6" width="70" x="425" y="66"></rect>
+              <text fill="#1e40af" font-size="11" font-weight="bold" text-anchor="middle" x="460" y="88">Árvore 2</text>
+              <text fill="#475569" font-size="9.5" text-anchor="middle" x="460" y="105">Amostra B</text>
+              <rect fill="#eff6ff" height="52" rx="6" stroke="#3b82f6" width="70" x="510" y="66"></rect>
+              <text fill="#1e40af" font-size="11" font-weight="bold" text-anchor="middle" x="545" y="88">Árvore
+                300</text>
+              <text fill="#475569" font-size="9.5" text-anchor="middle" x="545" y="105">Amostra N</text>
+              <line stroke="#059669" stroke-width="2" x1="375" x2="460" y1="118" y2="164"></line>
+              <line stroke="#059669" stroke-width="2" x1="460" x2="460" y1="118" y2="164"></line>
+              <line stroke="#059669" stroke-width="2" x1="545" x2="460" y1="118" y2="164"></line>
+              <rect fill="#dcfce7" height="44" rx="8" stroke="#059669" width="190" x="365" y="164"></rect>
+              <text fill="#065f46" font-size="11.5" font-weight="bold" text-anchor="middle" x="460" y="184">Votação /
+                Média em Paralelo</text>
+              <text fill="#065f46" font-size="10.5" text-anchor="middle" x="460" y="200">Alerta se Prob ≥ 0,30</text>
+              <text fill="#065f46" font-size="11" font-weight="bold" text-anchor="middle" x="460" y="238">Reduz a
+                variância (estabilidade)</text>
+              <!-- Bloco 3: XGBoost -->
+              <rect fill="#ffffff" height="238" rx="8" stroke="#cbd5e1" width="276" x="628" y="16"></rect>
+              <text fill="#9a3412" font-size="14" font-weight="bold" text-anchor="middle" x="766" y="42">3. XGBoost
+                (Boosting)</text>
+              <rect fill="#fff7ed" height="48" rx="6" stroke="#ea580c" width="68" x="644" y="72"></rect>
+              <text fill="#9a3412" font-size="11" font-weight="bold" text-anchor="middle" x="678" y="95">Árvore 1</text>
+              <text fill="#7c2d12" font-size="9.5" text-anchor="middle" x="678" y="110">Base</text>
+              <line stroke="#ea580c" stroke-width="2" x1="712" x2="732" y1="96" y2="96"></line>
+              <rect fill="#fff7ed" height="48" rx="6" stroke="#ea580c" width="68" x="732" y="72"></rect>
+              <text fill="#9a3412" font-size="11" font-weight="bold" text-anchor="middle" x="766" y="95">Árvore 2</text>
+              <text fill="#7c2d12" font-size="9.5" text-anchor="middle" x="766" y="110">Corrige erro 1</text>
+              <line stroke="#ea580c" stroke-width="2" x1="800" x2="820" y1="96" y2="96"></line>
+              <rect fill="#fff7ed" height="48" rx="6" stroke="#ea580c" width="68" x="820" y="72"></rect>
+              <text fill="#9a3412" font-size="11" font-weight="bold" text-anchor="middle" x="854" y="95">Árvore K</text>
+              <text fill="#7c2d12" font-size="9.5" text-anchor="middle" x="854" y="110">Corrige erro K-1</text>
+              <rect fill="#ffedd5" height="44" rx="8" stroke="#ea580c" width="190" x="671" y="164"></rect>
+              <text fill="#9a3412" font-size="11.5" font-weight="bold" text-anchor="middle" x="766" y="184">Soma
+                Ponderada Sequencial</text>
+              <text fill="#9a3412" font-size="10.5" text-anchor="middle" x="766" y="200">Regularização + Taxa
+                lr=0,05</text>
+              <text fill="#475569" font-size="11" text-anchor="middle" x="766" y="238">Reduz o viés (foco nos
+                resíduos)</text>
+            </svg>
+          </div>
+          <figcaption><strong>Figura 3 — Três ideias sobre o mesmo bloco de construção:</strong> enquanto a Árvore única
+            decide sozinha, a Random Forest treina árvores independentes em paralelo (reduzindo a variância) e o XGBoost
+            encadeia árvores em série em que cada uma corrige os resíduos da anterior (reduzindo o viés).</figcaption>
+        </figure>
+      </section> SEÇÃO 4: ÁRVORE DE DECISÃO <section class="card-section" id="arvore-decisao">
+        <h2 class="section-title">4. Árvore de Decisão (CART): Intuição, Regras e Overfitting</h2>
+        <p>
+          Uma <strong>Árvore de Decisão</strong> (implementada no <code>scikit-learn</code> pelo algoritmo <em>CART —
+            Classification and Regression Trees</em>) divide os dados recursivamente por meio de perguntas binárias
+          (<em>Sim/Não</em>) sobre as variáveis de entrada. Ela começa no <strong>nó raiz</strong> (toda a base de
+          treino), escolhe a variável e o ponto de corte que melhor separam as classes em dois <strong>nós
+            internos</strong>, e repete o processo até chegar às <strong>folhas</strong>, que entregam a classe prevista
+          ou a proporção de positivos.
+        </p>
+        <p>
+          Na <strong>Figura 4</strong> abaixo, treinamos uma árvore rasa (<code>max_depth=3</code>) diretamente nas
+          variáveis originais do nosso domínio (2022–2024) para ler as regras que ela descobriu sozinha:
+        </p>
+        <figure class="article-fig">
+          <img
+            alt="Árvore de decisão de profundidade 3 desenhada com os nós de corte reais em iqar_ozone, iqar_pm2_5 e media_3h_ozone para os dados da Universidade Braz Cubas."
+            src="assets/fig_arvore_decisao_rasa.png" />
+          <figcaption><strong>Figura 4 — Árvore de Decisão Rasa (Profundidade = 3) nos dados da UBC:</strong> o primeiro
+            corte na raiz ocorre em <code>iqar_ozone &lt;= 83,6</code>: 94,1% das horas (ponderadas) caem no ramo
+            esquerdo, quase todo de ar adequado. No ramo direito (ozônio já alto), a árvore pergunta se
+            <code>media_3h_ozone &lt;= 117,8</code>; quando a média recente passa desse valor, as folhas são
+            praticamente só de alerta. Com apenas 3 níveis, a árvore usou somente variáveis de ozônio — coerente com a
+            importância de atributos da Random Forest.
+          </figcaption>
+        </figure>
+        <h3>O problema da Árvore Única: Overfitting quando a profundidade cresce</h3>
+        <p>
+          Se deixarmos uma única árvore crescer sem limite de profundidade, ela continuará criando galhos até isolar
+          cada hora específica de 2022–2024 em uma folha própria. Isso causa <span class="term">overfitting
+            (sobreajuste)</span>: o modelo decora o ruído do passado e perde a capacidade de generalizar para meses
+          futuros.
+        </p>
+        <p>
+          Medimos exatamente esse fenômeno variando <code>max_depth</code> de <code>1</code> até <code>Sem limite</code>
+          (que atingiu profundidade <code>19</code> e <code>80</code> folhas) na validação temporal
+          <code>2024-Q4</code>:
+        </p>
+        <figure class="article-fig">
+          <img
+            alt="Gráfico duplo mostrando que o F1 no treino sobe até 1,00 quando a profundidade passa de 10, enquanto o Recall e o F1 na validação 2024-Q4 caem devido ao aumento de Falsos Negativos de 1 para 7."
+            src="assets/fig_overfitting_profundidade.png" />
+          <figcaption><strong>Figura 5 — Demonstração Empírica de Overfitting na Árvore de Decisão:</strong> até
+            <code>max_depth=8</code>, a validação melhora; a partir de <code>max_depth=12</code> até <code>19</code>, o
+            F1 de treino atinge <code>1,0000</code> (memorização total), mas os Falsos Negativos na validação saltam de
+            <code>1</code> para <code>7</code> (Recall cai de <code>97,8%</code> para <code>84,8%</code>).
+          </figcaption>
+        </figure>
+        <details class="math-box">
+          <summary>📐 Caixa de Aprofundamento Matemático: Impureza de Gini vs. Entropia</summary>
+          <div class="math-content">
+            <p>
+              Como a árvore escolhe se deve cortar em <code>iqar_ozone &lt;= 83,6</code> ou em
+              <code>temperature_2m &lt;= 29,0</code>? Ela calcula uma medida de "mistura de classes" chamada
+              <strong>impureza</strong>. Seja <em>p<sub>1</sub></em> a proporção ponderada da classe positiva (Alerta) e
+              <em>p<sub>0</sub> = 1 − p<sub>1</sub></em> a proporção da classe negativa em um nó <em>m</em>:
+            </p>
+            <span class="formula">
+              Índice de Gini:   G(m) = 1 − (p<sub>0</sub><sup>2</sup> + p<sub>1</sub><sup>2</sup>) = 2 · p<sub>1</sub> ·
+              (1 − p<sub>1</sub>)
+            </span>
+            <span class="formula">
+              Entropia de Shannon:   H(m) = − p<sub>0</sub> log<sub>2</sub>(p<sub>0</sub>) − p<sub>1</sub>
+              log<sub>2</sub>(p<sub>1</sub>)
+            </span>
+            <p>
+              Quando um nó é 100% puro (só tem horas normais ou só tem horas de alerta), <code>G(m) = 0</code>. Em cada
+              divisão candidata, o algoritmo CART escolhe o atributo e o corte que maximizam a <strong>redução ponderada
+                de impureza (ΔGini)</strong> entre o nó pai e os dois nós filhos. Como nossa base tem apenas
+              <code>3,52%</code> de positivos no treino, usamos <code>class_weight="balanced"</code>, que multiplica o
+              peso de cada exemplo positivo por <code>N / (2 · N<sub>pos</sub>) ≈ 14,2</code> (uma razão de
+              <strong>27,4×</strong> em relação à classe negativa), impedindo que a árvore ignore os alertas raros.
+            </p>
+          </div>
+        </details>
+      </section> SEÇÃO 5: RANDOM FOREST <section class="card-section" id="random-forest">
+        <h2 class="section-title">5. Random Forest (Bagging): Como 300 Árvores Reduzem a Variância</h2>
+        <p>
+          Uma árvore única tem <strong>alta variância</strong>: pequenas mudanças nas semanas de treino mudam o corte do
+          topo e alteram toda a cascata abaixo. Proposta por Leo Breiman (2001), a <strong>Random Forest</strong>
+          resolve essa fragilidade combinando duas fontes de aleatoriedade controlada:
+        </p>
+        <ol>
+          <li><strong>Amostragem Bootstrap (<span class="term">Bagging</span> — <em>Bootstrap
+                Aggregating</em>):</strong> cada uma das nossas <code>300</code> árvores é treinada em uma amostra
+            sorteada com reposição das <code>21.121</code> horas de treino (~63,2% das linhas originais entram em cada
+            árvore; os ~36,8% restantes formam as amostras <em>out-of-bag</em>).</li>
+          <li><strong>Subamostragem aleatória de atributos em cada nó (<code>max_features="sqrt"</code>):</strong> em
+            vez de testar todas as <code>15</code> variáveis em cada divisão, cada nó sorteia apenas
+            <code>⌊√15⌋ = 3</code> variáveis candidatas. Isso <strong>descorrelaciona as árvores</strong>: se todas
+            pudessem olhar para as 15 variáveis sempre, todas fariam o mesmo corte inicial em <code>iqar_ozone</code> e
+            cometeriam os mesmos erros!
+          </li>
+        </ol>
+        <p>
+          Na hora de prever se haverá risco em <em>t + 1h</em>, as 300 árvores emitem suas probabilidades em paralelo e
+          o modelo calcula a média. No nosso projeto, congelamos na validação o limiar <code>0,30</code>: basta que a
+          probabilidade média da floresta atinja <strong>30%</strong> para o alerta preventivo ser disparado.
+        </p>
+        <details class="math-box">
+          <summary>📐 Caixa de Aprofundamento Matemático: Por que o Bagging reduz a variância?</summary>
+          <div class="math-content">
+            <p>
+              Se tivermos <em>B</em> árvores identicamente distribuídas, cada uma com variância <em>σ<sup>2</sup></em> e
+              correlação média entre pares <em>ρ</em>, a variância da média das <em>B</em> árvores é dada por (Breiman,
+              2001):
+            </p>
+            <span class="formula">
+              Var(Média de B árvores) = ρ · σ<sup>2</sup> + [ (1 − ρ) / B ] · σ<sup>2</sup>
+            </span>
+            <p>
+              Quando aumentamos o número de árvores (<code>B = 300</code>), o segundo termo
+              <code>(1 − ρ)/B · σ<sup>2</sup></code> vai a zero! E ao sortear apenas 3 variáveis por nó
+              (<code>max_features="sqrt"</code>), diminuímos a correlação <em>ρ</em> entre as árvores, derrubando também
+              o primeiro termo. É por isso que a Random Forest estabiliza a decisão sem sofrer o colapso de variância da
+              árvore solitária.
+            </p>
+          </div>
+        </details>
+      </section> SEÇÃO 6: XGBOOST <section class="card-section" id="xgboost">
+        <h2 class="section-title">6. XGBoost (Gradient Boosting): Árvores em Série Corrigindo Resíduos</h2>
+        <p>
+          Enquanto a Random Forest treina árvores independentes em paralelo, o <strong>XGBoost (<em>Extreme Gradient
+              Boosting</em>, Chen &amp; Guestrin, 2016)</strong> adota a filosofia oposta: o <span
+            class="term">Boosting</span>. As árvores são construídas <strong>em sequência</strong>:
+        </p>
+        <ul>
+          <li>A <strong>Árvore 1</strong> faz uma estimativa inicial simples;</li>
+          <li>A <strong>Árvore 2</strong> não tenta prever o alvo do zero: ela é treinada para prever os <strong>erros
+              residuais (gradientes da função de perda)</strong> deixados pela Árvore 1;</li>
+          <li>A <strong>Árvore 3</strong> corrige o erro residual combinado das Árvores 1 + 2, multiplicando cada passo
+            por uma <strong>taxa de aprendizado (<code>learning_rate = 0,05</code>)</strong> pequena para evitar passos
+            bruscos;</li>
+          <li>Para evitar overfitting e lidar com os apenas <code>3,52%</code> de positivos, o XGBoost aplica
+            <strong>regularização explícita nas folhas (<code>reg_lambda</code>)</strong>, profundidade curta
+            (<code>max_depth = 5</code>) e o fator de balanceamento
+            <code>scale_pos_weight = N<sub>neg</sub> / N<sub>pos</sub> ≈ 27,4</code>.
+          </li>
+        </ul>
+        <details class="math-box">
+          <summary>📐 Caixa de Aprofundamento Matemático: Função Objetivo Regularizada do XGBoost</summary>
+          <div class="math-content">
+            <p>
+              Na rodada <em>t</em>, o XGBoost adiciona uma nova árvore <em>f<sub>t</sub>(x<sub>i</sub>)</em> para
+              minimizar a função objetivo que soma o erro de classificação (<em>log-loss</em>) e um termo de penalidade
+              <em>Ω(f<sub>t</sub>)</em> pela complexidade da árvore (número de folhas <em>T</em> e soma dos quadrados
+              dos pesos <em>w<sub>j</sub></em> das folhas):
+            </p>
+            <span class="formula">
+              ℒ<sup>(t)</sup> = ∑<sub>i=1..n</sub> l( y<sub>i</sub> , ŷ<sub>i</sub><sup>(t−1)</sup> + η ·
+              f<sub>t</sub>(x<sub>i</sub>) ) + γ·T + ½·λ·∑<sub>j=1..T</sub> w<sub>j</sub><sup>2</sup>
+            </span>
+            <p>
+              Usando expansão de Taylor de segunda ordem (gradiente <em>g<sub>i</sub></em> e hessiana
+              <em>h<sub>i</sub></em>), o XGBoost calcula analiticamente o ganho de cada divisão e poda ramos que não
+              superam o custo <em>γ</em>. Assim, o Boosting foca em <strong>reduzir o viés</strong>, refinando
+              fronteiras difíceis passo a passo.
+            </p>
+          </div>
+        </details>
+      </section> SEÇÃO 7: QUADRO COMPARATIVO <section class="card-section" id="quadro-comparativo">
+        <h2 class="section-title">7. Quadro Comparativo Lado a Lado: Os Três Modelos</h2>
+        <div class="table-scroll-hint">👉 Deslize horizontalmente na tabela para ver todas as métricas e colunas</div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Critério</th>
+                <th>Árvore de Decisão (CART)</th>
+                <th>Random Forest (Bagging)</th>
+                <th>XGBoost (Gradient Boosting)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Como funciona</strong></td>
+                <td>Uma única árvore divide os dados recursivamente maximizando a redução de impureza de Gini.</td>
+                <td>300 árvores profundas treinadas em paralelo com amostras bootstrap e sorteio de 3 atributos por nó;
+                  decisão por média de probabilidades.</td>
+                <td>300 árvores rasas (<code>max_depth=5</code>) treinadas em sequência; cada árvore corrige os
+                  gradientes de erro das anteriores com <code>lr=0,05</code>.</td>
+              </tr>
+              <tr>
+                <td><strong>Efeito em Viés vs. Variância</strong></td>
+                <td>Baixo viés se profunda, mas <strong>altíssima variância</strong>.</td>
+                <td><strong>Reduz drasticamente a variância</strong> mantendo viés baixo.</td>
+                <td><strong>Reduz o viés</strong> progressivamente e controla variância via regularização L2 e taxa de
+                  aprendizado.</td>
+              </tr>
+              <tr>
+                <td><strong>Vantagens</strong></td>
+                <td>Treino instantâneo, latência mínima e regras 100% transparentes em fluxograma.</td>
+                <td>Altíssima estabilidade temporal, excelente <span class="term">Recall</span> (fração dos eventos
+                  reais de risco que o modelo conseguiu detectar) e robusta a ruído.</td>
+                <td>Maior precisão global e maior F1-Score; gera menos alarmes falsos (FP) em fronteiras ruidosas.</td>
+              </tr>
+              <tr>
+                <td><strong>Desvantagens</strong></td>
+                <td>Instável entre um ano e outro; perdeu 22 alertas reais no nosso holdout.</td>
+                <td>Menor precisão que o XGBoost (gera mais alarmes preventivos em tardes limítrofes) e maior tempo de
+                  inferência em lote.</td>
+                <td>Mais hiperparâmetros sensíveis; tendeu a ser mais conservador no limiar 0,30, perdendo o dobro de
+                  alertas reais em relação à Random Forest (6 FN vs. 3 FN).</td>
+              </tr>
+              <tr>
+                <td><strong>Interpretabilidade</strong></td>
+                <td><strong>Alta (Caixa-branca):</strong> inspeção direta de cada nó e folha.</td>
+                <td><strong>Média:</strong> auditável via importância global de Gini (<code>feature_importances_</code>)
+                  e probabilidades do comitê.</td>
+                <td><strong>Média:</strong> auditável via ganho de informação (<em>Gain</em>) por atributo, mas a soma
+                  sequencial de 300 árvores não é lida como regra única.</td>
+              </tr>
+              <tr>
+                <td><strong>Tempo de Treino / Latência</strong></td>
+                <td>Treino: <code>0,12 s</code> | Predição (14.592h): <code>11,5 ms</code></td>
+                <td>Treino: <code>1,64 s</code> | Predição (14.592h): <code>106,7 ms</code> (≈<code>0,007 ms</code> por
+                  linha)</td>
+                <td>Treino: <code>0,86 s</code> | Predição (14.592h): <code>38,3 ms</code> (≈<code>0,003 ms</code> por
+                  linha)</td>
+              </tr>
+              <tr>
+                <td><strong>Risco de Overfitting</strong></td>
+                <td><strong>Alto</strong> se <code>max_depth</code> não for podado (memoriza o treino quando passa de 10
+                  níveis).</td>
+                <td><strong>Baixo</strong> graças à média de 300 amostras bootstrap e <code>min_samples_leaf=2</code>.
+                </td>
+                <td><strong>Moderado</strong> (controlado por <code>learning_rate=0,05</code>,
+                  <code>subsample=0,8</code> e <code>reg_lambda=1,0</code>).
+                </td>
+              </tr>
+              <tr>
+                <td><strong>Cenário Ideal</strong></td>
+                <td>Explicação didática, dispositivos embarcados restritos ou triagem visual de regras.</td>
+                <td><strong>Sistemas de alerta de saúde/segurança</strong> onde deixar passar um evento crítico (FN)
+                  custa muito caro.</td>
+                <td>Sistemas onde o custo de Falsos Positivos e Falsos Negativos é mais equilibrado e busca-se F1
+                  máximo.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section> SEÇÃO 8: CÓDIGO EM PYTHON <section class="card-section" id="codigo-python">
+        <h2 class="section-title">8. Código Comentado em Python (Scikit-Learn e XGBoost)</h2>
+        <p>
+          Abaixo está o trecho central que constrói o nosso <code>Pipeline</code> isolando o pré-processamento dentro do
+          treino e instancia os três modelos de árvore com semente fixa (<code>random_state=42</code>). O código
+          completo e executável está em <a
+            href="https://github.com/DiogoGomesB/Ciencia-de-Dados-e-Aprendizagem-de-Maquina/blob/main/src/modelagem/Experimento_Arvores_Artigo.py"
+            rel="noopener" target="_blank"><code>src/modelagem/Experimento_Arvores_Artigo.py</code></a> e nos notebooks
+          em <a href="https://github.com/DiogoGomesB/Ciencia-de-Dados-e-Aprendizagem-de-Maquina/tree/main/notebooks"
+            rel="noopener" target="_blank"><code>notebooks/</code></a>.
+        </p>
+        <p>
+          <strong>Versões utilizadas no experimento:</strong> <code>Python 3.13.7</code> ·
+          <code>scikit-learn 1.9.1 (&gt;=1.6.0)</code> · <code>xgboost 3.4.1 (&gt;=2.0.0)</code> ·
+          <code>pandas 3.0.6 (&gt;=2.0.0)</code>.
+        </p>
+        <div class="code-card">
+          <div class="code-header">
+            <div aria-hidden="true" class="window-dots">
+              <span class="dot dot-red"></span>
+              <span class="dot dot-yellow"></span>
+              <span class="dot dot-green"></span>
+            </div>
+            <span class="code-title">Experimento_Arvores_Artigo.py · Python 3.12</span>
+            <button class="copy-btn" onclick="copyCode(this)" title="Copiar código para a área de transferência">
+              <span class="copy-icon">📋</span> Copiar Código
+            </button>
+          </div>
+          <pre><code><span class="kw">from</span> sklearn.compose <span class="kw">import</span> ColumnTransformer
+<span class="kw">from</span> sklearn.impute <span class="kw">import</span> SimpleImputer
+<span class="kw">from</span> sklearn.pipeline <span class="kw">import</span> Pipeline
+<span class="kw">from</span> sklearn.preprocessing <span class="kw">import</span> StandardScaler
+<span class="kw">from</span> sklearn.tree <span class="kw">import</span> DecisionTreeClassifier
+<span class="kw">from</span> sklearn.ensemble <span class="kw">import</span> RandomForestClassifier
+<span class="kw">from</span> xgboost <span class="kw">import</span> XGBClassifier
+
+<span class="cm"># 1. Pré-processamento isolado: calcula mediana e desvio-padrão SOMENTE no treino</span>
+preprocessador = ColumnTransformer(transformers=[
+    (<span class="st">"numericas"</span>, Pipeline([
+        (<span class="st">"imputador"</span>, SimpleImputer(strategy=<span class="st">"median"</span>)),
+        (<span class="st">"escalador"</span>, StandardScaler()),
+    ]), list(FEATURES_SPRINT4))
+])
+
+<span class="cm"># 2. Os três modelos de árvore com tratamento para o desbalanceamento (3,52% positivos)</span>
+arvore_unica = Pipeline([
+    (<span class="st">"pre_processamento"</span>, preprocessador),
+    (<span class="st">"classificador"</span>, DecisionTreeClassifier(
+        max_depth=<span class="nu">6</span>, min_samples_leaf=<span class="nu">5</span>, class_weight=<span class="st">"balanced"</span>, random_state=<span class="nu">42</span>
+    )),
+])
+
+random_forest = Pipeline([
+    (<span class="st">"pre_processamento"</span>, preprocessador),
+    (<span class="st">"classificador"</span>, RandomForestClassifier(
+        n_estimators=<span class="nu">300</span>, min_samples_leaf=<span class="nu">2</span>, class_weight=<span class="st">"balanced"</span>,
+        max_features=<span class="st">"sqrt"</span>, n_jobs=<span class="nu">-1</span>, random_state=<span class="nu">42</span>
+    )),
+])
+
+xgboost_model = Pipeline([
+    (<span class="st">"pre_processamento"</span>, preprocessador),
+    (<span class="st">"classificador"</span>, XGBClassifier(
+        n_estimators=<span class="nu">300</span>, max_depth=<span class="nu">5</span>, learning_rate=<span class="nu">0.05</span>,
+        subsample=<span class="nu">0.8</span>, colsample_bytree=<span class="nu">0.8</span>, scale_pos_weight=<span class="nu">27.43</span>,
+        reg_lambda=<span class="nu">1.0</span>, eval_metric=<span class="st">"logloss"</span>, n_jobs=<span class="nu">-1</span>, random_state=<span class="nu">42</span>
+    )),
+])
+
+<span class="cm"># 3. Treino no passado (2022–2024) e inferência com limiar protetivo 0,30 no período recente</span>
+random_forest.fit(X_treino, y_treino)
+probabilidades = random_forest.predict_proba(X_teste)[:, <span class="nu">1</span>]
+alerta_previsto = (probabilidades &gt;= <span class="nu">0.30</span>).astype(int)</code></pre>
+        </div>
+      </section> SEÇÃO 9: RESULTADOS DO EXPERIMENTO <section class="card-section" id="resultados">
+        <h2 class="section-title">9. Resultados do Experimento, Matrizes de Confusão e Latência</h2>
+        <p>
+          Por que a acurácia comum engana na Trilha B? Porque no período de teste (<code>2025–2026</code>),
+          <strong>98,90% das horas têm ar adequado</strong> (<code>14.431</code> normais contra <code>161</code>
+          críticas). O nosso <code>DummyClassifier</code>, que simplesmente chuta "Ar Adequado" o ano inteiro sem olhar
+          nenhum poluente, atinge <strong>98,90% de acurácia, mas tem Recall = 0,0000 (falha nos 161 alertas
+            reais!)</strong>. Por isso, avaliamos todos os modelos pelas métricas da classe positiva:
+          <strong>Recall</strong>, <strong>Precisão</strong>, <strong>F1-Score</strong> e contagem absoluta de
+          <strong>Falsos Negativos (FN)</strong> e <strong>Falsos Positivos (FP)</strong>.
+        </p>
+        <div class="table-scroll-hint">👉 Deslize horizontalmente na tabela para ver todas as métricas e colunas</div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Partição Temporal</th>
+                <th>Modelo Avaliado</th>
+                <th>Limiar</th>
+                <th>Recall (Pos)</th>
+                <th>Precisão (Pos)</th>
+                <th>F1-Score</th>
+                <th>TP</th>
+                <th>FP</th>
+                <th>FN</th>
+                <th>TN</th>
+                <th>Treino (s)</th>
+                <th>Predição Lote (ms)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Validação (2024-Q4)</td>
+                <td><code>dummy_prior</code> (Baseline)</td>
+                <td>0,50</td>
+                <td>0,0000</td>
+                <td>0,0000</td>
+                <td>0,0000</td>
+                <td>0</td>
+                <td>0</td>
+                <td>46</td>
+                <td>2.162</td>
+                <td>0,0015 s</td>
+                <td>0,26 ms</td>
+              </tr>
+              <tr>
+                <td>Validação (2024-Q4)</td>
+                <td><code>persistencia_iqar_atual</code></td>
+                <td>0,50</td>
+                <td>0,8043</td>
+                <td>0,8043</td>
+                <td>0,8043</td>
+                <td>37</td>
+                <td>9</td>
+                <td>9</td>
+                <td>2.153</td>
+                <td>0,0000 s</td>
+                <td>0,44 ms</td>
+              </tr>
+              <tr>
+                <td>Validação (2024-Q4)</td>
+                <td><code>gaussian_naive_bayes</code></td>
+                <td>0,50</td>
+                <td>1,0000</td>
+                <td>0,3866</td>
+                <td>0,5576</td>
+                <td>46</td>
+                <td>73</td>
+                <td>0</td>
+                <td>2.089</td>
+                <td>0,1006 s</td>
+                <td>10,96 ms</td>
+              </tr>
+              <tr>
+                <td>Validação (2024-Q4)</td>
+                <td><code>arvore_decisao_cart</code> (<code>max_depth=6</code>)</td>
+                <td>0,30</td>
+                <td>1,0000</td>
+                <td>0,9020</td>
+                <td>0,9485</td>
+                <td>46</td>
+                <td>5</td>
+                <td>0</td>
+                <td>2.157</td>
+                <td>0,1344 s</td>
+                <td>3,95 ms</td>
+              </tr>
+              <tr>
+                <td>Validação (2024-Q4)</td>
+                <td><code>xgboost_balanced</code> (300 árv.)</td>
+                <td>0,30</td>
+                <td>0,9565</td>
+                <td>0,9362</td>
+                <td>0,9462</td>
+                <td>44</td>
+                <td>3</td>
+                <td>2</td>
+                <td>2.159</td>
+                <td>1,3241 s</td>
+                <td>12,37 ms</td>
+              </tr>
+              <tr class="highlight-row">
+                <td>Validação (2024-Q4)</td>
+                <td><strong><code>random_forest_balanced</code> (300 árv.)</strong></td>
+                <td><strong>0,30</strong></td>
+                <td><strong>1,0000</strong></td>
+                <td><strong>0,7797</strong></td>
+                <td><strong>0,8762</strong></td>
+                <td><strong>46</strong></td>
+                <td><strong>13</strong></td>
+                <td><strong>0</strong></td>
+                <td><strong>2.149</strong></td>
+                <td><strong>1,4000 s</strong></td>
+                <td><strong>123,35 ms</strong></td>
+              </tr>
+              <tr>
+                <td><strong>Holdout (2025–2026)</strong></td>
+                <td><code>dummy_prior</code> (Baseline)</td>
+                <td>0,50</td>
+                <td>0,0000</td>
+                <td>0,0000</td>
+                <td>0,0000</td>
+                <td>0</td>
+                <td>0</td>
+                <td>161</td>
+                <td>14.431</td>
+                <td>0,0020 s</td>
+                <td>0,57 ms</td>
+              </tr>
+              <tr>
+                <td><strong>Holdout (2025–2026)</strong></td>
+                <td><code>persistencia_iqar_atual</code></td>
+                <td>0,50</td>
+                <td>0,7888</td>
+                <td>0,7888</td>
+                <td>0,7888</td>
+                <td>127</td>
+                <td>34</td>
+                <td>34</td>
+                <td>14.397</td>
+                <td>0,0000 s</td>
+                <td>0,90 ms</td>
+              </tr>
+              <tr>
+                <td><strong>Holdout (2025–2026)</strong></td>
+                <td><code>gaussian_naive_bayes</code></td>
+                <td>0,50</td>
+                <td>1,0000</td>
+                <td>0,3492</td>
+                <td>0,5177</td>
+                <td>161</td>
+                <td>300</td>
+                <td>0</td>
+                <td>14.131</td>
+                <td>0,0679 s</td>
+                <td>20,15 ms</td>
+              </tr>
+              <tr>
+                <td><strong>Holdout (2025–2026)</strong></td>
+                <td><code>arvore_decisao_cart</code> (<code>max_depth=6</code>)</td>
+                <td>0,30</td>
+                <td>0,8634</td>
+                <td>0,8081</td>
+                <td>0,8348</td>
+                <td>139</td>
+                <td>33</td>
+                <td>22</td>
+                <td>14.398</td>
+                <td>0,1152 s</td>
+                <td>11,48 ms</td>
+              </tr>
+              <tr>
+                <td><strong>Holdout (2025–2026)</strong></td>
+                <td><code>xgboost_balanced</code> (300 árv.)</td>
+                <td>0,30</td>
+                <td>0,9627</td>
+                <td>0,8857</td>
+                <td>0,9226</td>
+                <td>155</td>
+                <td>20</td>
+                <td>6</td>
+                <td>14.411</td>
+                <td>0,8553 s</td>
+                <td>38,28 ms</td>
+              </tr>
+              <tr class="highlight-row">
+                <td><strong>Holdout (2025–2026)</strong></td>
+                <td><strong><code>random_forest_balanced</code> (Escolhido)</strong></td>
+                <td><strong>0,30</strong></td>
+                <td><strong>0,9814</strong></td>
+                <td><strong>0,7822</strong></td>
+                <td><strong>0,8705</strong></td>
+                <td><strong>158</strong></td>
+                <td><strong>44</strong></td>
+                <td><strong>3</strong></td>
+                <td><strong>14.387</strong></td>
+                <td><strong>1,6390 s</strong></td>
+                <td><strong>106,66 ms</strong></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <figure class="article-fig">
+          <img
+            alt="Gráfico de barras comparando Recall, Precisão e F1-Score do Dummy, Persistência, Naive Bayes, Árvore de Decisão, XGBoost e Random Forest no Holdout 2025-2026."
+            src="assets/fig_comparacao_modelos_metricas.png" />
+          <figcaption><strong>Figura 6 — Desempenho no Teste Recente (Holdout 2025–2026):</strong> todos os modelos
+            supervisionados superam amplamente os baselines, mas comportam-se de forma diferente no equilíbrio entre
+            Recall e Precisão.</figcaption>
+        </figure>
+        <figure class="article-fig">
+          <img
+            alt="Três matrizes de confusão lado a lado no Holdout 2025-2026: Árvore de Decisão com 22 FN e 33 FP; Random Forest com apenas 3 FN e 44 FP; XGBoost com 6 FN e 20 FP."
+            src="assets/fig_matriz_confusao_3_arvores.png" />
+          <figcaption><strong>Figura 7 — Matrizes de Confusão das Três Famílias de Árvore (14.592 horas de
+              2025–2026):</strong> a Árvore de Decisão única perdeu 22 episódios críticos (alta variância); o XGBoost
+            reduziu os alarmes falsos para 20 (maior F1 = 0,923), mas deixou passar 6 alertas reais; a Random Forest
+            cravou apenas <strong>3 Falsos Negativos</strong> em quase dois anos (Recall = 98,14%).</figcaption>
+        </figure>
+        <figure class="article-fig">
+          <img
+            alt="Gráfico duplo mostrando à esquerda as 10 variáveis mais importantes na Random Forest e no XGBoost (lideradas por iqar_ozone e media_3h_ozone) e à direita os tempos de treino e inferência em milissegundos."
+            src="assets/fig_importancia_e_latencia.png" />
+          <figcaption><strong>Figura 8 — Interpretabilidade (Importância de Atributos) e Latência
+              Computacional:</strong> tanto na Random Forest quanto no XGBoost, o par <code>iqar_ozone</code> +
+            <code>media_3h_ozone</code> domina a decisão (&gt;67% da importância de Gini na floresta). Na direita, mesmo
+            o modelo mais pesado em inferência (Random Forest) leva apenas <code>106,7 ms</code> para classificar
+            <code>14.592</code> horas (≈<code>0,007 ms</code> por linha em lote).
+          </figcaption>
+        </figure>
+      </section> SEÇÃO 10: RECOMENDAÇÃO DO GRUPO <section class="card-section" id="recomendacao">
+        <h2 class="section-title">10. Nossa Recomendação para o Alerta da UBC: Por que Escolhemos a Random Forest?</h2>
+        <p>
+          Olhando para a tabela do experimento, um leitor desavisado poderia perguntar: <em>"Por que vocês não
+            escolheram a Árvore de Decisão (que teve F1 de 0,9485 na validação) ou o XGBoost (que teve o maior F1 de
+            0,9226 no holdout)?"</em>. A resposta está nos pontos abaixo:
+        </p>
+        <div class="callout warn">
+          <strong>Transparência sobre a ordem dos experimentos:</strong> a Random Forest com limiar <code>0,30</code>
+          foi escolhida e congelada na Sprint 5,
+          comparando Dummy, Persistência, Naive Bayes, Regressão Logística e Random Forest <em>somente na validação
+            2024-Q4</em>. A Árvore de Decisão e o XGBoost
+          foram treinados depois, para este artigo, quando o holdout já tinha sido aberto. Por isso, a comparação deles
+          no holdout é <strong>ilustrativa</strong>
+          e não foi usada para trocar o modelo.
+        </div>
+        <ol>
+          <li><strong>Custo assimétrico dos erros:</strong> no Canvas e no RFC definimos que um <strong>Falso
+              Negativo</strong> (estudantes expostos sem aviso) é mais grave que um
+            <strong>Falso Positivo</strong> (transferir uma atividade para a quadra coberta). Na validação, o XGBoost
+            deixou passar <code>2 FN</code> (Recall <code>95,65%</code>);
+            a Random Forest teve <code>0 FN</code> e respeitou o teto de 3 episódios por semana nas 12 semanas.
+          </li>
+          <li><strong>Uma lição honesta sobre variância:</strong> se a Árvore de Decisão tivesse participado da seleção,
+            ela teria vencido na validação
+            (<code>0 FN</code>, só <code>5 FP</code>, F1 <code>0,9485</code> contra <code>0 FN</code>,
+            <code>13 FP</code>, F1 <code>0,8762</code> da Random Forest).
+            Mas, no período seguinte (2025–2026), a mesma árvore caiu para Recall <code>86,34%</code> com <strong>22
+              FN</strong>, enquanto a Random Forest ficou em
+            <code>98,14%</code> (<strong>3 FN</strong>) e o XGBoost em <code>96,27%</code> (<strong>6 FN</strong>). Uma
+            janela de validação curta (46 positivos) favorece um modelo
+            instável — exatamente o problema que o <em>bagging</em> foi criado para reduzir.
+          </li>
+          <li><strong>Latência em produção:</strong> no nosso teste do dashboard, a previsão ao vivo levou cerca de
+            <code>3,4 s</code> no total, quase todo o tempo gasto nas chamadas às APIs.
+            A inferência da Random Forest custa ≈<code>0,007 ms</code> por linha, então a diferença para o XGBoost
+            (≈<code>0,003 ms</code>) é imperceptível para o usuário.
+          </li>
+          <li><strong>Auditoria e interpretabilidade:</strong> pela importância de Gini
+            (<code>feature_importances_</code>), <code>iqar_ozone</code> (<code>38,93%</code>),
+            <code>media_3h_ozone</code> (<code>28,68%</code>), <code>iqar_pm2_5</code> (<code>7,67%</code>),
+            <code>iqar_pm10</code> (<code>5,79%</code>) e <code>temperature_2m</code>
+            (<code>4,33%</code>) somam <code>85,4%</code> da importância total — algo que conseguimos explicar ao
+            coordenador do campus.
+          </li>
+          <li><strong>Quando escolheríamos outro modelo:</strong> se o custo de alarmes falsos fosse tão alto quanto o
+            de alertas perdidos, o XGBoost (F1 <code>0,9226</code>, só <code>20 FP</code>)
+            seria um candidato forte. Para confirmar isso de forma justa, seria preciso uma nova janela de teste ainda
+            não vista.</li>
+        </ol>
+      </section> SEÇÃO 11: LIMITAÇÕES, LINKS E REFERÊNCIAS <section class="card-section" id="limitacoes-referencias">
+        <h2 class="section-title">11. Limitações Honestamente Documentadas, Links e Referências</h2>
+        <div class="callout warn">
+          <strong>Principais limitações do nosso sistema:</strong>
+          <ul>
+            <li><strong>Dados atmosféricos de grade (CAMS / Open-Meteo) e não sensor físico dentro da UBC:</strong> fora
+              da Europa, o modelo CAMS Global possui resolução espacial de ~45 km e resolução temporal nativa de 3 horas
+              (interpolada para 1h pela API). Queimadas muito localizadas em um quarteirão não são vistas imediatamente
+              pela grade.</li>
+            <li><strong>Onde a Random Forest ainda erra (3 FN e 44 FP no holdout):</strong> os 3 Falsos Negativos de
+              2025–2026 ocorreram em <code>27/12/2025 14h</code>, <code>28/12/2025 13h</code> e
+              <code>31/12/2025 15h</code> (todos no fim de dezembro, no início da tarde). Todos os erros, com data e
+              hora, estão em <code>reports/modeling/sprint5_final_test_misclassified_cases.csv</code>.
+            </li>
+            <li><strong>Hiperparâmetros fixos, sem busca sistemática:</strong> os três modelos usaram configurações
+              razoáveis e fixas (sem <code>GridSearchCV</code>/<code>TimeSeriesSplit</code>). Um ajuste com esforço
+              equivalente para todos poderia mudar a ordem entre eles.</li>
+            <li><strong>Divisão temporal não é 75/25:</strong> o treino vai até 31/12/2024 (21.121 h, ~59%) e o teste
+              cobre 2025–2026 (14.592 h, ~41%). A divisão continua estritamente cronológica; ela foi fixada na Sprint 2,
+              antes de qualquer modelo.</li>
+            <li><strong>Projeções +7h e +24h são experimentais:</strong> a aplicação ao vivo em
+              <code>streamlit_app.py</code> projeta também o próximo turno (+7h) e o dia completo (+24h) aplicando o
+              classificador sobre as concentrações previstas pela API Open-Meteo, o que embute a incerteza meteorológica
+              de curto prazo.
+            </li>
+          </ul>
+        </div>
+        <h3>Links Recomendados para Continuar Aprendendo (5 Leituras Selecionadas)</h3>
+        <ol>
+          <li><a href="https://scikit-learn.org/stable/modules/tree.html" rel="noopener"
+              target="_blank"><strong>Documentação Oficial do Scikit-Learn — Decision Trees:</strong></a> explica passo
+            a passo o algoritmo CART, critérios de Gini/Entropia e poda por custo-complexidade com exemplos visuais.
+          </li>
+          <li><a href="https://scikit-learn.org/stable/modules/ensemble.html#forest" rel="noopener"
+              target="_blank"><strong>Guia de Ensembles do Scikit-Learn — Random Forests:</strong></a> detalha como o
+            bootstrap e o parâmetro <code>max_features</code> reduzem a variância das árvores individuais.</li>
+          <li><a href="https://xgboost.readthedocs.io/en/stable/tutorials/model.html" rel="noopener"
+              target="_blank"><strong>Tutorial Oficial do XGBoost — Introduction to Boosted Trees:</strong></a> um dos
+            melhores textos didáticos da web mostrando com desenhos como árvores somadas em série otimizam gradiente e
+            regularização.</li>
+          <li><a href="https://open-meteo.com/en/docs/air-quality-api" rel="noopener"
+              target="_blank"><strong>Documentação da Open-Meteo Air Quality API (CAMS/ECMWF):</strong></a> referência
+            técnica dos endpoints, poluentes horários e domínios de reanálise atmosférica utilizados no nosso coletor.
+          </li>
+          <li><a href="https://statquest.org/" rel="noopener" target="_blank"><strong>StatQuest with Josh Starmer (Guias
+                Visuais de Árvores, Random Forest e XGBoost):</strong></a> excelente recurso complementar para
+            visualizar a construção de árvores folha por folha antes de mergulhar nas demonstrações formais.</li>
+        </ol>
+        <h3>Referências Bibliográficas Primárias</h3>
+        <ol>
+          <li><strong>BREIMAN, L. (2001).</strong> <em>Random Forests</em>. Machine Learning, v. 45, n. 1, p. 5–32. DOI:
+            10.1023/A:1010933404324.</li>
+          <li><strong>CHEN, T.; GUESTRIN, C. (2016).</strong> <em>XGBoost: A Scalable Tree Boosting System</em>. In:
+            Proceedings of the 22nd ACM SIGKDD International Conference on Knowledge Discovery and Data Mining (KDD
+            '16), p. 785–794. DOI: 10.1145/2939672.2939785.</li>
+          <li><strong>CETESB — Companhia Ambiental do Estado de São Paulo (2025).</strong> <em>Relatório de Metodologia
+              para Avaliação da Qualidade do Ar — Estrutura do Índice de Qualidade do Ar (IQAr)</em>, Tabela 2.7 e Seção
+            2.3, pp. 18–20. <a
+              href="https://www.cetesb.sp.gov.br/dx/api/dam/v1/collections/186909e9-ab59-4641-abba-c5c465793216/items/3adb602d-77ec-4de5-b378-5fa141e80614/renditions/5a0e5f05-41aa-4e9c-9b00-69165ab36963/versions/1?binary=true"
+              rel="noopener" target="_blank">PDF Oficial</a>.</li>
+          <li><strong>SANTOS, C. M. dos (2011).</strong> <em>Índice de Qualidade do Ar e Dinâmica de Poluentes
+              Urbanos</em>. Universidade de Brasília (UnB). <a
+              href="https://repositorio.unb.br/bitstream/10482/10977/1/2011_CleideMouradosSantos.pdf" rel="noopener"
+              target="_blank">Repositório UnB</a>.</li>
+          <li><strong>OPEN-METEO &amp; COPERNICUS CAMS (2026).</strong> <em>Global Atmospheric Composition Forecasts
+              &amp; ERA5 Historical Weather Reanalysis</em>. <a
+              href="https://open-meteo.com/en/docs/historical-weather-api" rel="noopener" target="_blank">Documentação
+              Oficial</a>.</li>
+        </ol>
+      </section> SEÇÃO 12: CARTÕES DOS AUTORES <section class="card-section" id="autores">
+        <h2 class="section-title">12. Equipe de Desenvolvimento</h2>
+        <p>
+          Artigo técnico e sistema desenvolvidos na disciplina de <strong>Ciência de Dados e Aprendizado de Máquina
+            (2026/2)</strong> — Universidade Braz Cubas (UBC), Mogi das Cruzes – SP.
+        </p>
+        <div class="authors-grid">
+          <!-- Davi Gama dos Santos -->
+          <div class="author-card">
+            <div class="author-photo-wrap">
+              <img alt="Foto de Davi Gama dos Santos" class="author-photo-img"
+                onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+                src="assets/autores/davi.jpg" />
+              <div class="avatar-lg" style="display: none;">DG</div>
+            </div>
+            <h4>Davi Gama dos Santos</h4>
+            <p class="author-bio">
+              <strong>Curso:</strong> Sistemas de Informação · <strong>Semestre:</strong> 8/8 (UBC)<br />
+              <strong>Área de interesse:</strong> Sistemas de Informação, último semestre. Interesse em inteligência
+              artificial e segurança de aplicações web
+            </p>
+            <div class="author-links">
+              <a href="https://github.com/Davigamasan" rel="noopener" target="_blank">💻 GitHub</a>
+              <a href="https://www.linkedin.com/in/davigama" rel="noopener" target="_blank">👔 LinkedIn</a>
+            </div>
+          </div>
+          <!-- Diogo Gomes Barbosa -->
+          <div class="author-card">
+            <div class="author-photo-wrap">
+              <img alt="Foto de Diogo Gomes Barbosa" class="author-photo-img"
+                onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+                src="assets/autores/diogo.jpg" />
+              <div class="avatar-lg" style="display: none;">DB</div>
+            </div>
+            <h4>Diogo Gomes Barbosa</h4>
+            <p class="author-bio">
+              <strong>Curso:</strong> Sistemas de Informação · <strong>Semestre:</strong> 7/8 (UBC)<br />
+              <strong>Área de interesse:</strong> Sistemas de Informação, Penultimo Semestre 7/8. Interesse em
+              Desenvolveimnto Full-Stack e Dados.
+            </p>
+            <div class="author-links">
+              <a href="https://github.com/DiogoGomesB" rel="noopener" target="_blank">💻 GitHub</a>
+              <a href="https://www.linkedin.com/in/diogo-gomes-barbosa/" rel="noopener" target="_blank">👔 LinkedIn</a>
+            </div>
+          </div>
+          <!-- Eudenis de Souza Vieira -->
+          <div class="author-card">
+            <div class="author-photo-wrap">
+              <img alt="Foto de Eudenis de Souza Vieira" class="author-photo-img"
+                onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+                src="assets/autores/eudenis.jpg" />
+              <div class="avatar-lg" style="display: none;">EV</div>
+            </div>
+            <h4>Eudenis de Souza Vieira</h4>
+            <p class="author-bio">
+              <strong>Curso:</strong> Sistemas de Informação · <strong>Semestre:</strong> 8/8 (UBC)<br />
+              <strong>Área de interesse:</strong> Sistemas de Informação, último semestre. Interesse em segurança de
+              aplicações web.
+            </p>
+            <div class="author-links">
+              <a href="https://github.com/Eudenis-dev" rel="noopener" target="_blank">💻 GitHub</a>
+              <a href="https://www.linkedin.com/in/eudenis-vieira-72507b311/?isSelfProfile=true" rel="noopener"
+                target="_blank">👔 LinkedIn</a>
+            </div>
+          </div>
+          <!-- Gabriel Januário Alves -->
+          <div class="author-card">
+            <div class="author-photo-wrap">
+              <img alt="Foto de Gabriel Januário Alves" class="author-photo-img"
+                onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+                src="assets/autores/gabriel.jpg" />
+              <div class="avatar-lg" style="display: none;">GA</div>
+            </div>
+            <h4>Gabriel Januário Alves</h4>
+            <p class="author-bio">
+              <strong>Curso:</strong> Sistemas de Informação · <strong>Semestre:</strong> 7/8 (UBC)<br />
+              <strong>Área de interesse:</strong> Sistemas de Informação, Penultimo Semestre. Interesse em gestão de
+              projetos e desenvolvimento de sistemas.
+            </p>
+            <div class="author-links">
+              <a href="https://github.com/gabriel-januario891" rel="noopener" target="_blank">💻 GitHub</a>
+              <a href="https://www.linkedin.com/in/gabriel-alves-1a50611aa" rel="noopener" target="_blank">👔
+                LinkedIn</a>
+            </div>
+          </div>
+          <!-- João Pedro Barreto da Silva -->
+          <div class="author-card">
+            <div class="author-photo-wrap">
+              <img alt="Foto de João Pedro Barreto da Silva" class="author-photo-img"
+                onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+                src="assets/autores/joao.jpg" />
+              <div class="avatar-lg" style="display: none;">JP</div>
+            </div>
+            <h4>João Pedro Barreto da Silva</h4>
+            <p class="author-bio">
+              <strong>Curso:</strong> Sistemas de Informação · <strong>Semestre:</strong> 8/8 (UBC)<br />
+              <strong>Área de interesse:</strong> Sistemas de Informação, 8º semestre. Interesse em inteligência
+              artificial e dados.
+            </p>
+            <div class="author-links">
+              <a href="https://github.com/JoaoPedro19102" rel="noopener" target="_blank">💻 GitHub</a>
+              <a href="https://www.linkedin.com/in/jo%C3%A3o-pedro-barreto-b5a439205/?isSelfProfile=true" rel="noopener"
+                target="_blank">👔 LinkedIn</a>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+  <!-- BOTÃO FLUTUANTE VOLTAR AO TOPO -->
+  <button aria-label="Voltar ao topo" class="back-to-top" id="backToTop" title="Voltar ao topo da página">
+    ↑
+  </button>
+  <!-- RODAPÉ MODERNO -->
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div>
+        <div style="display:flex; align-items:center; gap:0.6rem; margin-bottom:0.5rem;">
+          <img alt="ArPrev Logo" src="assets/logo.png" style="height:28px; width:28px; border-radius:6px;" />
+          <strong style="font-size:1.05rem; color:#ffffff;">ArPrev — Foco na Antecipação de Condições
+            Inadequadas</strong>
+        </div>
+        <p style="margin-top:0.35rem; color:#94a3b8; max-width: 600px;">
+          Projeto de Ciência de Dados e Aprendizado de Máquina (Trilha B - Mogi das Cruzes / Campus UBC).<br />
+          Licença: <a href="https://github.com/DiogoGomesB/Ciencia-de-Dados-e-Aprendizagem-de-Maquina/blob/main/LICENSE"
+            rel="noopener" target="_blank">MIT License</a> · Figuras e diagramas gerados pelo próprio grupo (licença
+          MIT).<br />
+          Última revisão e validação: <strong>29 de outubro de 2026</strong>.
+        </p>
+      </div>
+      <div>
+        <h4 style="color:#ffffff; margin-bottom:0.6rem; font-size:0.95rem;">Recursos e Links Rápidos</h4>
+        <p style="line-height: 1.8;">
+          🔗 <a href="https://github.com/DiogoGomesB/Ciencia-de-Dados-e-Aprendizagem-de-Maquina" rel="noopener"
+            target="_blank">Repositório Oficial no GitHub</a><br />
+          📊 <a
+            href="https://github.com/DiogoGomesB/Ciencia-de-Dados-e-Aprendizagem-de-Maquina/blob/main/streamlit_app.py"
+            rel="noopener" target="_blank">Código do Dashboard (<code>streamlit_app.py</code>)</a><br />
+          📓 <a href="https://github.com/DiogoGomesB/Ciencia-de-Dados-e-Aprendizagem-de-Maquina/blob/main/DIARIO.md"
+            rel="noopener" target="_blank">Diário de Bordo Consolidado (<code>DIARIO.md</code>)</a><br />
+          📄 <a href="https://github.com/DiogoGomesB/Ciencia-de-Dados-e-Aprendizagem-de-Maquina/blob/main/docs/RFC.md"
+            rel="noopener" target="_blank">Documento RFC e Decisões de Arquitetura</a>
+        </p>
+      </div>
+    </div>
+  </footer>
+  <!-- SCRIPTS MODERNOS DE INTERATIVIDADE -->
+  <script>
+    // 1. Barra de Progresso de Leitura
+    window.addEventListener('scroll', () => {
+      const winScroll = document.documentElement.scrollTop || document.body.scrollTop;
+      const height = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+      const scrolled = (winScroll / height) * 100;
+      document.getElementById('progress-bar').style.width = scrolled + '%';
+
+      // Botão Voltar ao Topo
+      const backBtn = document.getElementById('backToTop');
+      if (winScroll > 320) {
+        backBtn.classList.add('show');
+      } else {
+        backBtn.classList.remove('show');
+      }
+    });
+
+    // 2. Voltar ao Topo
+    document.getElementById('backToTop').addEventListener('click', () => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    // 3. Toggle Menu Mobile
+    const mobileBtn = document.getElementById('mobileMenuBtn');
+    const topNav = document.getElementById('topNav');
+    if (topNav) {
+      topNav.querySelectorAll('a').forEach(navLink => {
+        navLink.addEventListener('click', () => {
+          topNav.classList.remove('open');
+        });
+      });
+    }
+    if (mobileBtn && topNav) {
+      mobileBtn.addEventListener('click', () => {
+        topNav.classList.toggle('open');
+      });
+    }
+
+    // 4. Fechar TOC mobile ao clicar em um link
+    function closeMobileToc() {
+      const details = document.querySelector('.toc-details-mobile');
+      if (details) {
+        details.removeAttribute('open');
+      }
+    }
+
+    // 5. Copiar Código com Feedback
+    function copyCode(btn) {
+      const pre = btn.closest('.code-card').querySelector('pre');
+      if (!pre) return;
+      const codeText = pre.innerText;
+      navigator.clipboard.writeText(codeText).then(() => {
+        const origText = btn.innerHTML;
+        btn.innerHTML = '✓ Copiado!';
+        btn.style.background = '#059669';
+        btn.style.color = '#ffffff';
+        setTimeout(() => {
+          btn.innerHTML = origText;
+          btn.style.background = '';
+          btn.style.color = '';
+        }, 2200);
+      }).catch(err => {
+        console.error('Falha ao copiar:', err);
+      });
+    }
+
+    // 6. Highlight ativo no índice lateral conforme scroll (IntersectionObserver)
+    document.addEventListener('DOMContentLoaded', () => {
+      const sections = document.querySelectorAll('main.article-body section[id]');
+      const navLinks = document.querySelectorAll('#desktopTocList a');
+
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            const id = entry.target.getAttribute('id');
+            navLinks.forEach(link => {
+              if (link.getAttribute('href') === '#' + id) {
+                link.classList.add('active');
+              } else {
+                link.classList.remove('active');
+              }
+            });
+          }
+        });
+      }, {
+        rootMargin: '-80px 0px -70% 0px'
+      });
+
+      sections.forEach(sec => observer.observe(sec));
+    });
+  </script>
+</body>
+
+</html>

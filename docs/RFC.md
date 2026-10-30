@@ -98,7 +98,7 @@ Caminho planejado, sem escolher algoritmo:
 
 *ingestão bruta (Pipeline CD)* → integração do cru → *limpeza e tratamento* → *split* → imputação residual só no treino (se houver) → EDA *no treino já tratado* → alvo formal → features sem vazamento → *um Pipeline sklearn* (pré-processamento + classificador) → baselines → iteração de features com retreino → modelos + *limiar escolhido na validação* (teste uma vez) → model card + artefato (joblib do Pipeline).
 
-Dashboard de visualização, se houver na mostra final, é extra: não há sprint numerada de deploy neste projeto.
+O projeto conta ainda com o Dashboard interativo em Streamlit (`streamlit_app.py`, com duas abas: Previsão Atual ao vivo e Desempenho Histórico) e com o Artigo Técnico em página web estática (`docs/index.html`, publicado via GitHub Pages).
 
 O projeto seguirá um fluxo composto pela coleta e integração dos dados de qualidade do ar e meteorológicos, seguido pelas etapas de limpeza, análise, definição da variável-alvo, criação das características e desenvolvimento de modelos de classificação. As decisões relacionadas ao processamento dos dados, features, modelos e critérios de avaliação serão definidas e refinadas nas sprints seguintes, conforme os resultados das análises realizadas.
 
@@ -191,3 +191,4 @@ As perguntas de planejamento acima foram respondidas; pendências operacionais d
 | v0.9 | Sprint 5 | Equipe | Seleção pré-teste, avaliação única do holdout e pipeline final documentados. |
 | v1.0 | Pós-Sprint 5 | Equipe | Fluxo operacional experimental +1h a partir da hora atual (`src/aplicacao/`, notebooks 01–03); escopo ajustado. |
 | v1.1 | Pós-Sprint 5 | Equipe | Formalização do usuário decisor (Coordenação UBC / Defesa Civil), alternativas de modelagem e encerramento do RFC como Aprovado. |
+| v1.2 | 29/10/2026 | Equipe | Inclusão das projeções experimentais +7h/+24h, comparativo estendido com Árvore de Decisão e XGBoost, Dashboard Streamlit (`streamlit_app.py`) e Artigo Técnico Web (`docs/index.html`). |

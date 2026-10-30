@@ -76,7 +76,7 @@ Relatórios reproduzíveis: `reports/modeling/sprint5_validation_metrics.csv`, `
 
 **Caderno de experimentos (validação e teste):**
 
-Na validação, a regressão logística com limiar 0,7 teve 0 FN, 5 FP (precisão 0,9020; F1 0,9485), mas excedeu o teto de episódios em uma das 12 semanas completas (máximo de 4). A Random Forest com limiar 0,3 teve 0 FN, 13 FP (precisão 0,7797; F1 0,8440) e respeitou o teto nas 12 semanas completas (máximo de 3 episódios e 15 horas alertadas na semana de maior carga). **Decisão da equipe:** congelar Random Forest, limiar 0,3, priorizando evitar FN e respeitar o teto semanal na validação. A decisão foi tomada sobre uma única janela curta (46 positivos); os relatórios por limiar e semana são `reports/modeling/sprint5_validation_threshold_tradeoff.csv` e `sprint5_validation_alert_burden_by_week.csv`.
+Na validação, a regressão logística com limiar 0,7 teve 0 FN, 5 FP (precisão 0,9020; F1 0,9485), mas excedeu o teto de episódios em uma das 12 semanas completas (máximo de 4). A Random Forest com limiar 0,3 teve 0 FN, 13 FP (precisão 0,7797; F1 0,8762) e respeitou o teto nas 12 semanas completas (máximo de 3 episódios e 15 horas alertadas na semana de maior carga). **Decisão da equipe:** congelar Random Forest, limiar 0,3, priorizando evitar FN e respeitar o teto semanal na validação. A decisão foi tomada sobre uma única janela curta (46 positivos); os relatórios por limiar e semana são `reports/modeling/sprint5_validation_threshold_tradeoff.csv` e `sprint5_validation_alert_burden_by_week.csv`.
 
 | ID | Modelo | Features (S2/S4) | Limiar | Recall val. | Recall teste | Precisão teste | F1 teste |
 |---|---|---|---|---|---|---|---|
@@ -132,8 +132,8 @@ Random Forest balanceada, com 300 árvores, `min_samples_leaf=2`, `random_state=
 - **Como escolhemos (5 etapas na validação 2024-Q4, antes do holdout):**
   1. Congelamento das 15 features (`FEATURES_SPRINT4`).
   2. Treinamento das 4 famílias candidatas no período até 30/09/2024 (`18.913` linhas) e avaliação em 2024-Q4 (`2.208` linhas, `46` positivos).
-  3. Descarte dos baselines no limiar padrão `0,5`: Persistência teve `8 FN` (Recall `0,8261`) e Naive Bayes teve `35 FP` e violou o teto semanal em 2 semanas.
-  4. Entre Regressão Logística Balanceada e Random Forest Balanceada, ambas empataram com **Recall = `1,0000` (`0 FN`)** nos limiares `0,3` e `0,5`, mas a **Random Forest** produziu muito menos falsos positivos (`5 FP` vs. `12 FP` em `0,3`; `3 FP` vs. `8 FP` em `0,5`), elevando o F1 (`0,9485` vs. `0,8846` no limiar `0,3`) e zerando as semanas acima do teto operacional (`0` de `12` semanas).
+  3. Descarte dos baselines no limiar padrão `0,5`: Persistência teve `9 FN` (Recall `0,8043`) e Naive Bayes teve `73 FP` (precisão `0,3866`).
+  4. Entre Regressão Logística Balanceada e Random Forest Balanceada (`sprint5_validation_threshold_tradeoff.csv`): no limiar `0,3`, ambas tiveram `0 FN`, mas a Random Forest gerou menos alarmes falsos (`13 FP` vs. `17 FP`; F1 `0,8762` vs. `0,8440`). No limiar `0,5`, a Random Forest perdeu 1 alerta (`1 FN`, F1 `0,9375`). A Regressão Logística em `0,7` teve `0 FN` e `5 FP` (F1 `0,9485`), mas excedeu o teto semanal em 1 das 12 semanas (máximo de 4 episódios), enquanto a Random Forest em `0,3` respeitou o teto nas 12 semanas.
   5. Escolha do **limiar `0,3`** (basta ≥ 30% de probabilidade ponderada das 300 árvores para disparar alerta) priorizando proteção contra Falsos Negativos conforme o RFC.
 
 **Importância das variáveis nas 300 árvores (`feature_importances_` — redução média de impureza de Gini):**
@@ -157,6 +157,15 @@ Random Forest balanceada, com 300 árvores, `min_samples_leaf=2`, `random_state=
 | 15 | `precipitation` | Meteorologia em $t$ | **0,09%** | Lavagem atmosférica por chuva |
 
 *(Nota: o par `iqar_ozone` + `media_3h_ozone` concentra **67,61%** do poder decisório da floresta, e as 4 features temporais criadas na Sprint 4 respondem juntas por **35,71%** da redução de impureza).*
+
+**Comparativo estendido para o Artigo Técnico e Dashboard (`Árvore de Decisão`, `Random Forest` e `XGBoost` — `src/modelagem/Experimento_Arvores_Artigo.py`):**
+
+- **Na Validação (`2024-Q4`, limiar `0,30`):** Random Forest (`Recall = 1,0000`, `0 FN`, `13 FP`, `F1 = 0,8762`, treino `1,40 s`, inferência `123,35 ms`), Árvore de Decisão CART `max_depth=6` (`Recall = 1,0000`, `0 FN`, `5 FP`, `F1 = 0,9485`, treino `0,13 s`, inferência `3,95 ms`) e XGBoost `300` árvores (`Recall = 0,9565`, `2 FN`, `3 FP`, `F1 = 0,9462`, treino `1,32 s`, inferência `12,37 ms`).
+- **No Holdout (`2025–2026`, `14.592` horas, limiar `0,30`):**
+  - **Árvore de Decisão única (`arvore_decisao_cart`):** sofreu alta variância entre anos, caindo para `Recall = 0,8634` (**22 FN**, `33 FP`, `F1 = 0,8348`, inferência `11,48 ms`);
+  - **XGBoost (`xgboost_balanced`):** obteve a maior precisão (`0,8857`, apenas `20 FP`) e maior F1 (`0,9226`, inferência `38,28 ms`), porém teve **6 FN** (`Recall = 0,9627`);
+  - **Random Forest (`random_forest_balanced`, modelo escolhido):** confirmou o **maior Recall entre os modelos de árvore (`0,9814`, apenas 3 FN em 14.592 horas)**, com `F1 = 0,8705` e latência de `106,66 ms` no lote completo (`0,007 ms` por consulta ao vivo).
+- **Entregas públicas associadas:** Dashboard interativo em [`streamlit_app.py`](../../streamlit_app.py) (com 2 abas: *1. Previsão Atual* ao vivo e *2. Desempenho Histórico*) e Artigo Técnico em página web estática em [`docs/index.html`](../index.html).
 
 **Principais erros analisados (FN/FP relevantes):**
 

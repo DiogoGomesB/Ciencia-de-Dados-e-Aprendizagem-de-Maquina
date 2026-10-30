@@ -142,6 +142,7 @@ def main() -> None:
         st.divider()
         st.markdown(
             "**Links Rápidos:**\n"
+            "- [Artigo Técnico (GitHub Pages)](https://diogogomesb.github.io/Ciencia-de-Dados-e-Aprendizagem-de-Maquina/)\n"
             "- [Repositório GitHub](https://github.com/DiogoGomesB/Ciencia-de-Dados-e-Aprendizagem-de-Maquina)\n"
             "- [Documentação e RFC](https://github.com/DiogoGomesB/Ciencia-de-Dados-e-Aprendizagem-de-Maquina/blob/main/docs/RFC.md)"
         )

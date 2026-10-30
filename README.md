@@ -7,7 +7,7 @@
   [![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/)
   [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
   [![Streamlit App](https://img.shields.io/badge/Streamlit-Dashboard-FF4B4B.svg)](streamlit_app.py)
-  [![Artigo Web](https://img.shields.io/badge/GitHub%20Pages-Artigo%20T%C3%A9cnico-059669.svg)](docs/index.html)
+  [![Artigo Web](https://img.shields.io/badge/GitHub%20Pages-Artigo%20T%C3%A9cnico-059669.svg)](https://diogogomesb.github.io/Ciencia-de-Dados-e-Aprendizagem-de-Maquina/)
   [![Pytest](https://img.shields.io/badge/tests-43%20passed-brightgreen.svg)](tests/)
 
 </div>
@@ -16,17 +16,79 @@
 
 **Disciplina:** Ciência de Dados e Aprendizado de Máquina  
 **Título do Projeto:** ArPrev — Foco na antecipação de condições inadequadas (Previsão de Qualidade do Ar Inadequada na Região da Faculdade UBC / Mogi das Cruzes - SP)  
-**Trilha:** B — Qualidade do ar inadequada
-
-**Equipe:** Davi Gama dos Santos (33121079) · Diogo Gomes Barbosa (35866276) · Eudenis Vieira (32751621) · Gabriel Januário Alves (35609991) · João Pedro Barreto da Silva (33297185)
-
-**Repositório:** [DiogoGomesB/Ciencia-de-Dados-e-Aprendizagem-de-Maquina](https://github.com/DiogoGomesB/Ciencia-de-Dados-e-Aprendizagem-de-Maquina)
-
+**Trilha:** B — Qualidade do ar inadequada  
+**Repositório:** [DiogoGomesB/Ciencia-de-Dados-e-Aprendizagem-de-Maquina](https://github.com/DiogoGomesB/Ciencia-de-Dados-e-Aprendizagem-de-Maquina)  
+**Artigo Técnico (GitHub Pages):** [https://diogogomesb.github.io/Ciencia-de-Dados-e-Aprendizagem-de-Maquina/](https://diogogomesb.github.io/Ciencia-de-Dados-e-Aprendizagem-de-Maquina/)  
 **Licença:** MIT (arquivo `LICENSE` no repositório)
 
 ---
 
-## Estado atual do projeto
+## 📑 Tópicos do Projeto
+
+1. [Equipe de Desenvolvimento](#1-equipe-de-desenvolvimento-sistemas-de-informação--ubc-20262)
+2. [Estado Atual do Projeto](#2-estado-atual-do-projeto)
+3. [O Problema e Contexto Operacional](#3-o-problema-e-contexto-operacional)
+4. [Escopo — Canvas de Kickoff (As 8 Perguntas)](#4-escopo--canvas-de-kickoff-as-8-perguntas)
+5. [Quadro de Observação do Grupo](#5-quadro-de-observação-do-grupo)
+6. [Como Reproduzir e Executar](#6-como-reproduzir-e-executar)
+7. [Dados e Auditoria Temporal](#7-dados-e-auditoria-temporal)
+8. [Modelo Preditivo e Comparativo de Algoritmos](#8-modelo-preditivo-e-comparativo-de-algoritmos)
+9. [Estrutura do Repositório](#9-estrutura-do-repositório)
+10. [Trabalho Realizado e Encerramento Acadêmico](#10-trabalho-realizado-e-encerramento-acadêmico)
+11. [Documentação e Links Oficiais](#11-documentação-e-links-oficiais)
+
+---
+
+## 1. Equipe de Desenvolvimento (Sistemas de Informação · UBC 2026/2)
+
+<table align="center">
+  <tr>
+    <td align="center" width="20%">
+      <a href="https://github.com/Davigamasan">
+        <img src="docs/assets/autores/davi.jpg" width="95px" height="95px" alt="Davi Gama dos Santos" style="border-radius:50%; object-fit:cover;"/><br />
+        <sub><b>Davi Gama dos Santos</b></sub>
+      </a><br />
+      <sub>Sistemas de Informação</sub><br />
+      <a href="https://github.com/Davigamasan">💻 GitHub</a> · <a href="https://www.linkedin.com/in/davigama">👔 LinkedIn</a>
+    </td>
+    <td align="center" width="20%">
+      <a href="https://github.com/DiogoGomesB">
+        <img src="docs/assets/autores/diogo.jpg" width="95px" height="95px" alt="Diogo Gomes Barbosa" style="border-radius:50%; object-fit:cover;"/><br />
+        <sub><b>Diogo Gomes Barbosa</b></sub>
+      </a><br />
+      <sub>Sistemas de Informação</sub><br />
+      <a href="https://github.com/DiogoGomesB">💻 GitHub</a> · <a href="https://www.linkedin.com/in/diogo-gomes-barbosa/">👔 LinkedIn</a>
+    </td>
+    <td align="center" width="20%">
+      <a href="https://github.com/Eudenis-dev">
+        <img src="docs/assets/autores/eudenis.jpg" width="95px" height="95px" alt="Eudenis de Souza Vieira" style="border-radius:50%; object-fit:cover;"/><br />
+        <sub><b>Eudenis de Souza Vieira</b></sub>
+      </a><br />
+      <sub>Sistemas de Informação</sub><br />
+      <a href="https://github.com/Eudenis-dev">💻 GitHub</a> · <a href="https://www.linkedin.com/in/eudenis-vieira-72507b311/?isSelfProfile=true">👔 LinkedIn</a>
+    </td>
+    <td align="center" width="20%">
+      <a href="https://github.com/gabriel-januario891">
+        <img src="docs/assets/autores/gabriel.jpg" width="95px" height="95px" alt="Gabriel Januário Alves" style="border-radius:50%; object-fit:cover;"/><br />
+        <sub><b>Gabriel Januário Alves</b></sub>
+      </a><br />
+      <sub>Sistemas de Informação</sub><br />
+      <a href="https://github.com/gabriel-januario891">💻 GitHub</a> · <a href="https://www.linkedin.com/in/gabriel-alves-1a50611aa">👔 LinkedIn</a>
+    </td>
+    <td align="center" width="20%">
+      <a href="https://github.com/JoaoPedro19102">
+        <img src="docs/assets/autores/joao.jpg" width="95px" height="95px" alt="João Pedro Barreto da Silva" style="border-radius:50%; object-fit:cover;"/><br />
+        <sub><b>João Pedro Barreto da Silva</b></sub>
+      </a><br />
+      <sub>Sistemas de Informação</sub><br />
+      <a href="https://github.com/JoaoPedro19102">💻 GitHub</a> · <a href="https://www.linkedin.com/in/jo%C3%A3o-pedro-barreto-b5a439205/?isSelfProfile=true">👔 LinkedIn</a>
+    </td>
+  </tr>
+</table>
+
+---
+
+## 2. Estado Atual do Projeto
 
 Situação técnica verificada em 09/10/2026; o fluxo operacional +1h e projeções +7h/+24h (`src/aplicacao/Prever_Proxima_Hora.py` e notebooks 01–03), o experimento comparativo completo com Árvore de Decisão, Random Forest e XGBoost (`src/modelagem/Experimento_Arvores_Artigo.py`), o Dashboard no Streamlit (`streamlit_app.py`) e o Artigo Técnico em página web (`docs/index.html`) foram concluídos e validados em 29/10/2026. Todos os registros de Scrum, diários de bordo (`DIARIO.md` e `docs/sprints/`), feedbacks e rubricas estão preenchidos pela equipe.
 
@@ -45,14 +107,14 @@ Situação técnica verificada em 09/10/2026; o fluxo operacional +1h e projeç�
 | Relatórios de análise e modelagem | Gerados | `reports/`; incluem validação, teste final, erros e carga semanal |
 | Testes automatizados | 43 aprovados | `tests/`; cobrem coleta com retry, alvo, split, features, baselines, comparativo de árvores (CART/RF/XGBoost), avaliação, empacotamento, previsão +1h e projeção +7h/+24h |
 | Dashboard Streamlit | Concluído | `streamlit_app.py`; 2 abas (1. Previsão Atual ao vivo na API; 2. Desempenho Histórico) |
-| Artigo Técnico Web | Concluído | `docs/index.html`; página estática didática (GitHub Pages) comparando Árvore de Decisão, Random Forest e XGBoost |
+| Artigo Técnico Web | Concluído | [`docs/index.html`](https://diogogomesb.github.io/Ciencia-de-Dados-e-Aprendizagem-de-Maquina/) — publicado no [GitHub Pages](https://diogogomesb.github.io/Ciencia-de-Dados-e-Aprendizagem-de-Maquina/); comparativo didático de CART, Random Forest e XGBoost |
 | Diário de Bordo e `.env.example` | Concluídos | `DIARIO.md` na raiz + `docs/sprints/Sprint1_TrilhaB.md` a `Sprint5_TrilhaB.md` |
 | `requirements.txt` | Concluída | — |
 | `LICENSE` | Concluída | MIT |
 
 ---
 
-## Problema
+## 3. O Problema e Contexto Operacional
 
 | Item | Definição |
 |---|---|
@@ -73,7 +135,7 @@ Status: alvo, split temporal, EDA, comparação S3→S4, pipeline de features co
 
 ---
 
-## Escopo — Canvas de Kickoff (As 8 Perguntas)
+## 4. Escopo — Canvas de Kickoff (As 8 Perguntas)
 
 | # | Pergunta do Canvas | Resposta Definida pelo Grupo (Trilha B — Qualidade do Ar) |
 |---:|---|---|
@@ -88,7 +150,7 @@ Status: alvo, split temporal, EDA, comparação S3→S4, pipeline de features co
 
 ---
 
-## Quadro de Observação do Grupo
+## 5. Quadro de Observação do Grupo
 
 | Dimensão | Registro Fundamentado da Equipe |
 |---|---|
@@ -98,7 +160,7 @@ Status: alvo, split temporal, EDA, comparação S3→S4, pipeline de features co
 
 ---
 
-## Como reproduzir e executar
+## 6. Como Reproduzir e Executar
 
 ```powershell
 py -3.13 -m venv .venv
@@ -174,7 +236,7 @@ Para executar os testes automatizados (com dados sintéticos), rode na raiz:
 
 ---
 
-## Dados
+## 7. Dados e Auditoria Temporal
 
 | Fonte | Papel | Resolução | Natureza do dado | Período |
 |---|---|---|---|---|
@@ -232,7 +294,7 @@ Uma segunda triagem adicionou médias retrospectivas de 3h e mudanças em 2h par
 - As APIs retornam a coordenada da célula de grade do modelo, que pode diferir ligeiramente da coordenada solicitada (-23.514561, -46.186832). Essa diferença é esperada em dado modelado ou de reanálise e não constitui erro de coleta, mas deve ser considerada na interpretação dos resultados.
 - Tanto os arquivos de janeiro/2025 quanto a coleta ampliada não apresentaram valores nulos nas variáveis solicitadas; no período ampliado, as duas fontes também têm timestamps alinhados e sem lacunas.
 
-### Documentação oficial das APIs
+### Documentação Oficial das APIs
 
 **Open-Meteo Air Quality API**
 - Endpoint: `GET https://air-quality-api.open-meteo.com/v1/air-quality`
@@ -290,7 +352,7 @@ Esse alvo é uma estimativa metodológica baseada em concentrações horárias m
 
 ---
 
-## Modelo
+## 8. Modelo Preditivo e Comparativo de Algoritmos
 
 | Item | Status |
 |---|---|
@@ -301,7 +363,7 @@ Esse alvo é uma estimativa metodológica baseada em concentrações horárias m
 | Resultado da regra semanal | 1 de 86 semanas completas excedeu o teto de 3 episódios; pico de 5 episódios e 31 horas de alerta |
 | Artefato | `models/modelo_final_sprint5.joblib` (pipeline, features e limiar) |
 | Dashboard Streamlit | `streamlit_app.py` (Aba 1: Previsão Atual ao vivo; Aba 2: Desempenho Histórico) |
-| Artigo Técnico Web (GitHub Pages) | [`docs/index.html`](docs/index.html) (Árvore de Decisão, Random Forest e XGBoost explicados e comparados) |
+| Artigo Técnico Web (GitHub Pages) | [diogogomesb.github.io/... (Publicação Online)](https://diogogomesb.github.io/Ciencia-de-Dados-e-Aprendizagem-de-Maquina/) · [`docs/index.html`](docs/index.html) |
 
 ### Comparativo Completo: Baseline vs. Árvore de Decisão, Random Forest e XGBoost
 
@@ -336,7 +398,7 @@ O modelo usa os sete subíndices individuais dos poluentes, cinco variáveis met
 
 ---
 
-## Estrutura do repositório
+## 9. Estrutura do Repositório
 
 Arquitetura de referência do projeto, com indicação do que já está implementado:
 
@@ -388,7 +450,9 @@ A pasta `data/` contém os arquivos brutos (`data/raw/`), intermediários (`data
 
 ---
 
-## Trabalho realizado na Sprint 1 (registro histórico)
+## 10. Trabalho Realizado e Encerramento Acadêmico
+
+### 10.1 Trabalho Realizado na Sprint 1 (Registro Histórico)
 
 - Configuração centralizada (local, latitude, longitude, datas, fuso horário), sem valores fixados diretamente no código de coleta.
 - Requisições às duas fontes exigidas pela Trilha B (qualidade do ar e clima), com `timeout=30` e `raise_for_status()`.
@@ -397,7 +461,7 @@ A pasta `data/` contém os arquivos brutos (`data/raw/`), intermediários (`data
 - Dicionário de dados v0.1 criado.
 - `requirements.txt` e `LICENSE` (MIT) adicionados ao repositório.
 
-## Encerramento acadêmico e de equipe
+### 10.2 Encerramento Acadêmico e de Equipe
 
 > As pendências técnicas abaixo foram concluídas nas Sprints seguintes. Permanecem como tarefas de organização acadêmica os registros individuais e decisões formais que só a equipe pode confirmar.
 
@@ -411,7 +475,7 @@ As entregas técnicas inicialmente listadas — coleta ampliada, validação de 
 
 ---
 
-## Documentação
+## 11. Documentação e Links Oficiais
 
 - [RFC e decisões de escopo](docs/RFC.md)
 - [Dicionário de dados](docs/Dicionario_de_Dados.md)
@@ -421,7 +485,7 @@ As entregas técnicas inicialmente listadas — coleta ampliada, validação de 
 - [Sprint 3 — baselines e comparação inicial](docs/sprints/Sprint3_TrilhaB.md)
 - [Sprint 4 — atributos temporais e comparação formal](docs/sprints/Sprint4_TrilhaB.md)
 - [Sprint 5 — modelo final, avaliação e model card](docs/sprints/Sprint5_TrilhaB.md)
-- [Artigo Técnico em Página Web (GitHub Pages)](docs/index.html)
+- [Artigo Técnico Publicado (GitHub Pages)](https://diogogomesb.github.io/Ciencia-de-Dados-e-Aprendizagem-de-Maquina/) (ou código-fonte local em [`docs/index.html`](docs/index.html))
 - [Dashboard Interativo no Streamlit](streamlit_app.py)
 - [Diário de Bordo Consolidado](DIARIO.md)
 - [Previsão +1h interativa](notebooks/03_Previsao_Proxima_Hora.ipynb)

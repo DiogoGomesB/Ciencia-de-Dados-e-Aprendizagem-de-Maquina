@@ -98,7 +98,7 @@ Caminho planejado, sem escolher algoritmo:
 
 *ingestão bruta (Pipeline CD)* → integração do cru → *limpeza e tratamento* → *split* → imputação residual só no treino (se houver) → EDA *no treino já tratado* → alvo formal → features sem vazamento → *um Pipeline sklearn* (pré-processamento + classificador) → baselines → iteração de features com retreino → modelos + *limiar escolhido na validação* (teste uma vez) → model card + artefato (joblib do Pipeline).
 
-O projeto conta ainda com o Dashboard interativo em Streamlit (`streamlit_app.py`, com duas abas: Previsão Atual ao vivo e Desempenho Histórico) e com o Artigo Técnico em página web estática (`docs/index.html`, publicado via GitHub Pages).
+O projeto conta ainda com o Dashboard interativo em Streamlit (`streamlit_app.py`, com duas abas: Previsão Atual ao vivo e Desempenho Histórico) e com o Artigo Técnico em página web estática ([GitHub Pages: https://diogogomesb.github.io/Ciencia-de-Dados-e-Aprendizagem-de-Maquina/](https://diogogomesb.github.io/Ciencia-de-Dados-e-Aprendizagem-de-Maquina/) a partir de `docs/index.html`).
 
 O projeto seguirá um fluxo composto pela coleta e integração dos dados de qualidade do ar e meteorológicos, seguido pelas etapas de limpeza, análise, definição da variável-alvo, criação das características e desenvolvimento de modelos de classificação. As decisões relacionadas ao processamento dos dados, features, modelos e critérios de avaliação serão definidas e refinadas nas sprints seguintes, conforme os resultados das análises realizadas.
 

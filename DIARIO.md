@@ -35,7 +35,7 @@ Este documento consolida o histórico evolutivo do projeto, as decisões de esco
 5. **Sprint 5 — Experimento Comparativo de Árvores, Limiar 0,30, Dashboard e Artigo Técnico:**
    - Comparação sistemática entre Baseline (`DummyClassifier`, `Persistência`, `GaussianNB`), `Regressão Logística`, **Árvore de Decisão (`DecisionTreeClassifier`)**, **Random Forest (`RandomForestClassifier`)** e **XGBoost (`XGBClassifier`)**, avaliando métricas de risco (Recall, Precisão, F1, Matriz de Confusão) e latência de treino/inferência.
    - Congelamento do modelo final (**Random Forest Balanceada**, 300 árvores, `min_samples_leaf=2`, limiar `0,30`) antes da abertura do holdout (`Recall = 98,14%`, `F1 = 87,05%`, apenas `3 FN` em `14.592` horas).
-   - Entrega do Dashboard no Streamlit (`streamlit_app.py`), módulo de previsão ao vivo (`+1h` oficial e projeções experimentais `+7h` e `+24h`) e Artigo Técnico em página web (`docs/index.html`).
+   - Entrega do Dashboard no Streamlit (`streamlit_app.py`), módulo de previsão ao vivo (`+1h` oficial e projeções experimentais `+7h` e `+24h`) e Artigo Técnico em página web ([GitHub Pages: https://diogogomesb.github.io/Ciencia-de-Dados-e-Aprendizagem-de-Maquina/](https://diogogomesb.github.io/Ciencia-de-Dados-e-Aprendizagem-de-Maquina/) e `docs/index.html`).
 
 ---
 

@@ -6,7 +6,7 @@
 
   [![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/)
   [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-  [![Streamlit App](https://img.shields.io/badge/Streamlit-Dashboard-FF4B4B.svg)](streamlit_app.py)
+  [![Streamlit App](https://img.shields.io/badge/Streamlit-Dashboard-FF4B4B.svg)](https://arprev-ubc.streamlit.app/)
   [![Artigo Web](https://img.shields.io/badge/GitHub%20Pages-Artigo%20T%C3%A9cnico-059669.svg)](https://diogogomesb.github.io/Ciencia-de-Dados-e-Aprendizagem-de-Maquina/)
   [![Pytest](https://img.shields.io/badge/tests-43%20passed-brightgreen.svg)](tests/)
 
@@ -18,6 +18,7 @@
 **Título do Projeto:** ArPrev — Foco na antecipação de condições inadequadas (Previsão de Qualidade do Ar Inadequada na Região da Faculdade UBC / Mogi das Cruzes - SP)  
 **Trilha:** B — Qualidade do ar inadequada  
 **Repositório:** [DiogoGomesB/Ciencia-de-Dados-e-Aprendizagem-de-Maquina](https://github.com/DiogoGomesB/Ciencia-de-Dados-e-Aprendizagem-de-Maquina)  
+**Dashboard Interativo (Streamlit Cloud):** [https://arprev-ubc.streamlit.app/](https://arprev-ubc.streamlit.app/)  
 **Artigo Técnico (GitHub Pages):** [https://diogogomesb.github.io/Ciencia-de-Dados-e-Aprendizagem-de-Maquina/](https://diogogomesb.github.io/Ciencia-de-Dados-e-Aprendizagem-de-Maquina/)  
 **Licença:** MIT (arquivo `LICENSE` no repositório)
 
@@ -106,7 +107,7 @@ Situação técnica verificada em 09/10/2026; o fluxo operacional +1h e projeç�
 | Pipeline final | Empacotado | `models/modelo_final_sprint5.joblib`; previsão +1h com dados recentes em `notebooks/03_Previsao_Proxima_Hora.ipynb` e `src/aplicacao/` |
 | Relatórios de análise e modelagem | Gerados | `reports/`; incluem validação, teste final, erros e carga semanal |
 | Testes automatizados | 43 aprovados | `tests/`; cobrem coleta com retry, alvo, split, features, baselines, comparativo de árvores (CART/RF/XGBoost), avaliação, empacotamento, previsão +1h e projeção +7h/+24h |
-| Dashboard Streamlit | Concluído | `streamlit_app.py`; 2 abas (1. Previsão Atual ao vivo na API; 2. Desempenho Histórico) |
+| Dashboard Streamlit | Concluído | [`arprev-ubc.streamlit.app`](https://arprev-ubc.streamlit.app/) (`streamlit_app.py`); 2 abas (1. Previsão Atual ao vivo na API; 2. Desempenho Histórico) |
 | Artigo Técnico Web | Concluído | [`docs/index.html`](https://diogogomesb.github.io/Ciencia-de-Dados-e-Aprendizagem-de-Maquina/) — publicado no [GitHub Pages](https://diogogomesb.github.io/Ciencia-de-Dados-e-Aprendizagem-de-Maquina/); comparativo didático de CART, Random Forest e XGBoost |
 | Diário de Bordo e `.env.example` | Concluídos | `DIARIO.md` na raiz + `docs/sprints/Sprint1_TrilhaB.md` a `Sprint5_TrilhaB.md` |
 | `requirements.txt` | Concluída | — |
@@ -362,7 +363,7 @@ Esse alvo é uma estimativa metodológica baseada em concentrações horárias m
 | Métrica principal no teste | Recall 0,9814 da classe positiva; 3 FN e 44 FP |
 | Resultado da regra semanal | 1 de 86 semanas completas excedeu o teto de 3 episódios; pico de 5 episódios e 31 horas de alerta |
 | Artefato | `models/modelo_final_sprint5.joblib` (pipeline, features e limiar) |
-| Dashboard Streamlit | `streamlit_app.py` (Aba 1: Previsão Atual ao vivo; Aba 2: Desempenho Histórico) |
+| Dashboard Streamlit (Cloud) | [arprev-ubc.streamlit.app (Publicação Online)](https://arprev-ubc.streamlit.app/) · [`streamlit_app.py`](streamlit_app.py) |
 | Artigo Técnico Web (GitHub Pages) | [diogogomesb.github.io/... (Publicação Online)](https://diogogomesb.github.io/Ciencia-de-Dados-e-Aprendizagem-de-Maquina/) · [`docs/index.html`](docs/index.html) |
 
 ### Comparativo Completo: Baseline vs. Árvore de Decisão, Random Forest e XGBoost
@@ -486,7 +487,7 @@ As entregas técnicas inicialmente listadas — coleta ampliada, validação de 
 - [Sprint 4 — atributos temporais e comparação formal](docs/sprints/Sprint4_TrilhaB.md)
 - [Sprint 5 — modelo final, avaliação e model card](docs/sprints/Sprint5_TrilhaB.md)
 - [Artigo Técnico Publicado (GitHub Pages)](https://diogogomesb.github.io/Ciencia-de-Dados-e-Aprendizagem-de-Maquina/) (ou código-fonte local em [`docs/index.html`](docs/index.html))
-- [Dashboard Interativo no Streamlit](streamlit_app.py)
+- [Dashboard Interativo no Streamlit Cloud](https://arprev-ubc.streamlit.app/) (ou código-fonte local em [`streamlit_app.py`](streamlit_app.py))
 - [Diário de Bordo Consolidado](DIARIO.md)
 - [Previsão +1h interativa](notebooks/03_Previsao_Proxima_Hora.ipynb)
 - Diagramas (PDF e JPG) em `docs/diagramas/`: [pipeline](docs/diagramas/diagrama_pipeline.jpg) e [split temporal](docs/diagramas/diagrama_split_temporal.jpg). Para regenerá-los: `.\.venv\Scripts\python.exe -m src.analise.Gerar_Diagramas`.

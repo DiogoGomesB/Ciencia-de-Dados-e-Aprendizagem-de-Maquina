@@ -273,7 +273,7 @@ A tabela abaixo apresenta a importância relativa (redução média ponderada da
 
 ### 8.2 Comparativo das Três Famílias de Árvores (Árvore de Decisão, Random Forest e XGBoost) e Latência
 
-Para sustentar o Artigo Técnico ([`docs/index.html`](index.html)) e o Dashboard ([`streamlit_app.py`](../streamlit_app.py)), o script [`src/modelagem/Experimento_Arvores_Artigo.py`](../src/modelagem/Experimento_Arvores_Artigo.py) avalia lado a lado a **Árvore de Decisão única (`DecisionTreeClassifier`)**, a **Random Forest (`RandomForestClassifier` — Bagging)** e o **XGBoost (`XGBClassifier` — Gradient Boosting)** frente aos baselines (`DummyClassifier`, `Persistência` e `GaussianNB`), medindo também os tempos de treinamento e de inferência:
+Para sustentar o Artigo Técnico ([GitHub Pages](https://diogogomesb.github.io/Ciencia-de-Dados-e-Aprendizagem-de-Maquina/) / [`docs/index.html`](index.html)) e o Dashboard ([Streamlit Cloud](https://arprev-ubc.streamlit.app/) / [`streamlit_app.py`](../streamlit_app.py)), o script [`src/modelagem/Experimento_Arvores_Artigo.py`](../src/modelagem/Experimento_Arvores_Artigo.py) avalia lado a lado a **Árvore de Decisão única (`DecisionTreeClassifier`)**, a **Random Forest (`RandomForestClassifier` — Bagging)** e o **XGBoost (`XGBClassifier` — Gradient Boosting)** frente aos baselines (`DummyClassifier`, `Persistência` e `GaussianNB`), medindo também os tempos de treinamento e de inferência:
 
 | Partição | Modelo | Limiar | Recall (Pos) | Precisão (Pos) | F1-Score | TP | FP | FN | Treino (s) | Inferência Lote (ms) |
 |---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|

@@ -165,7 +165,7 @@ Random Forest balanceada, com 300 árvores, `min_samples_leaf=2`, `random_state=
   - **Árvore de Decisão única (`arvore_decisao_cart`):** sofreu alta variância entre anos, caindo para `Recall = 0,8634` (**22 FN**, `33 FP`, `F1 = 0,8348`, inferência `11,48 ms`);
   - **XGBoost (`xgboost_balanced`):** obteve a maior precisão (`0,8857`, apenas `20 FP`) e maior F1 (`0,9226`, inferência `38,28 ms`), porém teve **6 FN** (`Recall = 0,9627`);
   - **Random Forest (`random_forest_balanced`, modelo escolhido):** confirmou o **maior Recall entre os modelos de árvore (`0,9814`, apenas 3 FN em 14.592 horas)**, com `F1 = 0,8705` e latência de `106,66 ms` no lote completo (`0,007 ms` por consulta ao vivo).
-- **Entregas públicas associadas:** Dashboard interativo em [`streamlit_app.py`](../../streamlit_app.py) (com 2 abas: *1. Previsão Atual* ao vivo e *2. Desempenho Histórico*) e Artigo Técnico em página web estática em [`docs/index.html`](../index.html).
+- **Entregas públicas associadas:** Dashboard interativo publicado no [Streamlit Cloud (`arprev-ubc.streamlit.app`)](https://arprev-ubc.streamlit.app/) ([`streamlit_app.py`](../../streamlit_app.py), com 2 abas: *1. Previsão Atual* ao vivo e *2. Desempenho Histórico*) e Artigo Técnico em página web estática publicado no [GitHub Pages](https://diogogomesb.github.io/Ciencia-de-Dados-e-Aprendizagem-de-Maquina/) ([`docs/index.html`](../index.html)).
 
 **Principais erros analisados (FN/FP relevantes):**
 

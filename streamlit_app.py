@@ -5,6 +5,9 @@ Interface moderna em tema escuro (Dark Slate), visualmente limpa e orientada a g
    projeção horária (+1h, +7h e +24h), tabela com barras de probabilidade e explicações compactas.
 2. Aba "Resultados do Teste": comparativo visual entre modelos, matrizes de confusão, gráfico
    dinâmico de série temporal (IQAr Real vs. Probabilidade Prevista) e auditoria de episódios reais.
+3. Aba "Dados, Rótulos e Treinamento": guia didático completo explicando de onde vêm os dados das
+   2 APIs, como os rótulos (0 e 1) foram gerados pela regra da CETESB, como o modelo foi treinado
+   e o resumo das métricas de avaliação para qualquer pessoa entender.
 """
 
 from __future__ import annotations
@@ -387,7 +390,13 @@ def main() -> None:
         """
     )
 
-    aba1, aba2 = st.tabs(["📡 Previsão ao Vivo", "📊 Resultados do Teste"])
+    aba1, aba2, aba3 = st.tabs(
+        [
+            "📡 Previsão ao Vivo",
+            "📊 Resultados do Teste",
+            "📖 Dados, Rótulos e Treinamento",
+        ]
+    )
 
     # =========================================================================
     # ABA 1 — PREVISÃO AO VIVO
@@ -1009,6 +1018,233 @@ def main() -> None:
                 </div>
                 """
             )
+
+    # =========================================================================
+    # ABA 3 — DADOS, RÓTULOS E TREINAMENTO (GUIA DIDÁTICO COMPLETO)
+    # =========================================================================
+    with aba3:
+        _secao(
+            "Guia Didático Completo",
+            "Como construímos o sistema: dos dados brutos ao alerta preventivo",
+            "Explicação clara e sem jargões pesados sobre de onde vêm os dados, como criamos o gabarito (rótulos 0 e 1), como treinamos a Random Forest e como avaliamos as métricas.",
+        )
+
+        _kpis(
+            [
+                (
+                    "",
+                    "Base Histórica Total",
+                    "35.736 horas",
+                    "4 anos contínuos (ago/2022 a ago/2026) medidos hora a hora para o Campus da UBC em Mogi das Cruzes.",
+                ),
+                (
+                    "",
+                    "Fontes Integradas",
+                    "2 APIs Abertas",
+                    "Qualidade do Ar (6 poluentes CAMS) + Meteorologia (5 variáveis de clima), unidas pela mesma hora.",
+                ),
+                (
+                    "alerta",
+                    "Rótulos (Gabarito 0 vs. 1)",
+                    "905 alertas (2,53%)",
+                    "905 horas de ar inadequado (<strong>Rótulo = 1</strong>) contra 34.807 horas de ar adequado (<strong>Rótulo = 0</strong>).",
+                ),
+                (
+                    "ok",
+                    "Modelo Treinado",
+                    "15 Pistas → +1h",
+                    f"300 árvores da Random Forest leem a hora <em>t</em> e disparam alerta a partir de <strong>{limiar * 100:.0f}%</strong> de risco.",
+                ),
+            ]
+        )
+
+        # ------------------------------------------------ 1. De onde pegamos os dados
+        _secao(
+            "1 · Origem dos Dados",
+            "De onde pegamos os dados e por que usamos duas APIs?",
+            "Poluição e clima caminham juntos: uma API mede os poluentes no ar e a outra informa se o vento e a chuva vão espalhá-los ou concentrá-los.",
+        )
+        _html(
+            """
+            <div class="exp-grid-2">
+            <div class="exp-card-deep oficial">
+            <h4><span>🏭 API 1 — Poluentes do Ar (Open-Meteo Air Quality / CAMS)</span><span class="badge" style="background:rgba(16,185,129,0.18); color:#34d399">Gera o IQAr e Rótulos</span></h4>
+            <p><strong>De onde vem:</strong> Reanálise química global do programa europeu <em>Copernicus Atmosphere Monitoring Service (CAMS)</em>, consultada exatamente nas coordenadas do campus da <strong>Universidade Braz Cubas</strong> (<code>Latitude -23.5228, Longitude -46.1882</code>).</p>
+            <p><strong>O que coletamos (os 6 poluentes oficiais da CETESB):</strong></p>
+            <ul>
+            <li><strong>Ozônio (O₃):</strong> poluente que se forma à tarde quando a luz do sol reage com gases de escapamento.</li>
+            <li><strong>Partículas Finas (PM2,5) e Inaláveis (PM10):</strong> poeira fina e fumaça de queimadas ou veículos que penetram nos pulmões.</li>
+            <li><strong>Gases urbanos (CO, NO₂ e SO₂):</strong> Monóxido de Carbono, Dióxido de Nitrogênio e Dióxido de Enxofre ligados ao trânsito e à indústria.</li>
+            </ul>
+            <p><strong>Papel duplo no projeto:</strong> Essa API serve tanto para <strong>calcular a nota oficial do ar (<code>IQAr</code>) e criar o gabarito (rótulo 0 ou 1)</strong> quanto para fornecer as 6 notas de poluição da hora atual que o modelo lê.</p>
+            </div>
+
+            <div class="exp-card-deep">
+            <h4><span>🌦️ API 2 — Condições do Tempo (Open-Meteo Weather Archive)</span><span class="badge" style="background:rgba(59,130,246,0.18); color:#60a5fa">Pistas de Clima</span></h4>
+            <p><strong>De onde vem:</strong> Reanálise meteorológica horária de superfície (ERA5 / Open-Meteo) consultada para a mesma coordenada da UBC e no mesmo fuso horário (<code>America/Sao_Paulo</code>).</p>
+            <p><strong>O que coletamos (5 variáveis de clima):</strong></p>
+            <ul>
+            <li><strong>Temperatura do ar a 2m (°C) e Umidade Relativa (%):</strong> calor forte e ar seco aceleram a formação de ozônio e mantêm a poeira suspensa.</li>
+            <li><strong>Velocidade do Vento (km/h) e Chuva (mm):</strong> vento forte sopra a fumaça para longe e a chuva "lava" as partículas do ar.</li>
+            <li><strong>Pressão Atmosférica (hPa):</strong> ajuda a identificar bloqueios atmosféricos e inversões térmicas que "tampam" a poluição perto do chão.</li>
+            </ul>
+            <p><strong>Por que não rotulamos essa segunda API separadamente?</strong> Porque pela norma da CETESB quem define se o ar está poluído são os <strong>poluentes</strong>, e não o calor ou o vento isolados. Ao juntarmos as duas APIs pela data e hora exata (<code>time</code>), o clima entra na mesma linha como <strong>pistas explicativas (features)</strong> para o modelo prever se o ar vai piorar ou limpar na hora seguinte!</p>
+            </div>
+            </div>
+            """
+        )
+
+        # ------------------------------------------------ 2. Como criamos os rótulos
+        _secao(
+            "2 · Rotulagem dos Dados (Gabarito)",
+            "Como transformamos números brutos no rótulo 0 (Ar Adequado) ou 1 (Alerta)?",
+            "Não inventamos nenhuma regra subjetiva: aplicamos a matemática oficial da Tabela 2.7 da CETESB e olhamos 1 hora para frente.",
+        )
+        _html(
+            """
+            <div class="grid-cards">
+            <div class="exp-card">
+            <span class="badge">Passo A · Médias da Lei</span>
+            <h4>📏 Médias Móveis da CETESB</h4>
+            <p>A CETESB não avalia um minuto isolado. Calculamos a média exigida por lei para cada poluente: <strong>24 horas</strong> para PM2,5 e PM10; <strong>8 horas</strong> para Ozônio e CO (convertendo CO para ppm); e <strong>1 hora</strong> direta para NO₂ e SO₂.</p>
+            </div>
+            <div class="exp-card">
+            <span class="badge">Passo B · Nota de 0 a 300+</span>
+            <h4>🏆 A Pior Nota Vira o IQAr</h4>
+            <p>Cada poluente recebe uma nota pela Tabela 2.7 da CETESB (0–40 Boa, 41–80 Moderada, 81–120 Ruim, &gt;100 Inadequada). O <strong>IQAr da hora <em>t</em></strong> é sempre a <strong>maior (pior) nota</strong> entre os 6 poluentes naquela hora.</p>
+            </div>
+            <div class="exp-card">
+            <span class="badge">Passo C · Olhar para t + 1h</span>
+            <h4>⏭️ Deslocamento de +1 Hora</h4>
+            <p>Como o objetivo é <strong>avisar 1 hora antes</strong>, a linha da hora <em>t</em> recebe como gabarito o que aconteceu na hora seguinte (<em>t + 1h</em>): se o IQAr de <em>t + 1h</em> passou de <strong>100</strong>, a linha recebe <strong>Rótulo = 1 (Alerta)</strong>; caso contrário, <strong>Rótulo = 0 (Adequado)</strong>.</p>
+            </div>
+            </div>
+            """
+        )
+
+        tabela_exemplo_rotulo = pd.DataFrame(
+            {
+                "Hora da Linha (t)": ["12:00", "13:00", "14:00", "15:00"],
+                "IQAr Medido Agora (hora t)": [
+                    "78,0 (Moderada)",
+                    "96,0 (Ainda ≤ 100)",
+                    "106,5 (Inadequada)",
+                    "109,2 (Inadequada)",
+                ],
+                "IQAr na Próxima Hora (t + 1h)": [
+                    "96,0 às 13:00 (≤ 100)",
+                    "106,5 às 14:00 (> 100!)",
+                    "109,2 às 15:00 (> 100!)",
+                    "84,0 às 16:00 (≤ 100)",
+                ],
+                "Rótulo Gravado na Linha (Alvo)": [
+                    "0 — ✅ Ar Adequado",
+                    "1 — 🚨 Emitir Alerta 1h Antes!",
+                    "1 — 🚨 Manter Alerta!",
+                    "0 — ✅ Ar Adequado",
+                ],
+                "Explicação Simples do Gabarito": [
+                    "Às 13:00 o índice subiu para 96, mas ainda não ultrapassou 100.",
+                    "Às 13:00 o ar ainda estava ≤ 100, mas às 14:00 passou de 100. O Rótulo 1 ensina o modelo a avisar já às 13:00!",
+                    "Às 15:00 o ar continuará acima de 100, então às 14:00 o alerta permanece ativo.",
+                    "Às 16:00 o vento limpou o ar (caiu para 84), então às 15:00 já não há alerta para a próxima hora.",
+                ],
+            }
+        )
+        st.dataframe(tabela_exemplo_rotulo, width="stretch", hide_index=True)
+
+        # ------------------------------------------------ 3. Como treinamos o modelo
+        _secao(
+            "3 · Treinamento do Modelo",
+            "Como ensinamos a Random Forest a prever sem trapacear?",
+            "Entregamos 15 pistas da hora atual, separamos passado e futuro sem sorteio e compensamos a raridade dos dias poluídos.",
+        )
+        _html(
+            f"""
+            <div class="exp-grid-2">
+            <div class="exp-card-deep">
+            <h4><span>🧩 As 15 Pistas (Features) que o Modelo Lê na Hora <em>t</em></span><span class="badge" style="background:rgba(139,92,246,0.18); color:#a78bfa">Entradas do Modelo</span></h4>
+            <p>Para decidir se o ar vai passar de 100 na próxima hora, o modelo analisa exatamente <strong>15 informações</strong> da hora atual:</p>
+            <ul>
+            <li><strong>1. As 6 Notas Atuais dos Poluentes (Subíndices CETESB):</strong> notas individuais de Ozônio, PM2,5, PM10, CO, NO₂ e SO₂ na hora <em>t</em>. Mostram qual poluente já está perto do limite de 100.</li>
+            <li><strong>2. Os 4 Resumos de Memória Curta (Velocidade de Subida):</strong> a média das últimas 3 horas (<code>media_3h</code>) e a variação das últimas 2 horas (<code>delta_2h</code>) do Ozônio e do PM2,5. É assim que o modelo diferencia um <code>IQAr = 92</code> que está <strong>subindo rápido</strong> (vai estourar 100!) de um <code>IQAr = 92</code> que já está <strong>caindo</strong>.</li>
+            <li><strong>3. As 5 Variáveis de Clima:</strong> Temperatura, Umidade, Vento, Chuva e Pressão na hora <em>t</em>, que indicam se o tempo vai concentrar ou espalhar a poluição nos próximos 60 minutos.</li>
+            </ul>
+            <p><em>Nota de engenharia:</em> removemos os valores brutos originais em µg/m³ quando já usamos suas notas CETESB para evitar informação duplicada (colinearidade).</p>
+            </div>
+
+            <div class="exp-card-deep oficial">
+            <h4><span>🌲 Como Treinamos as 300 Árvores (Sem Vazamento)</span><span class="badge" style="background:rgba(16,185,129,0.18); color:#34d399">Treinamento</span></h4>
+            <p>O treinamento seguiu <strong>3 regras rigorosas</strong> de Ciência de Dados:</p>
+            <ul>
+            <li><strong>1. Divisão Cronológica Estrita (Split Temporal):</strong> nunca embaralhamos as horas! O modelo estudou apenas o passado (<strong>Treino: 2022 a set/2024 — 21.121 h</strong>), foi ajustado num simulado (<strong>Validação: out a dez/2024 — 2.208 h</strong>) e fez a prova final cega no futuro (<strong>Holdout: 2025 a 2026 — 14.592 h</strong>).</li>
+            <li><strong>2. Peso Equilibrado para Eventos Raros (<code>class_weight = "balanced"</code>):</strong> como só <strong>2,53%</strong> das horas têm <code>Rótulo = 1</code>, demos peso ~39 vezes maior para cada hora poluída durante o treino. Assim, o modelo é fortemente penalizado se ignorar um episódio de ar ruim.</li>
+            <li><strong>3. Comitê de 300 Árvores + Régua de {limiar * 100:.0f}%:</strong> limitamos a profundidade de cada árvore (<code>max_depth = 8</code>) para ela aprender regras gerais em vez de decorar o passado. Quando <strong>{limiar * 100:.0f}% ou mais</strong> das árvores votam risco, o alerta preventivo é acionado!</li>
+            </ul>
+            </div>
+            </div>
+            """
+        )
+
+        # ------------------------------------------------ 4. Resumo das Métricas
+        _secao(
+            "4 · Resumo das Métricas",
+            "Como medimos se o modelo é bom e por que a Acurácia engana?",
+            "Como os rótulos são muito desbalanceados (97,5% ar bom vs. 2,5% ar ruim), precisamos olhar para as métricas da Classe 1 (Alerta).",
+        )
+        _html(
+            """
+            <div class="exp-grid-2">
+            <div class="exp-card-deep oficial">
+            <h4><span>🎯 As 3 Métricas que Realmente Importam (Foco no Alerta)</span><span class="badge" style="background:rgba(16,185,129,0.18); color:#34d399">Critério Oficial</span></h4>
+            <ul>
+            <li><strong>1. Recall / Sensibilidade (98,14% no Teste Final — Métrica Principal):</strong><br>
+            <em>Pergunta em português claro:</em> "De todas as 161 horas em que o ar realmente ficou inadequado em 2025–2026, quantas o modelo conseguiu avisar 1 hora antes?"<br>
+            <em>Resultado:</em> Avisou <strong>158 de 161</strong> (perdeu apenas 3). É nossa métrica número 1 porque deixar de avisar um episódio real (<strong>Falso Negativo</strong>) expõe alunos à poluição sem proteção.</li>
+            <li><strong>2. Precisão (78,22% no Teste Final):</strong><br>
+            <em>Pergunta em português claro:</em> "Quando o painel toca o alarme, qual a chance de o ar realmente passar de 100?"<br>
+            <em>Resultado:</em> De 202 alarmes emitidos no teste, <strong>158 eram ar inadequado real</strong> e <strong>44 foram alarmes por cautela (Falsos Positivos)</strong> em horas em que o índice subiu perto de 100 mas recuou.</li>
+            <li><strong>3. F1-Score (87,05% no Teste Final):</strong><br>
+            <em>Pergunta em português claro:</em> "O modelo tem bom equilíbrio entre capturar todos os perigos e não tocar alarme falso o dia inteiro?"<br>
+            <em>Resultado:</em> Combina Recall e Precisão numa nota única. Mostra que a Random Forest protege a saúde com alta confiabilidade operacional.</li>
+            </ul>
+            </div>
+
+            <div class="exp-card-deep experimental">
+            <h4><span>⚠️ Por que NÃO escolhemos o modelo pela Acurácia Geral?</span><span class="badge" style="background:rgba(245,158,11,0.18); color:#fbbf24">Cuidado com a Ilusão</span></h4>
+            <p><strong>O número que parece perfeito, mas esconde o perigo:</strong></p>
+            <ul>
+            <li>No teste final de 2025–2026 (14.592 horas), o ar esteve adequado em <strong>14.431 horas (98,90% do tempo)</strong> e inadequado em apenas <strong>161 horas (1,10% do tempo)</strong>.</li>
+            <li>Se criarmos um modelo preguiçoso (<em>Dummy</em>) que <strong>nunca faz cálculo nenhum e chuta "Ar Adequado" o ano inteiro</strong>, ele vai acertar todas as 14.431 horas normais e ganhar <strong>98,90% de Acurácia Geral</strong>!</li>
+            <li>Porém, esse modelo preguiçoso terá <strong>0% de Recall</strong> (errará todas as 161 horas poluídas) e será 100% inútil para proteger a universidade.</li>
+            </ul>
+            <p><strong>Resumo para guardar:</strong> A <em>Acurácia Geral</em> (que na nossa Random Forest chegou a <strong>99,68%</strong>) só é alta porque quase todos os dias são normais (14.387 Verdadeiros Negativos). Para provar que a inteligência artificial funciona em eventos raros, o que vale é o <strong>Recall (98,14%)</strong> e o <strong>F1-Score (87,05%)</strong> sobre os episódios de risco!</p>
+            </div>
+            </div>
+            """
+        )
+
+        # ------------------------------------------------ Expander Visual Opcional
+        with st.expander("🖼️ Ver Diagramas do Pipeline, Importância das 15 Variáveis e Árvore de Decisão (clique para abrir)", expanded=False):
+            c_d1, c_d2 = st.columns(2)
+            with c_d1:
+                caminho_pipe = Path("docs/diagramas/diagrama_pipeline.jpg")
+                if caminho_pipe.exists():
+                    st.image(str(caminho_pipe), caption="Arquitetura completa do pipeline (da coleta nas 2 APIs até a decisão em produção).")
+            with c_d2:
+                caminho_split = Path("docs/diagramas/diagrama_split_temporal_explicado.jpg")
+                if caminho_split.exists():
+                    st.image(str(caminho_split), caption="Infográfico da Divisão Temporal (Treino, Validação e Holdout sem vazamento).")
+
+            c_d3, c_d4 = st.columns(2)
+            with c_d3:
+                caminho_imp = Path("reports/figures/fig_importancia_e_latencia.png")
+                if caminho_imp.exists():
+                    st.image(str(caminho_imp), caption="Ranking das variáveis que mais pesam na decisão da Random Forest e tempo de resposta.")
+            with c_d4:
+                caminho_over = Path("reports/figures/fig_overfitting_profundidade.png")
+                if caminho_over.exists():
+                    st.image(str(caminho_over), caption="Controle de profundidade das árvores (por que evitamos árvores profundas que decoram o treino).")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,9 @@
+[theme]
+# Tema fixo claro, com a mesma paleta do artigo (docs/index.html),
+# para o painel ficar igual em qualquer navegador (mesmo com o sistema em modo escuro).
+base = "light"
+primaryColor = "#2563eb"
+backgroundColor = "#f8fafc"
+secondaryBackgroundColor = "#f1f5f9"
+textColor = "#0f172a"
+font = "sans serif"

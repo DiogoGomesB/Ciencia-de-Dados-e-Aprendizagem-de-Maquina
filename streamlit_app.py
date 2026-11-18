@@ -193,6 +193,38 @@ div[role="radiogroup"] > label:has(input:checked) {
   background: var(--bg-surface) !important; overflow: hidden;
 }
 
+/* ---------- Badge Dinâmico de Horizonte ---------- */
+.dynamic-badge {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 9px;
+  padding: 0.65rem 0.95rem; margin: 0.4rem 0 0.9rem 0; font-size: 0.84rem;
+  color: var(--text-muted); line-height: 1.5;
+}
+.dynamic-badge b, .dynamic-badge strong { color: var(--text-main); }
+.dynamic-badge em { color: var(--primary); font-style: normal; font-weight: 600; }
+
+/* ---------- Seção Profunda de Explicação ---------- */
+.exp-grid-2 {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 0.9rem; margin: 0.7rem 0 1rem 0;
+}
+.exp-card-deep {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px;
+  padding: 1.1rem 1.25rem; font-size: 0.85rem; line-height: 1.55; color: var(--text-muted);
+}
+.exp-card-deep.oficial { border-top: 3px solid var(--green); }
+.exp-card-deep.experimental { border-top: 3px solid var(--amber); }
+.exp-card-deep h4 {
+  margin: 0 0 0.5rem 0; font-size: 1.02rem; font-weight: 700; color: var(--text-main);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.exp-card-deep ul { margin: 0.3rem 0 0.5rem 1.1rem; padding: 0; }
+.exp-card-deep li { margin-bottom: 0.35rem; }
+.exp-card-deep b, .exp-card-deep strong { color: var(--text-main); }
+.exp-card-deep code {
+  background: rgba(255, 255, 255, 0.08); color: #e2e8f0; padding: 0.08rem 0.35rem;
+  border-radius: 5px; font-size: 0.85em;
+}
+
 /* ---------- Expander ---------- */
 .streamlit-expanderHeader {
   background-color: var(--bg-card) !important; border-radius: 10px !important;
@@ -433,6 +465,25 @@ def main() -> None:
                 }[h],
             )
 
+            descricoes_horizonte = {
+                1: (
+                    "⏱️ <strong>Modo Oficial (+1h):</strong> O modelo lê estritamente medições horárias que já aconteceram e "
+                    "estão consolidadas até a hora atual (<em>t</em>) para prever se o ar ficará inadequado na próxima hora "
+                    "(<em>t + 1h</em>). É o único horizonte <strong>auditado na prova final com 98,14% de recall</strong>."
+                ),
+                7: (
+                    "🌤️ <strong>Modo Experimental (+7h · Turno):</strong> Aplica a Random Forest hora a hora sobre as "
+                    "<strong>previsões meteorológicas e de poluentes</strong> da Open-Meteo para cobrir um turno completo. "
+                    "Excelente para planejar aulas e treinos, com incerteza moderada."
+                ),
+                24: (
+                    "📅 <strong>Modo Experimental (+24h · Dia Completo):</strong> Projeta a qualidade do ar ao longo de todas as "
+                    "próximas 24 horas. Por depender de previsões meteorológicas futuras de modelos globais, a incerteza é cumulativa "
+                    "e cresce com a distância do horizonte."
+                ),
+            }
+            _html(f'<div class="dynamic-badge">{descricoes_horizonte[horizonte]}</div>')
+
             if horizonte == 1:
                 df_proj = res_1h.to_frame().T.assign(**{"horizonte": "+1h", "iqar projetado (CAMS)": np.nan})
             else:
@@ -538,35 +589,72 @@ def main() -> None:
             with st.expander("ℹ️ Como funciona a previsão e de onde vêm os dados (clique para abrir)", expanded=False):
                 _html(
                     f"""
+                    <div class="exp-grid-2">
+                    <div class="exp-card-deep oficial">
+                    <h4><span>⏱️ Previsão Oficial (+1 hora)</span><span class="badge" style="background:rgba(16,185,129,0.18); color:#34d399">Homologado</span></h4>
+                    <p><strong>De onde vêm os dados:</strong> Consultamos duas APIs abertas da Open-Meteo em tempo real com as coordenadas exatas da UBC em Mogi das Cruzes (Lat: -23.5228, Lon: -46.1882):</p>
+                    <ul>
+                    <li><strong>API de Qualidade do Ar:</strong> Fornece as concentrações dos 6 poluentes regulamentados pela CETESB (Ozônio O₃, PM2,5, PM10, CO, NO₂ e SO₂), simulados pelo modelo atmosférico europeu CAMS (Copernicus).</li>
+                    <li><strong>API Meteorológica:</strong> Fornece 5 variáveis de tempo (temperatura, umidade relativa, velocidade do vento, precipitação e pressão atmosférica).</li>
+                    </ul>
+                    <p><strong>Como é medido:</strong> Utiliza exclusivamente dados que <strong>já aconteceram e estão consolidados até a hora atual (<em>t</em>)</strong>. O modelo não utiliza nenhuma estimativa ou dado futuro na sua entrada: ele analisa a realidade física fechada do ambiente.</p>
+                    <p><strong>Como é feito o cálculo:</strong></p>
+                    <ul>
+                    <li><strong>1. Médias Oficiais da CETESB (Tabela 2.7):</strong> O código calcula as médias móveis exigidas pela norma ambiental (24h para PM2,5 e PM10; 8h para O₃ e CO; 1h para NO₂ e SO₂). A pior nota entre os 6 poluentes define o <code>IQAr</code> da hora <em>t</em>.</li>
+                    <li><strong>2. Memória e Tendência Recente:</strong> Calcula as médias das últimas 3 horas e as variações das últimas 2 horas de ozônio e PM2,5 para capturar acúmulo de fumaça ou dispersão.</li>
+                    <li><strong>3. Votação das 300 Árvores:</strong> As 15 variáveis entram na Random Forest treinada, que estima a probabilidade de o <code>IQAr</code> ultrapassar 100 pontos exatamente em <em>t + 1h</em>.</li>
+                    <li><strong>4. Limiar de Alerta (30%):</strong> Se a probabilidade for igual ou superior a <strong>{limiar * 100:.0f}%</strong>, o painel dispara o <strong>🚨 Alerta</strong> com 1 hora de antecedência.</li>
+                    </ul>
+                    <p><strong>Por que é o oficial?</strong> Foi rigorosamente homologado e auditado no período de teste fechado (Holdout 2025–2026), alcançando <strong>98,14% de Recall</strong> (avisou 158 de 161 episódios reais). Possui validação estatística completa.</p>
+                    </div>
+
+                    <div class="exp-card-deep experimental">
+                    <h4><span>🌤️ Projeções Estendidas (+7h e +24h)</span><span class="badge" style="background:rgba(245,158,11,0.18); color:#fbbf24">Experimental</span></h4>
+                    <p><strong>De onde vêm os dados:</strong> As mesmas APIs da Open-Meteo disponibilizam <strong>previsões atmosféricas futuras</strong> geradas por modelos numéricos globais de supercomputadores (CAMS Forecast, ECMWF e GFS).</p>
+                    <p><strong>Como é feito o cálculo:</strong></p>
+                    <ul>
+                    <li><strong>1. Leitura do Cenário Futuro:</strong> O sistema lê as concentrações de poluentes e o clima que a API <em>prevê</em> para cada uma das próximas horas (<em>t+1, t+2, ..., t+24</em>).</li>
+                    <li><strong>2. Simulação CETESB:</strong> Aplica a mesma Tabela 2.7 da CETESB sobre essas previsões horárias para projetar a curva estimada do <code>IQAr</code> da API.</li>
+                    <li><strong>3. Inferência Sequencial:</strong> Alimenta a Random Forest com esse cenário para calcular a probabilidade de risco em cada hora do turno ou do dia.</li>
+                    </ul>
+                    <p><strong>Por que é classificado como EXPERIMENTAL?</strong></p>
+                    <ul>
+                    <li><strong>1. Erro em Cascata (Incerteza Composta):</strong> Enquanto a previsão de +1h usa medições reais já fechadas, as projeções de +7h e +24h usam <em>previsões de outros modelos</em> como entrada. Se a previsão do tempo errar a força do vento ou a temperatura da tarde, nosso modelo absorve esse erro.</li>
+                    <li><strong>2. Dispersão Cumulativa no Tempo:</strong> A atmosfera é um sistema dinâmico. Uma previsão para 3 a 7 horas à frente possui consistência razoável; para 24 horas à frente, a incerteza meteorológica é naturalmente muito maior.</li>
+                    <li><strong>3. Uso Recomendado:</strong> Funciona muito bem como ferramenta de <strong>planejamento preventivo</strong> (ex.: coordenadores checarem pela manhã se a tarde/noite demandará atenção). Porém, a decisão operacional final (remanejar alunos) deve sempre ser confirmada pelo monitoramento oficial de <strong>+1 hora</strong>.</li>
+                    </ul>
+                    </div>
+                    </div>
+
+                    <div class="sec" style="margin-top:1.2rem"><div class="eyebrow">Pipeline Técnico</div><h3>As 4 Etapas do Processamento</h3></div>
                     <div class="grid-cards">
                     <div class="exp-card">
                     <span class="badge">Passo 1 · Coleta</span>
                     <h4>🌐 Duas APIs Abertas</h4>
-                    <p>A API de Qualidade do Ar traz os 6 poluentes da CETESB (ozônio, PM2,5, PM10, CO, NO2, SO2) e a API de Clima
-                    traz temperatura, umidade, vento, chuva e pressão para a coordenada da UBC.</p>
+                    <p>Open-Meteo Air Quality (CAMS) + Weather Forecast para as coordenadas do Campus UBC em Mogi das Cruzes.</p>
                     </div>
                     <div class="exp-card">
                     <span class="badge">Passo 2 · CETESB</span>
                     <h4>📏 Regra da Tabela 2.7</h4>
-                    <p>Cada poluente recebe uma nota pela sua média regulamentar (24h para partículas, 8h para O3 e CO, 1h para NO2 e SO2).
-                    O IQAr da hora é determinado pela pior das 6 notas.</p>
+                    <p>Médias móveis de 24h (partículas), 8h (ozônio/CO) e 1h (NO2/SO2). A pior nota define o IQAr da hora t.</p>
                     </div>
                     <div class="exp-card">
                     <span class="badge">Passo 3 · Features</span>
                     <h4>🧩 15 Pistas Temporais</h4>
-                    <p>As 6 notas de poluentes, 5 variáveis climáticas e 4 resumos de tendência (médias de 3h e variações de 2h de ozônio e PM2,5)
-                    formam a linha de entrada de cada hora.</p>
+                    <p>6 notas de poluentes + 5 variáveis climáticas + 4 resumos de tendência (médias de 3h e variações de 2h de O3 e PM2,5).</p>
                     </div>
                     <div class="exp-card">
                     <span class="badge">Passo 4 · Decisão</span>
                     <h4>🌲 300 Árvores Votam</h4>
-                    <p>A Random Forest calcula a probabilidade calibrada de o IQAr passar de 100 na hora seguinte. Com <strong>{limiar * 100:.0f}% ou mais</strong>,
-                    o painel aciona o estado de alerta preventivo.</p>
+                    <p>A Random Forest calcula a probabilidade calibrada de o IQAr passar de 100 em t+1h (alerta com {limiar * 100:.0f}% ou mais).</p>
                     </div>
                     </div>
-                    <div style="font-size:0.82rem; color:#94a3b8; margin-top:0.6rem; line-height:1.45;">
-                    💡 <strong>Entenda os Horizontes:</strong> a linha <code>+1h oficial</code> usa apenas dados reais já medidos até a hora <em>t</em>.
-                    As linhas <code>+7h</code> e <code>+24h</code> são experimentais: aplicam o modelo hora a hora sobre as projeções climáticas da Open-Meteo.
+
+                    <div style="font-size:0.82rem; color:#94a3b8; margin-top:0.8rem; line-height:1.5;">
+                    📖 <strong>Como ler a tabela horária:</strong><br>
+                    • <strong>Dado usado (hora t) → Hora prevista (t + 1h):</strong> cada linha usa os dados de uma hora para prever a seguinte.<br>
+                    • <strong>IQAr previsto pela API:</strong> nota do ar projetada pela Open-Meteo (na linha +1h fica vazia porque usamos apenas medições reais consolidadas).<br>
+                    • <strong>Probabilidade de ar inadequado:</strong> a barra mostra o voto ponderado das árvores. Acima de {limiar * 100:.0f}%, a situação torna-se <strong>🚨 Alerta</strong>.
                     </div>
                     """
                 )

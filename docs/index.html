@@ -1066,6 +1066,8 @@
       border-radius: var(--radius-sm);
       display: block;
       margin: 0 auto;
+      cursor: zoom-in;
+      transition: transform 0.18s ease;
     }
 
     figure.article-fig figcaption {
@@ -1075,6 +1077,177 @@
       text-align: left;
       line-height: 1.6;
       word-break: break-word;
+    }
+
+    .fig-toolbar {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin-bottom: 0.65rem;
+    }
+
+    .zoom-fig-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.38rem;
+      background: #eff6ff;
+      color: #1d4ed8;
+      border: 1px solid #bfdbfe;
+      border-radius: var(--radius-full);
+      padding: 0.34rem 0.82rem;
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.18s ease;
+      text-decoration: none;
+    }
+
+    .zoom-fig-btn:hover {
+      background: #1d4ed8;
+      color: #ffffff;
+      border-color: #1d4ed8;
+      box-shadow: 0 3px 10px rgba(29, 78, 216, 0.22);
+    }
+
+    .zoom-fig-btn.secondary {
+      background: #ecfdf5;
+      color: #047857;
+      border-color: #a7f3d0;
+    }
+
+    .zoom-fig-btn.secondary:hover {
+      background: #047857;
+      color: #ffffff;
+      border-color: #047857;
+    }
+
+    /* MODAL / LIGHTBOX DE ZOOM INTERATIVO */
+    .img-zoom-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      background: rgba(15, 23, 42, 0.92);
+      backdrop-filter: blur(6px);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem;
+    }
+
+    .img-zoom-modal.open {
+      display: flex;
+    }
+
+    .img-zoom-topbar {
+      width: 100%;
+      max-width: 1280px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      background: rgba(30, 41, 59, 0.95);
+      border: 1px solid rgba(148, 163, 184, 0.28);
+      border-radius: var(--radius-md);
+      padding: 0.6rem 1rem;
+      color: #f8fafc;
+    }
+
+    .img-zoom-title {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: #e2e8f0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: 520px;
+    }
+
+    .img-zoom-controls {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      flex-wrap: wrap;
+    }
+
+    .img-zoom-controls button,
+    .img-zoom-controls a {
+      background: #334155;
+      color: #ffffff;
+      border: 1px solid #475569;
+      border-radius: 6px;
+      padding: 0.36rem 0.72rem;
+      font-size: 0.82rem;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background 0.15s ease;
+    }
+
+    .img-zoom-controls button:hover,
+    .img-zoom-controls a:hover {
+      background: #2563eb;
+      border-color: #3b82f6;
+    }
+
+    .img-zoom-controls button.close-modal-btn {
+      background: #dc2626;
+      border-color: #ef4444;
+    }
+
+    .img-zoom-controls button.close-modal-btn:hover {
+      background: #b91c1c;
+    }
+
+    .img-zoom-stage {
+      flex: 1;
+      width: 100%;
+      overflow: auto;
+      display: flex;
+      margin: 0.65rem 0;
+      padding: 0.5rem;
+      user-select: none;
+    }
+
+    .img-zoom-stage img {
+      max-width: 96%;
+      max-height: 82vh;
+      object-fit: contain;
+      background: #ffffff;
+      border-radius: 8px;
+      padding: 0.5rem;
+      margin: auto;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+      transition: width 0.12s ease;
+      cursor: zoom-in;
+      user-select: none;
+      -webkit-user-drag: none;
+    }
+
+    .img-zoom-stage.can-pan,
+    .img-zoom-stage.can-pan img {
+      cursor: grab;
+    }
+
+    .img-zoom-stage.is-dragging,
+    .img-zoom-stage.is-dragging img {
+      cursor: grabbing !important;
+      transition: none !important;
+    }
+
+    .img-zoom-caption {
+      width: 100%;
+      max-width: 1100px;
+      background: rgba(30, 41, 59, 0.9);
+      color: #cbd5e1;
+      padding: 0.6rem 1rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.84rem;
+      text-align: center;
+      line-height: 1.5;
     }
 
     /* BLOCOS DE CÓDIGO ESTILO TERMINAL MODERNO */
@@ -2033,12 +2206,39 @@
           é estrito de <strong>1 hora à frente (<code>t + 1h</code>)</strong>: usando apenas atributos conhecidos até a
           hora <em>t</em>, queremos prever se <code>IQAr(t + 1h) &gt; 100</code>.
         </p>
+<h3>Como rotulamos os dados na prática (O papel das 2 APIs e os 4 passos da CETESB)</h3>
+<p>
+          Para um modelo supervisionado aprender, cada linha da base precisa de um <strong>rótulo (gabarito <code>0</code> ou <code>1</code>)</strong>.
+          Como nenhuma das duas APIs da Open-Meteo entrega pronto se o ar está "adequado" ou "inadequado", nós unimos as duas fontes por data e hora (<code>Merge_Dados.py</code>) e demos um papel específico para cada uma na mesma linha:
+        </p>
+<ul>
+<li><strong>1ª API — Qualidade do Ar (os 6 poluentes: PM<sub>10</sub>, PM<sub>2,5</sub>, O<sub>3</sub>, CO, NO<sub>2</sub> e SO<sub>2</sub>):</strong> entra tanto como pista na hora <em>t</em> quanto para <strong>calcular o rótulo oficial (<code>0</code> ou <code>1</code>)</strong>, pois pela norma da CETESB o que define ar inadequado é exclusivamente a concentração de poluentes.</li>
+<li><strong>2ª API — Clima (as 5 variáveis meteorológicas: temperatura, umidade, chuva, vento e pressão):</strong> <strong>não</strong> entra na fórmula do rótulo (calor ou vento não são poluentes), mas entra na mesma linha como <strong>pista explicativa (<code>X</code>) na hora <em>t</em></strong> — ajudando o modelo a prever se o calor e o ar seco vão acelerar a formação de ozônio ou se o vento e a chuva vão limpar o ar na hora seguinte.</li>
+</ul>
+<div class="callout success">
+<strong>📌 Os 4 passos automáticos que criam o rótulo <code>0</code> ou <code>1</code> (<code>Calcular_Alvo_IQAr.py</code>):</strong>
+<ol>
+<li><strong>Média das últimas horas de cada poluente:</strong> calcula a média móvel exigida pela CETESB olhando apenas até a hora <em>t</em> (<code>24h</code> para PM<sub>10</sub>, PM<sub>2,5</sub> e SO<sub>2</sub>; <code>8h</code> para O<sub>3</sub> e CO; <code>1h</code> para NO<sub>2</sub>).</li>
+<li><strong>Nota de cada poluente (Subíndice CETESB):</strong> converte a concentração de cada um dos 6 poluentes para a escala da <strong>Tabela 2.7 da CETESB</strong> (<code>0–40</code> = Boa; <code>41–80</code> = Moderada; <code>81–120</code> = Ruim; <code>121–200</code> = Muito Ruim; <code>&gt;200</code> = Péssima).</li>
+<li><strong>A nota da hora (<code>IQAr</code>) é a PIOR das 6 notas:</strong> o sistema compara os 6 subíndices e pega o <strong>maior deles</strong> como o <code>IQAr</code> daquela hora (ex.: se 5 poluentes estão em 20, mas o ozônio chegou a 108, o <code>IQAr</code> da hora é <code>108</code>).</li>
+<li><strong>Olha 1 hora para frente (<code>t + 1h</code>) e aplica o corte <code>&gt; 100</code>:</strong> na linha das 14h, olhamos o <code>IQAr</code> que ocorreu às 15h. Se <code>IQAr(t + 1h) &gt; 100</code>, a linha recebe <strong>Rótulo <code>1</code> (Alerta de Ar Inadequado)</strong>; se ficou <code>&lt;= 100</code>, recebe <strong>Rótulo <code>0</code> (Ar Adequado)</strong>. Das <code>35.712</code> horas com rótulo válido, apenas <code>904</code> horas (<strong>2,53%</strong>) são Rótulo <code>1</code>.</li>
+</ol>
+</div>
 <figure class="article-fig">
 <img alt="Diagrama em blocos mostrando as quatro etapas do pipeline: coleta Open-Meteo em data/raw, cálculo do IQAr CETESB e engenharia temporal, validação em 2024 e avaliação única no holdout 2025-2026." src="diagramas/diagrama_pipeline.jpg"/>
 <figcaption><strong>Figura 1 — Arquitetura do Pipeline da Trilha B:</strong> os dados brutos em JSON nunca são
             editados; o cálculo de médias móveis e subíndices respeita a causalidade temporal até o instante <em>t</em>.
           </figcaption>
 </figure>
+<div class="callout">
+<strong>📌 Como ler a Figura 1 passo a passo (As 4 Fases do Pipeline):</strong>
+<ul>
+<li><strong>Fase 1 — Coleta e Junção (Passos 1 a 3):</strong> busca <code>35.736</code> horas nas duas APIs abertas da Open-Meteo (6 poluentes CAMS + 5 variáveis de clima ERA5), grava os JSONs brutos sem editar em <code>data/raw</code> e une tudo por horário em <code>data/interim</code>.</li>
+<li><strong>Fase 2 — Alvo CETESB e Split Temporal (Passos 4 a 6):</strong> calcula os 6 subíndices pela Tabela 2.7 da CETESB para definir o alvo (<code>IQAr &gt; 100</code> em <code>t + 1h</code>), separa passado (<code>2022–2024</code>) e futuro (<code>2025–2026</code>) sem sorteio e cria as <code>15</code> variáveis (com médias de 3h e variações de 2h até a hora <em>t</em>).</li>
+<li><strong>Fase 3 — Modelagem e Teste Cego (Passos 7 a 9):</strong> seleciona a Random Forest com limiar <code>0,30</code> na validação (<code>0 FN</code> em <code>2024-Q4</code>), avalia uma única vez no Holdout (<code>98,14%</code> de Recall e só <code>3 FN</code> em <code>14.592</code> horas) e salva o pacote final em <code>models/modelo_final_sprint5.joblib</code>.</li>
+<li><strong>Fase 4 — Operação (Passo 10):</strong> o Dashboard no Streamlit e o Notebook consultam a Open-Meteo ao vivo e exibem o alerta (<code>+1h</code> oficial e projeções <code>+7h</code> e <code>+24h</code>).</li>
+</ul>
+</div>
 <h3>O perigo do vazamento temporal e a nossa divisão cronológica</h3>
 <p>
           Em qualidade do ar, a medição das 15h é muito parecida com a das 14h e a das 16h. Se embaralhássemos os dados
@@ -2058,11 +2258,88 @@
             isolados e avaliados uma única vez.</li>
 </ul>
 <figure class="article-fig">
-<img alt="Esquema visual do split temporal expansivo nos quatro trimestres de 2024 e o conjunto de teste final reservado em 2025-2026." src="diagramas/diagrama_split_temporal.jpg"/>
+<a href="diagramas/diagrama_split_temporal_explicado.jpg" rel="noopener" target="_blank" title="Abrir a versão completa e explicada da figura">
+<img alt="Quatro rodadas de validação: em cada rodada o treino (azul) usa tudo que veio antes de um trimestre de 2024, a validação (amarelo) é esse trimestre, e o holdout de 2025 a agosto de 2026 (rosa) permanece fechado." src="diagramas/diagrama_split_temporal.jpg"/>
+</a>
 <figcaption><strong>Figura 2 — Divisão Temporal Estrita:</strong> o passado sempre treina e o período mais
             recente sempre testa. O pré-processador (mediana e padronização) é ajustado exclusivamente no treino.
+            <a href="diagramas/diagrama_split_temporal_explicado.jpg" rel="noopener" target="_blank">🔍 Abrir o infográfico completo e explicado (em alta resolução)</a>.
           </figcaption>
 </figure>
+<h3>Split temporal em linguagem simples</h3>
+<p>
+<strong>O que é?</strong> <em>Split</em> significa dividir os dados em partes. No <span class="term">split temporal</span>
+          a divisão segue a <strong>ordem do tempo</strong>: o passado fica com o treino e o futuro fica com o teste, sem
+          nenhum sorteio. O jeito comum de dividir, sorteando por exemplo 75% das horas para treino, mistura passado e futuro.
+        </p>
+<p>
+<strong>Para que serve?</strong> Serve para que o resultado medido seja <strong>honesto</strong>, isto é, parecido com
+          o que o modelo faria na vida real. Na vida real o modelo só conhece o que já aconteceu e nunca enxerga o futuro. Como o
+          teste vem sempre depois do treino, a divisão reproduz exatamente essa situação.
+        </p>
+<div class="callout warn">
+<strong>Errado — sorteio aleatório:</strong> o treino fica com as 14h e as 16h de um dia e o teste com as 15h do mesmo
+          dia. O modelo acerta as 15h apenas copiando as horas vizinhas, que são muito parecidas. Isso é o
+          <span class="term">vazamento de dados</span>: o resultado parece ótimo no papel, mas o modelo falha no uso real.
+        </div>
+<div class="callout success">
+<strong>Certo — split temporal:</strong> todas as horas de treino vêm antes de todas as horas de teste. Se o modelo
+          acerta nesse cenário, é porque realmente aprendeu o padrão do ar, e não porque copiou a vizinha.
+        </div>
+<p>
+          Uma analogia: o <strong>treino</strong> são os exercícios para estudar, a <strong>validação</strong> é o simulado
+          em que ajustamos o estudo, e o <strong>holdout</strong> é a prova final, feita uma única vez. É como estudar com as
+          provas dos anos anteriores e depois fazer uma prova nova que o aluno nunca viu.
+        </p>
+<div class="callout">
+<strong>📌 Justificativa objetiva do nosso Split Temporal (Por que dividimos assim?):</strong>
+<ul>
+<li><strong>1. Por que não usamos sorteio 75% / 25%?</strong> Porque em qualidade do ar as horas vizinhas são quase idênticas; sortear misturaria passado e futuro e inflaria artificialmente as métricas.</li>
+<li><strong>2. Por que cortamos o Treino em <code>31/12/2024</code> (~59%) e o Holdout em <code>2025–2026</code> (~41%)?</strong> Para garantir anos completos com todas as estações climáticas (verão, outono, inverno e primavera) tanto no aprendizado (<code>21.121</code> horas, <code>743</code> alertas) quanto na prova final cega (<code>14.592</code> horas, <code>161</code> alertas).</li>
+<li><strong>3. Por que fizemos 4 rodadas expansivas em 2024?</strong> Para testar e calibrar o modelo e o limiar (<code>0,30</code>) nas 4 estações de 2024 (onde a taxa de alertas varia de <code>2,08%</code> no Q4 a <code>7,79%</code> no Q3) sem jamais espiar os dados de 2025–2026.</li>
+</ul>
+</div>
+<h3>Como ler a Figura 2</h3>
+<ul>
+<li><strong>Azul (treino):</strong> as horas do passado com as quais o modelo aprende. O treino de cada rodada começa
+            em ago/2022 e vai até o início do trimestre que será validado.</li>
+<li><strong>Amarelo (validação):</strong> o trimestre de 2024 (Q1 a Q4) usado como simulado para escolher o modelo e o
+            limiar de alerta.</li>
+<li><strong>Cinza:</strong> o trecho de 2024 que fica de fora naquela rodada, ainda sem uso.</li>
+<li><strong>Rosa (holdout):</strong> de 01/01/2025 a 31/08/2026. Fica fechado em todas as rodadas e só é aberto uma
+            vez, depois de congelar o modelo (Random Forest) e o limiar (0,30).</li>
+</ul>
+<p>
+          A cada rodada o treino <strong>cresce</strong> (por isso a validação é chamada de <em>expansiva</em>) e o simulado
+          avança um trimestre para a frente. Os números reais de cada rodada são estes:
+        </p>
+<div class="table-scroll-hint">👉 Deslize horizontalmente na tabela para ver todas as colunas</div>
+<div class="table-wrap">
+<table>
+<thead>
+<tr>
+<th>Rodada</th>
+<th>Validação</th>
+<th>Treino (tudo que veio antes)</th>
+<th>Alertas no treino</th>
+<th>Horas na validação</th>
+<th>Alertas na validação</th>
+</tr>
+</thead>
+<tbody>
+<tr><td>1</td><td><code>2024-Q1</code></td><td>12.337 h</td><td>356</td><td>2.184 h</td><td>114</td></tr>
+<tr><td>2</td><td><code>2024-Q2</code></td><td>14.521 h</td><td>470</td><td>2.184 h</td><td>55</td></tr>
+<tr><td>3</td><td><code>2024-Q3</code></td><td>16.705 h</td><td>525</td><td>2.208 h</td><td>172</td></tr>
+<tr><td>4</td><td><code>2024-Q4</code></td><td>18.913 h</td><td>697</td><td>2.208 h</td><td>46</td></tr>
+</tbody>
+</table>
+</div>
+<div class="callout">
+<strong>Um detalhe importante: vale a hora do rótulo.</strong> Como prevemos <code>t + 1h</code>, cada linha da base
+          traz o resultado da hora seguinte. A divisão usa o horário desse resultado, e não o da linha. Por exemplo, a linha
+          das 23h de 31/12/2024 tem como resultado as 00h de 01/01/2025, então ela vai para o teste (holdout) e não para o
+          treino. Assim, nenhum resultado de 2025 entra no treino.
+        </div>
 </section> SEÇÃO 3: EXEMPLO PEQUENO NA PRÁTICA <section class="card-section" id="exemplo-pratico">
 <h2 class="section-title">4. Exemplo Pequeno na Prática (Antes da Matemática)</h2>
 <p>
@@ -2225,6 +2502,14 @@
             decide sozinha, a Random Forest treina árvores independentes em paralelo (reduzindo a variância) e o XGBoost
             encadeia árvores em série em que cada uma corrige os resíduos da anterior (reduzindo o viés).</figcaption>
 </figure>
+<div class="callout">
+<strong>📌 Resumo visual da Figura 3 (Como explicar as 3 arquiteturas em 3 frases):</strong>
+<ul>
+<li><strong>1. Árvore de Decisão (Única):</strong> funciona como um fluxograma de perguntas <code>if/else</code>; é muito fácil de ler, mas como decide sozinha tem <strong>alta variância</strong> (muda fácil de um ano para o outro).</li>
+<li><strong>2. Random Forest (Bagging — Em Paralelo):</strong> treina <strong>300 árvores independentes ao mesmo tempo</strong> em amostras sorteadas e tira a média das probabilidades (disparando alerta se <code>Prob &ge; 0,30</code>), o que <strong>reduz a variância</strong> e dá estabilidade.</li>
+<li><strong>3. XGBoost (Boosting — Em Série):</strong> cria árvores <strong>uma depois da outra</strong>, onde a Árvore 2 tenta consertar os erros da Árvore 1 (e assim por diante, com taxa <code>lr = 0,05</code>), o que <strong>reduz o viés</strong>.</li>
+</ul>
+</div>
 </section> SEÇÃO 4: ÁRVORE DE DECISÃO <section class="card-section" id="arvore-decisao">
 <h2 class="section-title">5. Árvore de Decisão (CART): Intuição, Regras e Overfitting</h2>
 <p>
@@ -2249,6 +2534,13 @@
             importância de atributos da Random Forest.
           </figcaption>
 </figure>
+<div class="callout">
+<strong>📌 Como ler a Figura 4 de cima para baixo:</strong>
+<ul>
+<li><strong>Topo (Nó Raiz — <code>iqar_ozone &lt;= 83,6</code>):</strong> é a primeira pergunta que a árvore faz. Se a resposta for <strong>Verdadeira (Ramo Esquerdo — caixas laranjas)</strong>, <code>94,1%</code> das horas caem ali e o ar na próxima hora é quase sempre <strong>Normal (<code>&lt;= 100</code>)</strong>.</li>
+<li><strong>Ramo Direito (Caixas Azuis — quando <code>iqar_ozone &gt; 83,6</code>):</strong> o ozônio já está alto! A árvore então faz a segunda pergunta: <code>media_3h_ozone &lt;= 117,8</code>? Se a média das últimas 3 horas passou de <code>117,8 µg/m³</code>, o modelo vai para as folhas azuis escuras e dispara <strong>ALERTA (<code>&gt; 100</code>)</strong>.</li>
+</ul>
+</div>
 <h3>O problema da Árvore Única: Overfitting quando a profundidade cresce</h3>
 <p>
           Se deixarmos uma única árvore crescer sem limite de profundidade, ela continuará criando galhos até isolar
@@ -2269,6 +2561,13 @@
             <code>1</code> para <code>7</code> (Recall cai de <code>97,8%</code> para <code>84,8%</code>).
           </figcaption>
 </figure>
+<div class="callout warn">
+<strong>📌 Como explicar a Figura 5 (O perigo do Overfitting):</strong>
+<ul>
+<li><strong>Gráfico 1 (Esquerda — Linhas de Treino vs. Validação):</strong> até a profundidade <code>8</code> (caixa verde), o modelo aprende padrões reais e atinge <code>F1 = 0,96</code> e <code>Recall = 97,8%</code>. Quando entra na <strong>Zona Rosa (profundidade &ge; 12)</strong>, a linha azul do treino vai a <code>1,00</code> (decorou 100% do passado), mas a linha tracejada verde do Recall na validação cai para <code>84,8%</code>.</li>
+<li><strong>Gráfico 2 (Direita — Contagem de Erros FP e FN):</strong> mostra o preço prático de decorar o treino: nas árvores rasas há mais alarmes preventivos (barras amarelas, <code>FP</code>), mas quase zero falha crítica; já na zona de overfitting (<code>depth &ge; 12</code>), os <strong>Falsos Negativos (barras vermelhas)</strong> saltam de <code>1</code> para <strong><code>7 alertas reais perdidos</code></strong>.</li>
+</ul>
+</div>
 <details class="math-box">
 <summary>📐 Caixa de Aprofundamento Matemático: Impureza de Gini vs. Entropia</summary>
 <div class="math-content">
@@ -2543,6 +2842,25 @@ alerta_previsto = (probabilidades &gt;= <span class="nu">0.30</span>).astype(int
           <strong>Recall</strong>, <strong>Precisão</strong>, <strong>F1-Score</strong> e contagem absoluta de
           <strong>Falsos Negativos (FN)</strong> e <strong>Falsos Positivos (FP)</strong>.
         </p>
+<h3>Em linguagem simples: Como comparamos os Rótulos e o que significa cada Métrica?</h3>
+<p>
+          Em cada uma das <code>14.592</code> horas do teste final, comparamos duas coisas: o <strong>Rótulo Real (<code>y_real</code> = <code>0</code> ou <code>1</code>)</strong> calculado pela regra da CETESB e o <strong>Rótulo Previsto pelo Modelo (<code>y_previsto</code> = <code>0</code> ou <code>1</code>)</strong>, que vale <code>1 (Alerta)</code> sempre que a probabilidade calculada pelas árvores atinge <strong>30% ou mais (<code>limiar = 0,30</code>)</strong>. Esse cruzamento gera 4 situações possíveis:
+        </p>
+<ul>
+<li><strong><code>TP</code> (Verdadeiro Positivo — Alerta Detectado = <code>158</code> na Random Forest):</strong> o ar ficou inadequado (<code>1</code>) e o modelo avisou 1 hora antes (<code>1</code>).</li>
+<li><strong><code>TN</code> (Verdadeiro Negativo — Hora Normal Certa = <code>14.387</code> na Random Forest):</strong> o ar ficou bom (<code>0</code>) e o modelo não disparou alarme (<code>0</code>).</li>
+<li><strong><code>FP</code> (Falso Positivo — Alarme Preventivo = <code>44</code> na Random Forest):</strong> o ar ficou até 100 (<code>0</code>), mas o modelo deu alerta por precaução (<code>1</code>).</li>
+<li><strong><code>FN</code> (Falso Negativo — FALHA CRÍTICA! = apenas <code>3</code> na Random Forest):</strong> o ar ficou ruim (<code>1</code>), mas o modelo disse que estava normal (<code>0</code>). É o erro mais grave do projeto, pois expõe alunos sem aviso.</li>
+</ul>
+<div class="callout warn">
+<strong>⚠️ A Armadilha da Acurácia vs. As 3 Métricas que Realmente Importam:</strong>
+<ul>
+<li><strong>Acurácia Geral — <code>(TP + TN) / Total</code>:</strong> mede quantos % de todas as horas o modelo acertou somando horas normais e alertas. Como <code>98,90%</code> das horas são normais, chutar <em>"Ar Adequado"</em> sempre já dá <strong><code>98,90%</code> de acurácia</strong> sem acertar nenhum alerta! (Nossa Random Forest tem <strong><code>99,68%</code> de acurácia geral</strong>, mas nunca usamos a acurácia para escolher o modelo).</li>
+<li><strong>1. Recall / Sensibilidade — <code>TP / (TP + FN)</code> (<code>98,14%</code> na Random Forest):</strong> responde à pergunta <em>"De todos os 161 alertas reais que aconteceram, quantos % o modelo capturou?"</em>. É a nossa <strong>métrica nº 1</strong> porque evita deixar alunos expostos ao ar ruim (capturou <code>158</code> de <code>161</code>).</li>
+<li><strong>2. Precisão — <code>TP / (TP + FP)</code> (<code>78,22%</code> na Random Forest | <code>88,57%</code> no XGBoost):</strong> responde à pergunta <em>"Quando o modelo toca o alarme, quantos % das vezes o ar realmente fica ruim?"</em> (na Random Forest, <code>158</code> alertas reais em <code>202</code> alarmes emitidos).</li>
+<li><strong>3. F1-Score (<code>87,05%</code> na Random Forest | <code>92,26%</code> no XGBoost):</strong> é a média harmônica (a nota de equilíbrio) entre o <strong>Recall</strong> e a <strong>Precisão</strong> — só fica alta quando o modelo captura quase todos os alertas reais sem disparar alarmes falsos em excesso.</li>
+</ul>
+</div>
 <div class="table-scroll-hint">👉 Deslize horizontalmente na tabela para ver todas as métricas e colunas</div>
 <div class="table-wrap">
 <table>
@@ -2740,6 +3058,14 @@ alerta_previsto = (probabilidades &gt;= <span class="nu">0.30</span>).astype(int
             supervisionados superam amplamente os baselines, mas comportam-se de forma diferente no equilíbrio entre
             Recall e Precisão.</figcaption>
 </figure>
+<div class="callout">
+<strong>📌 Como explicar a Figura 6 da esquerda para a direita:</strong>
+<ul>
+<li><strong>Dummy (Baseline):</strong> chuta sempre <em>"Ar Adequado"</em>; por isso tem <code>98,9%</code> de acurácia geral, mas crava <strong><code>0,00</code></strong> em Recall, Precisão e F1 nos alertas reais.</li>
+<li><strong>Persistência (IQAr em <em>t</em>) e Naive Bayes:</strong> a Persistência repete o estado atual e perde mais de 20% dos alertas (<code>Recall = 0,79</code>); o Naive Bayes acerta todos os alertas (<code>Recall = 1,00</code>), mas dispara 300 alarmes falsos (<code>Precisão = 0,35</code>).</li>
+<li><strong>Os 3 modelos de Árvore (CART, XGBoost e Random Forest):</strong> entregam alto equilíbrio, com o <strong>XGBoost</strong> liderando em Precisão (<code>0,89</code>) e F1 (<code>0,92</code>), e a <strong>Random Forest (Escolhido)</strong> liderando em sensibilidade/segurança entre as árvores (<strong><code>Recall = 0,98</code></strong>).</li>
+</ul>
+</div>
 <figure class="article-fig">
 <img alt="Três matrizes de confusão lado a lado no Holdout 2025-2026: Árvore de Decisão com 22 FN e 33 FP; Random Forest com apenas 3 FN e 44 FP; XGBoost com 6 FN e 20 FP." src="assets/fig_matriz_confusao_3_arvores.png"/>
 <figcaption><strong>Figura 7 — Matrizes de Confusão das Três Famílias de Árvore (14.592 horas de
@@ -2747,6 +3073,15 @@ alerta_previsto = (probabilidades &gt;= <span class="nu">0.30</span>).astype(int
             reduziu os alarmes falsos para 20 (maior F1 = 0,923), mas deixou passar 6 alertas reais; a Random Forest
             cravou apenas <strong>3 Falsos Negativos</strong> em quase dois anos (Recall = 98,14%).</figcaption>
 </figure>
+<div class="callout success">
+<strong>📌 Como ler as 4 cores de cada Matriz na Figura 7:</strong>
+<ul>
+<li><strong>Cinza-azulado (TN — Ar Normal Certo):</strong> mais de <code>14.380</code> horas normais previstas corretamente.</li>
+<li><strong>Amarelo (FP — Alarme Preventivo):</strong> o sistema avisou risco por precaução, mas o IQAr ficou abaixo de 100 (<code>33</code> na CART, <code>44</code> na Random Forest e <code>20</code> no XGBoost).</li>
+<li><strong>Vermelho com borda grossa (FN — FALHA CRÍTICA!):</strong> é o erro mais perigoso (o ar ficou inadequado e o modelo não avisou). A Árvore única deixou escapar <strong><code>22</code></strong>; o XGBoost deixou escapar <strong><code>6</code></strong>; e a <strong>Random Forest deixou escapar apenas <code>3</code> em 14.592 horas!</strong></li>
+<li><strong>Verde (TP — Alerta Detectado):</strong> episódios reais de <code>IQAr &gt; 100</code> capturados com 1 hora de antecedência (<code>158</code> de <code>161</code> na Random Forest).</li>
+</ul>
+</div>
 <figure class="article-fig">
 <img alt="Gráfico duplo mostrando à esquerda as 10 variáveis mais importantes na Random Forest e no XGBoost (lideradas por iqar_ozone e media_3h_ozone) e à direita os tempos de treino e inferência em milissegundos." src="assets/fig_importancia_e_latencia.png"/>
 <figcaption><strong>Figura 8 — Interpretabilidade (Importância de Atributos) e Latência
@@ -2756,6 +3091,13 @@ alerta_previsto = (probabilidades &gt;= <span class="nu">0.30</span>).astype(int
             <code>14.592</code> horas (≈<code>0,007 ms</code> por linha em lote).
           </figcaption>
 </figure>
+<div class="callout">
+<strong>📌 O que destacar na Figura 8:</strong>
+<ul>
+<li><strong>Gráfico 1 (Esquerda — O que o modelo olha para decidir?):</strong> o subíndice atual de ozônio (<code>iqar_ozone = 38,9%</code>) e a média das últimas 3 horas de ozônio (<code>media_3h_ozone = 28,7%</code>) concentram juntos <strong><code>67,6%</code></strong> da decisão na Random Forest (e <strong><code>87,1%</code></strong> no XGBoost), seguidos pelo material particulado fino (<code>iqar_pm2_5 = 7,7%</code>) e grosso (<code>iqar_pm10 = 5,8%</code>).</li>
+<li><strong>Gráfico 2 (Direita — Velocidade de resposta):</strong> mesmo treinando 300 árvores (<code>~1,0 a 1,6 s</code> de treino), classificar todas as <code>14.592</code> horas do teste leva menos de <code>0,1 segundo</code> (cerca de <strong><code>0,007 ms</code> por hora</strong>), tornando a predição ao vivo instantânea.</li>
+</ul>
+</div>
 </section> SEÇÃO 10: RECOMENDAÇÃO DO GRUPO <section class="card-section" id="recomendacao">
 <h2 class="section-title">11. Nossa Recomendação para o Alerta da UBC: Por que Escolhemos a Random Forest?</h2>
 <p>
@@ -3028,6 +3370,200 @@ alerta_previsto = (probabilidades &gt;= <span class="nu">0.30</span>).astype(int
       });
 
       sections.forEach(sec => observer.observe(sec));
+    });
+
+    // 7. Botão "Maximizar / Dar Zoom" e Modal Interativo em todas as Figuras do Artigo
+    document.addEventListener('DOMContentLoaded', () => {
+      const modal = document.createElement('div');
+      modal.className = 'img-zoom-modal';
+      modal.id = 'imgZoomModal';
+      modal.setAttribute('role', 'dialog');
+      modal.setAttribute('aria-modal', 'true');
+      modal.innerHTML = `
+        <div class="img-zoom-topbar">
+          <div class="img-zoom-title" id="zoomModalTitle">Visualização Ampliada</div>
+          <div class="img-zoom-controls">
+            <button type="button" id="zoomOutBtn" title="Diminuir zoom">➖ Zoom -</button>
+            <button type="button" id="zoomResetBtn" title="Tamanho padrão (100%)">🔄 100%</button>
+            <button type="button" id="zoomInBtn" title="Aumentar zoom">➕ Zoom +</button>
+            <a id="zoomNewTabBtn" href="#" target="_blank" rel="noopener" title="Abrir arquivo original em nova aba">🔗 Nova Aba</a>
+            <button type="button" class="close-modal-btn" id="zoomCloseBtn" title="Fechar (Tecla ESC)">✕ Fechar (ESC)</button>
+          </div>
+        </div>
+        <div class="img-zoom-stage" id="zoomModalStage">
+          <img id="zoomModalImg" src="" alt="Imagem ampliada" />
+        </div>
+        <div class="img-zoom-caption" id="zoomModalCaption"></div>
+      `;
+      document.body.appendChild(modal);
+
+      const modalImg = document.getElementById('zoomModalImg');
+      const modalTitle = document.getElementById('zoomModalTitle');
+      const modalCaption = document.getElementById('zoomModalCaption');
+      const modalNewTab = document.getElementById('zoomNewTabBtn');
+      const zoomResetBtn = document.getElementById('zoomResetBtn');
+      const stage = document.getElementById('zoomModalStage');
+      let currentScale = 100;
+      let isDragging = false;
+      let dragMoved = false;
+      let startX = 0;
+      let startY = 0;
+      let startScrollLeft = 0;
+      let startScrollTop = 0;
+
+      function applyScale(scale) {
+        currentScale = Math.max(50, Math.min(350, scale));
+        zoomResetBtn.textContent = `🔄 ${currentScale}%`;
+        if (currentScale <= 100) {
+          stage.classList.remove('can-pan');
+          modalImg.style.width = currentScale === 100 ? '' : `${currentScale}%`;
+          modalImg.style.maxWidth = currentScale === 100 ? '96%' : 'none';
+          modalImg.style.maxHeight = currentScale === 100 ? '82vh' : 'none';
+        } else {
+          stage.classList.add('can-pan');
+          modalImg.style.maxWidth = 'none';
+          modalImg.style.maxHeight = 'none';
+          modalImg.style.width = `${currentScale}%`;
+        }
+      }
+
+      function openZoomModal(src, title, captionText) {
+        modalImg.src = src;
+        modalTitle.textContent = title || 'Visualização Ampliada';
+        modalCaption.textContent = (captionText ? captionText + '  ·  ' : '') + '🖐️ Dica: dê zoom (+ ou rodinha do mouse) e segure e arraste com a mãozinha para mover a imagem.';
+        modalNewTab.href = src;
+        applyScale(100);
+        modal.classList.add('open');
+        document.body.style.overflow = 'hidden';
+      }
+
+      function closeZoomModal() {
+        modal.classList.remove('open');
+        stage.classList.remove('is-dragging');
+        isDragging = false;
+        document.body.style.overflow = '';
+      }
+
+      document.getElementById('zoomInBtn').addEventListener('click', () => applyScale(currentScale + 30));
+      document.getElementById('zoomOutBtn').addEventListener('click', () => applyScale(currentScale - 30));
+      zoomResetBtn.addEventListener('click', () => applyScale(100));
+      document.getElementById('zoomCloseBtn').addEventListener('click', closeZoomModal);
+
+      modalImg.setAttribute('draggable', 'false');
+      modalImg.addEventListener('dragstart', (e) => e.preventDefault());
+
+      // Arrastar com a mãozinha (pan com mouse)
+      stage.addEventListener('mousedown', (e) => {
+        if (e.button !== 0) return;
+        isDragging = true;
+        dragMoved = false;
+        startX = e.clientX;
+        startY = e.clientY;
+        startScrollLeft = stage.scrollLeft;
+        startScrollTop = stage.scrollTop;
+        if (currentScale > 100) {
+          stage.classList.add('is-dragging');
+        }
+      });
+
+      window.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+        if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
+          dragMoved = true;
+        }
+        if (currentScale > 100 && dragMoved) {
+          e.preventDefault();
+          stage.scrollLeft = startScrollLeft - dx;
+          stage.scrollTop = startScrollTop - dy;
+        }
+      });
+
+      window.addEventListener('mouseup', () => {
+        if (!isDragging) return;
+        isDragging = false;
+        stage.classList.remove('is-dragging');
+      });
+
+      modalImg.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (dragMoved) {
+          dragMoved = false;
+          return;
+        }
+        applyScale(currentScale === 100 ? 180 : 100);
+      });
+
+      stage.addEventListener('click', (e) => {
+        if (dragMoved) {
+          dragMoved = false;
+          return;
+        }
+        if (e.target === stage) closeZoomModal();
+      });
+
+      stage.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        const delta = e.deltaY < 0 ? 20 : -20;
+        applyScale(currentScale + delta);
+      }, { passive: false });
+
+      document.addEventListener('keydown', (e) => {
+        if (!modal.classList.contains('open')) return;
+        if (e.key === 'Escape') closeZoomModal();
+        if (e.key === '+' || e.key === '=') applyScale(currentScale + 30);
+        if (e.key === '-') applyScale(currentScale - 30);
+        if (e.key === '0') applyScale(100);
+      });
+
+      // Insere barra com botão "🔍 Maximizar / Dar Zoom" em todas as figuras com imagem
+      document.querySelectorAll('figure.article-fig').forEach((fig) => {
+        const img = fig.querySelector('img');
+        if (!img) return;
+        const captionEl = fig.querySelector('figcaption');
+        const strongEl = captionEl ? captionEl.querySelector('strong') : null;
+        const titleTxt = strongEl ? strongEl.textContent.replace(/:$/, '') : (img.alt || 'Figura do Artigo');
+        const capTxt = captionEl ? captionEl.innerText.replace(/\s+/g, ' ').trim() : (img.alt || '');
+        const imgSrc = img.getAttribute('src');
+
+        const toolbar = document.createElement('div');
+        toolbar.className = 'fig-toolbar';
+
+        const btnZoom = document.createElement('button');
+        btnZoom.type = 'button';
+        btnZoom.className = 'zoom-fig-btn';
+        btnZoom.innerHTML = '🔍 Maximizar / Dar Zoom';
+        btnZoom.addEventListener('click', () => openZoomModal(imgSrc, titleTxt, capTxt));
+        toolbar.appendChild(btnZoom);
+
+        // Na Figura 2 (Split Temporal), adiciona também um botão direto para maximizar o pôster completo
+        if (imgSrc && imgSrc.includes('diagrama_split_temporal.jpg')) {
+          const btnFull = document.createElement('button');
+          btnFull.type = 'button';
+          btnFull.className = 'zoom-fig-btn secondary';
+          btnFull.innerHTML = '📊 Maximizar Infográfico Completo';
+          btnFull.addEventListener('click', () => openZoomModal(
+            'diagramas/diagrama_split_temporal_explicado.jpg',
+            'Infográfico Completo — Split Temporal Explicado Passo a Passo',
+            capTxt
+          ));
+          toolbar.appendChild(btnFull);
+        }
+
+        fig.insertBefore(toolbar, fig.firstChild);
+
+        // Se a imagem estava dentro de um <a>, intercepta o clique para abrir o modal de zoom
+        const parentLink = img.closest('a');
+        if (parentLink) {
+          parentLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            openZoomModal(imgSrc, titleTxt, capTxt);
+          });
+        } else {
+          img.addEventListener('click', () => openZoomModal(imgSrc, titleTxt, capTxt));
+        }
+      });
     });
   </script>
 </body>

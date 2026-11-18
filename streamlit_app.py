@@ -80,7 +80,7 @@ def main() -> None:
     limiar_oficial = float(artefato["decision_threshold"])
 
     # =========================================================================
-    # BARRA LATERAL (SIDEBAR): Filtros de tempo, Seletor de Data e Modo Avançado
+    # BARRA LATERAL (SIDEBAR): Controles simples de projeção e período histórico
     # =========================================================================
     with st.sidebar:
         logo_path = Path("docs/assets/logo.png")
@@ -101,43 +101,17 @@ def main() -> None:
         )
 
         st.divider()
-        st.subheader("📅 Filtros de Tempo (Aba 2)")
+        st.subheader("📅 Período Histórico (Aba 2)")
         particao_hist = st.selectbox(
             "Período de análise histórica:",
             options=[
                 "Teste Recente (Holdout: 2025–2026)",
                 "Validação Temporal (2024-Q4)",
-                "Série Completa (2022–2026)",
             ],
             index=0,
         )
 
-        data_seletor = st.date_input(
-            "Seletor de data para inspeção detalhada:",
-            value=pd.to_datetime("2025-12-27").date(),
-            min_value=pd.to_datetime("2022-08-05").date(),
-            max_value=pd.to_datetime("2026-08-31").date(),
-        )
-        janela_dias_grafico = st.slider(
-            "Janela de visualização ao redor da data (dias):",
-            min_value=2,
-            max_value=30,
-            value=7,
-        )
-
-        st.divider()
-        modo_avancado = st.toggle("🔬 Modo Avançado (Auditoria & Limiar)", value=False)
-        if modo_avancado:
-            limiar_simulacao = st.slider(
-                "Simular limiar de probabilidade:",
-                min_value=0.05,
-                max_value=0.95,
-                value=limiar_oficial,
-                step=0.05,
-                help="O limiar oficial congelado na validação é 0,30.",
-            )
-        else:
-            limiar_simulacao = limiar_oficial
+        limiar_simulacao = limiar_oficial
 
         st.divider()
         st.markdown(
@@ -235,11 +209,23 @@ def main() -> None:
                     f"IQAr > 100 é **{prob_1h:.1%}**, abaixo do limiar ativo."
                 )
 
+            st.info(
+                "💡 **De onde vêm esses dados ao vivo e como eles chegam aqui?**\n"
+                "1. **Coleta em Tempo Real (2 APIs da Open-Meteo):** ao abrir a página ou clicar em *Atualizar Coleta ao Vivo*, o sistema faz duas requisições na internet para a latitude/longitude da **UBC (Mogi das Cruzes)**: uma na *Air Quality API (CAMS)* (trazendo os 6 poluentes: `PM10`, `PM2,5`, `O3`, `CO`, `NO2` e `SO2`) e outra na *Weather Forecast API* (trazendo `temperatura`, `umidade`, `chuva`, `vento` e `pressão`).\n"
+                "2. **Cálculo Oficial CETESB + Memória Curta:** o código junta as duas respostas por hora, calcula a nota oficial de cada poluente pela **Tabela 2.7 da CETESB** e gera as médias das últimas 3 horas.\n"
+                "3. **Previsão da Random Forest (`modelo_final_sprint5.joblib`):** as 300 árvores avaliam as 15 variáveis da hora atual (*t*) e calculam a probabilidade de o `IQAr` ultrapassar `100` na próxima hora (*t + 1h*). Se a probabilidade atingir **30% ou mais** (`limiar = 0,30`), o painel dispara **🚨 ALERTA**."
+            )
+
+            df_proj = (
+                projetar_proximas_horas(horas_frente=horizonte_projecao)
+                if horizonte_projecao > 1
+                else res_1h.to_frame().T.assign(**{"horizonte": "+1h", "iqar projetado (CAMS)": np.nan})
+            )
+            col_prob = "probabilidade estimada de IQAr > 100"
+            df_proj["alerta_simulado"] = (df_proj[col_prob].astype(float) >= limiar_simulacao).astype(int)
+
             if horizonte_projecao > 1:
-                st.markdown(f"#### 🔭 Projeção experimental para as próximas **{horizonte_projecao} horas**")
-                df_proj = projetar_proximas_horas(horas_frente=horizonte_projecao)
-                col_prob = "probabilidade estimada de IQAr > 100"
-                df_proj["alerta_simulado"] = (df_proj[col_prob] >= limiar_simulacao).astype(int)
+                st.markdown(f"#### 🔭 Projeção dinâmica para as próximas **{horizonte_projecao} horas**")
 
                 fig_p, (ax_p1, ax_p2) = plt.subplots(1, 2, figsize=(13, 4.2))
                 horas_lbl = pd.to_datetime(df_proj["horário do evento previsto"]).dt.strftime("%d/%m %Hh")
@@ -247,7 +233,7 @@ def main() -> None:
                 passo = max(1, len(x_i) // 8)
 
                 cores_bar = ["#dc2626" if a == 1 else "#2563eb" for a in df_proj["alerta_simulado"]]
-                ax_p1.bar(x_i, df_proj[col_prob] * 100, color=cores_bar, alpha=0.85)
+                ax_p1.bar(x_i, df_proj[col_prob].astype(float) * 100, color=cores_bar, alpha=0.85)
                 ax_p1.axhline(limiar_simulacao * 100, color="#dc2626", linestyle="--", label=f"Limiar ({limiar_simulacao:.0%})")
                 ax_p1.set_xticks(x_i[::passo])
                 ax_p1.set_xticklabels(horas_lbl.iloc[::passo], rotation=35)
@@ -269,20 +255,29 @@ def main() -> None:
                 st.pyplot(fig_p)
                 plt.close(fig_p)
 
-                with st.expander("📋 Ver tabela horária detalhada da projeção", expanded=False):
-                    st.dataframe(df_proj, use_container_width=True)
-
-            if modo_avancado:
-                st.markdown("#### 🔬 Modo avançado: metadados do artefato serializado (`joblib`)")
-                st.json(
-                    {
-                        "model_name": artefato["model_name"],
-                        "decision_threshold_oficial": artefato["decision_threshold"],
-                        "training_rows": artefato["training_rows"],
-                        "target_horizon_hours": artefato["target_horizon_hours"],
-                        "features": list(artefato["features"]),
-                    }
-                )
+            st.markdown("#### 📋 Tabela Horária Atualizada ao Vivo")
+            df_proj_exib = pd.DataFrame(
+                {
+                    "Horizonte": df_proj["horizonte"] if "horizonte" in df_proj.columns else "+1h",
+                    "Dados até (t)": pd.to_datetime(df_proj["horário dos dados até t"]).dt.strftime("%d/%m/%Y %H:%M"),
+                    "Horário Previsto": pd.to_datetime(df_proj["horário do evento previsto"]).dt.strftime("%d/%m/%Y %H:%M"),
+                    "IQAr Projetado (CAMS)": df_proj["iqar projetado (CAMS)"].apply(
+                        lambda v: f"{float(v):.1f} pts" if pd.notna(v) else "Oficial (+1h)"
+                    ),
+                    "Probabilidade de Risco": (df_proj[col_prob].astype(float) * 100).map(lambda p: f"{p:.2f}%"),
+                    "Limiar Oficial": f"{limiar_simulacao:.0%}",
+                    "Decisão do Modelo": df_proj["alerta_simulado"].map(
+                        lambda a: "🚨 ALERTA (IQAr > 100)" if a == 1 else "✅ Sem alerta (Ar Adequado)"
+                    ),
+                }
+            )
+            st.dataframe(df_proj_exib, use_container_width=True, hide_index=True)
+            st.caption(
+                "📌 **Como ler a tabela e os gráficos acima:** a tabela se atualiza automaticamente quando você muda o "
+                "*Horizonte de projeção ao vivo* na barra lateral (`+1h`, `+7h` ou `+24h`). No gráfico da esquerda, barras "
+                "azuis indicam horas seguras (abaixo da linha tracejada vermelha de `30%`) e barras vermelhas indicam alerta; "
+                "no gráfico da direita, a linha verde mostra a evolução prevista do `IQAr` frente ao limite de `100 pontos` da CETESB."
+            )
         except Exception as erro_api:
             st.warning(
                 f"Não foi possível consultar a API Open-Meteo ao vivo neste instante ({erro_api}). "
@@ -293,38 +288,56 @@ def main() -> None:
     # ABA 2: DESEMPENHO HISTÓRICO E COMPARATIVO DE MODELOS
     # =========================================================================
     with aba2:
-        st.subheader("1. Experimento Comparativo: Baseline vs. Árvore de Decisão, Random Forest e XGBoost")
+        st.subheader(f"1. Tabela Comparativa de Modelos — {particao_hist}")
         df_comp = carregar_metricas_comparativas()
 
         filtro_fold = (
             "holdout_2025_2026"
-            if "Holdout" in particao_hist or "Série" in particao_hist
+            if "Holdout" in particao_hist
             else "validacao_2024_Q4"
         )
         df_fold = df_comp[df_comp["fold"] == filtro_fold].copy() if "fold" in df_comp.columns else df_comp.copy()
+        df_fold = df_fold.sort_values("recall_classe_1", ascending=False)
 
-        colunas_tabela = [
-            c
-            for c in [
-                "modelo",
-                "descricao",
-                "limiar",
-                "recall_classe_1",
-                "precisao_classe_1",
-                "f1_classe_1",
-                "tp",
-                "fp",
-                "fn",
-                "tn",
-                "tempo_treino_s",
-                "tempo_predicao_ms",
-            ]
-            if c in df_fold.columns
-        ]
+        nomes_modelos_pt = {
+            "random_forest_balanced": "🏆 Random Forest (Escolhido)",
+            "xgboost_balanced": "XGBoost (Boosting)",
+            "arvore_decisao_cart": "Árvore de Decisão (CART)",
+            "regressao_logistica_balanced": "Regressão Logística",
+            "gaussian_naive_bayes": "Gaussian Naive Bayes",
+            "persistencia_iqar_atual": "Persistência (IQAr em t)",
+            "dummy_prior": "Dummy (Chuta sempre Normal)",
+        }
+
+        df_fold_exib = pd.DataFrame(
+            {
+                "Modelo Avaliado": df_fold["modelo"].map(lambda m: nomes_modelos_pt.get(m, m)),
+                "Como Funciona / Configuração": df_fold["descricao"],
+                "Limiar": df_fold["limiar"].map(lambda v: f"{float(v):.2f}"),
+                "Recall (Alertas Detectados)": (df_fold["recall_classe_1"] * 100).map(lambda v: f"{v:.2f}%"),
+                "Precisão": (df_fold["precisao_classe_1"] * 100).map(lambda v: f"{v:.2f}%"),
+                "F1-Score": (df_fold["f1_classe_1"] * 100).map(lambda v: f"{v:.2f}%"),
+                "TP (Acertos Alerta)": df_fold["tp"].astype(int),
+                "FN (Falhas Críticas!)": df_fold["fn"].astype(int),
+                "FP (Alarmes Preventivos)": df_fold["fp"].astype(int),
+                "TN (Horas Normais)": df_fold["tn"].astype(int),
+                "Treino (s)": df_fold["tempo_treino_s"].map(lambda v: f"{float(v):.3f} s"),
+                "Predição Lote (ms)": df_fold["tempo_predicao_ms"].map(lambda v: f"{float(v):.1f} ms"),
+            }
+        )
         st.dataframe(
-            df_fold[colunas_tabela].sort_values("f1_classe_1", ascending=False),
+            df_fold_exib,
             use_container_width=True,
             hide_index=True,
+        )
+        st.info(
+            "📌 **De onde vem esta tabela e como explicá-la:** os números acima vêm do arquivo "
+            "`reports/modeling/artigo_comparativo_modelos.csv` e **atualizam dinamicamente** quando você alterna na barra lateral "
+            "entre o **Teste Recente (Holdout: 2025–2026, com 14.592 horas e 161 alertas reais)** e a **Validação Temporal (2024-Q4, "
+            "com 2.208 horas e 46 alertas reais)**.\n"
+            "- **Por que a Random Forest venceu?** Porque o erro mais perigoso é o **FN (Falso Negativo — Falha Crítica)**, quando o "
+            "ar fica ruim e o sistema não avisa. No Holdout, a **Random Forest** capturou **98,14% dos alertas (158 de 161)**, deixando "
+            "passar apenas **3 falhas críticas** (contra 6 do XGBoost, 22 da Árvore única e 161 do Dummy)."
         )
 
         c_fig1, c_fig2 = st.columns(2)
@@ -338,11 +351,18 @@ def main() -> None:
                 st.image(str(caminho_f4), caption="Matrizes de Confusão: Árvore de Decisão, Random Forest e XGBoost.")
 
         st.divider()
-        st.subheader("2. Série Histórica: Previsão Gerada vs. Ocorrência Real")
+        st.subheader("2. Série Histórica Dinâmica: Previsão Gerada vs. Ocorrência Real")
         df_hist = carregar_serie_historica_com_previsoes()
 
-        data_ini = pd.Timestamp(data_seletor) - pd.Timedelta(days=janela_dias_grafico // 2)
-        data_fim = pd.Timestamp(data_seletor) + pd.Timedelta(days=janela_dias_grafico)
+        # Recorte automático do episódio crítico representativo da partição selecionada
+        if "Holdout" in particao_hist:
+            data_ini = pd.Timestamp("2025-12-24")
+            data_fim = pd.Timestamp("2026-01-03")
+            titulo_recorte = "Episódio Crítico de Verão no Holdout (24/12/2025 a 03/01/2026)"
+        else:
+            data_ini = pd.Timestamp("2024-09-25")
+            data_fim = pd.Timestamp("2024-10-05")
+            titulo_recorte = "Episódio Crítico na Validação (25/09/2024 a 05/10/2024)"
         recorte = df_hist[(df_hist["event_time_dt"] >= data_ini) & (df_hist["event_time_dt"] <= data_fim)].copy()
 
         if len(recorte) > 0:
@@ -352,7 +372,7 @@ def main() -> None:
             fn_rec = int(((recorte[COLUNA_ALVO] == 1) & (recorte["alerta_simulado"] == 0)).sum())
 
             m1, m2, m3, m4 = st.columns(4)
-            m1.metric("Horas na Janela Selecionada", len(recorte))
+            m1.metric("Horas no Episódio Exibido", len(recorte))
             m2.metric("Alertas Reais (IQAr > 100)", int(recorte[COLUNA_ALVO].sum()))
             m3.metric("Alertas Detectados (TP)", tp_rec)
             m4.metric("Falsos Negativos (FN) / Falsos Positivos (FP)", f"{fn_rec} FN / {fp_rec} FP")
@@ -370,7 +390,7 @@ def main() -> None:
                     label="Episódio Real (Classe 1)",
                 )
             ax_h1.set_ylabel("IQAr")
-            ax_h1.set_title(f"Comparativo Real vs. Previsto ({data_ini.strftime('%d/%m/%Y')} a {data_fim.strftime('%d/%m/%Y')})")
+            ax_h1.set_title(f"{titulo_recorte} — Real vs. Previsto", fontweight="bold")
             ax_h1.grid(True, alpha=0.3)
             ax_h1.legend(loc="upper right")
 
@@ -393,26 +413,18 @@ def main() -> None:
             fig_h.tight_layout()
             st.pyplot(fig_h)
             plt.close(fig_h)
+
+            st.info(
+                "📌 **Como funciona este gráfico dinâmico e de onde vêm os dados?**\n"
+                "- **Origem dos dados:** o sistema lê a nossa base histórica completa (`data/processed/dados_com_alvo_2022-08-04_2026-08-31.csv`) "
+                "e passa todas as horas pelo modelo salvo (`models/modelo_final_sprint5.joblib`) para recalcular a probabilidade de risco hora a hora.\n"
+                "- **Gráfico de cima (O que aconteceu de verdade):** a linha preta é o `IQAr` real calculado pela regra da CETESB e as **bolinhas vermelhas** "
+                "mostram exatamente as horas em que o ar ficou inadequado (`IQAr > 100`).\n"
+                "- **Gráfico de baixo (O que o modelo previu 1 hora antes):** a linha azul é a probabilidade calculada pelas 300 árvores da Random Forest; "
+                "toda vez que ela cruza a linha tracejada de **30%** (área pintada de vermelho), o alerta preventivo é acionado, antecipando os picos reais."
+            )
         else:
             st.info("Nenhum registro encontrado para o intervalo selecionado.")
-
-        if modo_avancado:
-            st.divider()
-            st.subheader("🔬 Diagnóstico Avançado: Interpretabilidade da Árvore e Importância das Variáveis")
-            c_adv1, c_adv2 = st.columns(2)
-            with c_adv1:
-                caminho_f1 = Path("reports/figures/fig_arvore_decisao_rasa.png")
-                if caminho_f1.exists():
-                    st.image(str(caminho_f1), caption="Árvore de Decisão rasa (profundidade 3) com regras no domínio.")
-            with c_adv2:
-                caminho_f5 = Path("reports/figures/fig_importancia_e_latencia.png")
-                if caminho_f5.exists():
-                    st.image(str(caminho_f5), caption="Importância das variáveis (Random Forest vs. XGBoost) e latência.")
-
-            df_prof = carregar_curva_profundidade()
-            if not df_prof.empty:
-                st.write("**Tabela de Overfitting da Árvore de Decisão por Profundidade (`max_depth`):**")
-                st.dataframe(df_prof, use_container_width=True, hide_index=True)
 
 
 if __name__ == "__main__":

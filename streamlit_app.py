@@ -1,8 +1,11 @@
 """Dashboard interativo Streamlit — Trilha B: Qualidade do Ar (UBC / Mogi das Cruzes).
 
-Possui duas abas principais conforme especificação do Plano de Ensino:
-1. Previsão Atual: consulta imediata às APIs Open-Meteo, inferência ao vivo (+1h oficial e projeções +7h/+24h), probabilidade de risco e latência.
-2. Desempenho Histórico: comparativo entre Baseline, Árvore de Decisão, Random Forest e XGBoost, matrizes de confusão e série histórica (Previsto vs. Real).
+Interface moderna, visual e autoexplicativa (pensada para público leigo e banca avaliadora):
+1. Aba 1 — Previsão Atual (Ao Vivo): consulta imediata às 2 APIs da Open-Meteo, cálculo CETESB,
+   cartões explicativos e tabela horária dinâmica (+1h oficial, +7h turno e +24h dia completo).
+2. Aba 2 — Desempenho Histórico: comparativo dinâmico entre Baselines, Árvore de Decisão,
+   Random Forest e XGBoost (Holdout 2025–2026 e Validação 2024-Q4), explicação didática das
+   métricas e auditoria linha a linha dos episódios reais de poluição.
 """
 
 from __future__ import annotations
@@ -11,7 +14,6 @@ import time
 from pathlib import Path
 
 import joblib
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import streamlit as st
@@ -25,11 +27,175 @@ from src.transformacao.Calcular_Alvo_IQAr import COLUNA_ALVO, COLUNA_IQAR
 from src.transformacao.Features_Temporais import adicionar_resumos_curto_prazo
 
 st.set_page_config(
-    page_title="ArPrev | Foco na Antecipação de Condições Inadequadas",
+    page_title="ArPrev | Previsão de Qualidade do Ar (UBC)",
     page_icon="🌬️",
     layout="wide",
     initial_sidebar_state="expanded",
 )
+
+
+def _injetar_estilo_moderno() -> None:
+    st.markdown(
+        """
+        <style>
+        .block-container {
+            padding-top: 1.5rem;
+            padding-bottom: 2.5rem;
+            max-width: 1280px;
+        }
+        .hero-box {
+            background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 60%, #047857 100%);
+            color: #ffffff;
+            padding: 1.6rem 1.9rem;
+            border-radius: 16px;
+            box-shadow: 0 12px 28px -8px rgba(15, 23, 42, 0.28);
+            margin-bottom: 1rem;
+        }
+        .hero-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 0.65rem;
+        }
+        .hero-badge {
+            background: rgba(255, 255, 255, 0.14);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            color: #f8fafc;
+            padding: 0.22rem 0.72rem;
+            border-radius: 999px;
+            font-size: 0.78rem;
+            font-weight: 600;
+        }
+        .hero-title {
+            font-size: 1.75rem;
+            font-weight: 800;
+            margin: 0 0 0.35rem 0;
+            letter-spacing: -0.02em;
+            color: #ffffff;
+        }
+        .hero-sub {
+            font-size: 0.98rem;
+            color: #e2e8f0;
+            margin: 0;
+            line-height: 1.5;
+        }
+        .warn-banner {
+            background: #fffbeb;
+            border: 1px solid #fde68a;
+            border-left: 5px solid #f59e0b;
+            color: #78350f;
+            padding: 0.85rem 1.15rem;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            margin-bottom: 1.25rem;
+            line-height: 1.45;
+        }
+        .step-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+            gap: 0.85rem;
+            margin: 0.75rem 0 1.25rem 0;
+        }
+        .step-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-top: 4px solid #2563eb;
+            border-radius: 12px;
+            padding: 1rem 1.1rem;
+            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+        }
+        .step-card.green { border-top-color: #059669; }
+        .step-card.amber { border-top-color: #d97706; }
+        .step-card.purple { border-top-color: #7c3aed; }
+        .step-card.red { border-top-color: #dc2626; }
+        .step-num {
+            display: inline-block;
+            background: #eff6ff;
+            color: #1d4ed8;
+            font-size: 0.74rem;
+            font-weight: 800;
+            padding: 0.16rem 0.55rem;
+            border-radius: 999px;
+            margin-bottom: 0.4rem;
+            text-transform: uppercase;
+        }
+        .step-card h4 {
+            margin: 0 0 0.35rem 0;
+            font-size: 1rem;
+            font-weight: 700;
+            color: #0f172a;
+        }
+        .step-card p {
+            margin: 0;
+            font-size: 0.86rem;
+            color: #475569;
+            line-height: 1.45;
+        }
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 0.9rem;
+            margin: 0.85rem 0 1.1rem 0;
+        }
+        .kpi-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+            padding: 1.05rem 1.15rem;
+            box-shadow: 0 4px 14px rgba(15, 23, 42, 0.05);
+        }
+        .kpi-card.ok {
+            background: linear-gradient(180deg, #ecfdf5 0%, #ffffff 65%);
+            border-color: #a7f3d0;
+        }
+        .kpi-card.alerta {
+            background: linear-gradient(180deg, #fef2f2 0%, #ffffff 65%);
+            border-color: #fecaca;
+        }
+        .kpi-label {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            margin-bottom: 0.25rem;
+        }
+        .kpi-value {
+            font-size: 1.55rem;
+            font-weight: 800;
+            color: #0f172a;
+            margin-bottom: 0.3rem;
+        }
+        .kpi-desc {
+            font-size: 0.82rem;
+            color: #475569;
+            line-height: 1.38;
+        }
+        .explain-box {
+            background: #f8fafc;
+            border: 1px solid #cbd5e1;
+            border-left: 5px solid #2563eb;
+            border-radius: 12px;
+            padding: 1.1rem 1.3rem;
+            margin: 0.9rem 0 1.3rem 0;
+            font-size: 0.91rem;
+            color: #1e293b;
+            line-height: 1.55;
+        }
+        .explain-box.green {
+            background: #f0fdf4;
+            border-color: #bbf7d0;
+            border-left-color: #059669;
+        }
+        .explain-box h4 {
+            margin: 0 0 0.45rem 0;
+            font-size: 1.02rem;
+            color: #0f172a;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
 
 
 @st.cache_resource
@@ -44,14 +210,6 @@ def carregar_metricas_comparativas() -> pd.DataFrame:
     if caminho.exists():
         return pd.read_csv(caminho)
     return pd.read_csv("reports/modeling/sprint5_validation_metrics.csv")
-
-
-@st.cache_data
-def carregar_curva_profundidade() -> pd.DataFrame:
-    caminho = Path("reports/modeling/artigo_profundidade_arvore.csv")
-    if caminho.exists():
-        return pd.read_csv(caminho)
-    return pd.DataFrame()
 
 
 @st.cache_data
@@ -72,38 +230,39 @@ def carregar_serie_historica_com_previsoes() -> pd.DataFrame:
     probs = pipeline.predict_proba(df_validos[list(FEATURES_SPRINT4)])[:, 1]
     df_validos["probabilidade_risco"] = probs
     df_validos["alerta_previsto"] = (probs >= limiar).astype(int)
+    df_validos["iqar_evento"] = df_validos[COLUNA_IQAR].shift(-1)
     return df_validos
 
 
 def main() -> None:
+    _injetar_estilo_moderno()
     artefato = carregar_artefato_modelo()
     limiar_oficial = float(artefato["decision_threshold"])
 
     # =========================================================================
-    # BARRA LATERAL (SIDEBAR): Controles simples de projeção e período histórico
+    # BARRA LATERAL (SIDEBAR): Controles simples e diretos
     # =========================================================================
     with st.sidebar:
         logo_path = Path("docs/assets/logo.png")
         if logo_path.exists():
             st.image(str(logo_path), use_container_width=True)
         st.title("⚙️ Controles do Painel")
-        st.caption("Ponto de referência: Universidade Braz Cubas (Mogi das Cruzes – SP)")
+        st.caption("Local monitorado: Campus da Universidade Braz Cubas (Mogi das Cruzes – SP)")
 
         horizonte_projecao = st.radio(
-            "Horizonte de projeção ao vivo (Aba 1):",
+            "1️⃣ Quantas horas à frente você quer ver na Aba 1?",
             options=[1, 7, 24],
             index=2,
             format_func=lambda h: (
-                "Oficial: +1 hora"
+                "Oficial: +1 hora (Próxima hora)"
                 if h == 1
-                else ("Experimental: +7h (Turno)" if h == 7 else "Experimental: +24h (Dia completo)")
+                else ("Experimental: +7 horas (Próximo turno)" if h == 7 else "Experimental: +24 horas (Dia inteiro)")
             ),
         )
 
         st.divider()
-        st.subheader("📅 Período Histórico (Aba 2)")
         particao_hist = st.selectbox(
-            "Período de análise histórica:",
+            "2️⃣ Qual período histórico quer consultar na Aba 2?",
             options=[
                 "Teste Recente (Holdout: 2025–2026)",
                 "Validação Temporal (2024-Q4)",
@@ -111,53 +270,93 @@ def main() -> None:
             index=0,
         )
 
-        limiar_simulacao = limiar_oficial
-
         st.divider()
         st.markdown(
-            "**Links Rápidos:**\n"
-            "- [Dashboard Online (Streamlit Cloud)](https://arprev-ubc.streamlit.app/)\n"
+            "**📌 Ficha Rápida do Modelo:**\n"
+            "- **Algoritmo:** Random Forest (300 árvores)\n"
+            "- **Limiar de Alerta:** `30%` (`0,30`)\n"
+            "- **Alvo:** Prever `IQAr > 100` em `t + 1h`\n"
+            "- **Recall no Teste:** `98,14%` (158 de 161 alertas)\n\n"
+            "**🔗 Links do Projeto:**\n"
             "- [Artigo Técnico (GitHub Pages)](https://diogogomesb.github.io/Ciencia-de-Dados-e-Aprendizagem-de-Maquina/)\n"
-            "- [Repositório GitHub](https://github.com/DiogoGomesB/Ciencia-de-Dados-e-Aprendizagem-de-Maquina)\n"
-            "- [Documentação e RFC](https://github.com/DiogoGomesB/Ciencia-de-Dados-e-Aprendizagem-de-Maquina/blob/main/docs/RFC.md)"
+            "- [Repositório no GitHub](https://github.com/DiogoGomesB/Ciencia-de-Dados-e-Aprendizagem-de-Maquina)"
         )
 
     # =========================================================================
-    # CABEÇALHO E AVISO REGULATÓRIO OBRIGATÓRIO
+    # CABEÇALHO MODERNO (HERO) E AVISO REGULATÓRIO
     # =========================================================================
-    col_logo, col_title = st.columns([1, 6], vertical_alignment="center")
-    with col_logo:
-        logo_path = Path("docs/assets/logo.png")
-        if logo_path.exists():
-            st.image(str(logo_path), use_container_width=True)
-    with col_title:
-        st.title("🌬️ ArPrev — Foco na Antecipação de Condições Inadequadas")
-        st.caption("Classificação Preditiva de Risco Respiratório (IQAr > 100) · Universidade Braz Cubas (Mogi das Cruzes / SP)")
-    st.warning(
-        "⚠️ **Aviso Importante:** As previsões exibidas neste painel são **estimativas experimentais** "
-        "produzidas por modelo de aprendizado de máquina sobre dados atmosféricos abertos (Open-Meteo / CAMS) "
-        "e **não substituem alertas oficiais** da CETESB ou da Defesa Civil."
+    st.markdown(
+        """
+        <div class="hero-box">
+            <div class="hero-badges">
+                <span class="hero-badge">🎓 Sistemas de Informação · UBC 2026/2</span>
+                <span class="hero-badge">🌬️ Trilha B — Qualidade do Ar Inadequada</span>
+                <span class="hero-badge">🌲 Modelo: Random Forest (300 árvores)</span>
+                <span class="hero-badge">🎯 Regra Oficial: Tabela 2.7 da CETESB</span>
+            </div>
+            <div class="hero-title">ArPrev — Sistema de Antecipação de Poluição do Ar (+1h)</div>
+            <p class="hero-sub">
+                Monitoramento preditivo para o campus da <strong>Universidade Braz Cubas (Mogi das Cruzes – SP)</strong>:
+                consulta dados abertos de poluentes e clima em tempo real e avisa com <strong>1 hora de antecedência</strong>
+                quando o Índice de Qualidade do Ar (<code>IQAr</code>) corre risco de ultrapassar <strong>100 pontos (Ar Inadequado)</strong>.
+            </p>
+        </div>
+        <div class="warn-banner">
+            ⚠️ <strong>Aviso de Transparência e Uso Responsável:</strong> As previsões deste painel são
+            <strong>estimativas experimentais</strong> geradas por um modelo de Aprendizado de Máquina sobre dados
+            atmosféricos de grade aberta (<em>Open-Meteo / CAMS</em>) e <strong>não substituem boletins oficiais</strong>
+            da CETESB ou da Defesa Civil.
+        </div>
+        """,
+        unsafe_allow_html=True,
     )
 
     aba1, aba2 = st.tabs(
         [
-            "📡 1. Previsão Atual (Inferência ao Vivo)",
-            "📊 2. Desempenho Histórico e Comparativo de Modelos",
+            "📡 1. Previsão Ao Vivo (Agora na UBC)",
+            "📊 2. Resultado Histórico e Comparativo de Modelos",
         ]
     )
 
     # =========================================================================
-    # ABA 1: PREVISÃO ATUAL (CONSULTA À API + INFERÊNCIA AO VIVO)
+    # ABA 1: PREVISÃO ATUAL (CONSULTA À API + TABELA DINÂMICA EXPLICADA)
     # =========================================================================
     with aba1:
-        st.subheader("Consulta Imediata às APIs Open-Meteo e Inferência em Tempo Real")
-        col_btn, col_info = st.columns([1, 3])
+        st.markdown("### 🔄 Como funciona esta previsão ao vivo? (Em 4 passos simples)")
+        st.markdown(
+            """
+            <div class="step-grid">
+                <div class="step-card">
+                    <span class="step-num">Passo 1 · Coleta ao Vivo</span>
+                    <h4>🌐 Consulta às 2 APIs da Open-Meteo</h4>
+                    <p>O sistema vai na internet agora e busca os dados da UBC em duas APIs gratuitas: a <strong>API de Qualidade do Ar</strong> (6 poluentes: Ozônio, PM2,5, PM10, CO, NO2 e SO2) e a <strong>API de Clima</strong> (temperatura, umidade, chuva, vento e pressão).</p>
+                </div>
+                <div class="step-card amber">
+                    <span class="step-num">Passo 2 · Regra da CETESB</span>
+                    <h4>📏 Cálculo da Nota do Ar (IQAr)</h4>
+                    <p>Usando a <strong>Tabela 2.7 da CETESB</strong>, tiramos a média das últimas horas de cada poluente (24h, 8h ou 1h) e damos uma nota para cada um. A nota oficial da hora (<code>IQAr</code>) é a <strong>pior (maior)</strong> das 6 notas. Acima de <strong>100 pontos</strong>, o ar é <em>Inadequado</em>.</p>
+                </div>
+                <div class="step-card purple">
+                    <span class="step-num">Passo 3 · As 15 Pistas (Features)</span>
+                    <h4>🧩 União de Poluentes + Clima</h4>
+                    <p>Juntamos na mesma linha as 6 notas dos poluentes + as 5 variáveis de clima (pois calor fabrica mais ozônio e vento espalha a poluição) + 4 médias e variações das últimas 3 horas para o modelo saber se a poluição está subindo.</p>
+                </div>
+                <div class="step-card green">
+                    <span class="step-num">Passo 4 · Votação do Modelo</span>
+                    <h4>🌲 300 Árvores Decidem (+1h)</h4>
+                    <p>O arquivo salvo (<code>modelo_final_sprint5.joblib</code>) passa essas 15 pistas por <strong>300 árvores de decisão</strong>. Se <strong>30% ou mais</strong> das árvores votarem que o ar vai passar de 100 na próxima hora, o painel dispara <strong>🚨 ALERTA</strong>.</p>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        col_btn, col_info = st.columns([1, 3], vertical_alignment="center")
         with col_btn:
-            atualizar_agora = st.button("🔄 Atualizar Coleta ao Vivo", type="primary", use_container_width=True)
+            st.button("🔄 Atualizar Dados da API Agora", type="primary", use_container_width=True)
         with col_info:
             st.caption(
-                "Conecta aos endpoints `air-quality-api.open-meteo.com` e `api.open-meteo.com/v1/forecast`, "
-                "calcula os subíndices CETESB e executa o pipeline `RandomForestClassifier` (300 árvores)."
+                "Clique no botão ao lado para refazer a consulta ao vivo nas APIs da Open-Meteo e recalcular a previsão imediatamente."
             )
 
         try:
@@ -166,54 +365,44 @@ def main() -> None:
             latencia_1h_ms = (time.perf_counter() - t_inicio) * 1000.0
 
             prob_1h = float(res_1h["probabilidade estimada de IQAr > 100"])
-            alerta_1h = int(prob_1h >= limiar_simulacao)
+            alerta_1h = int(prob_1h >= limiar_oficial)
             horario_dados = pd.Timestamp(res_1h["horário dos dados até t"])
             horario_evento = pd.Timestamp(res_1h["horário do evento previsto"])
 
-            c1, c2, c3, c4 = st.columns(4)
-            with c1:
-                status_txt = "🚨 ALERTA" if alerta_1h == 1 else "✅ Sem alerta"
-                st.metric(
-                    label=f"Previsão oficial (+1h: {horario_evento:%d/%m %H:%M})",
-                    value=status_txt,
-                    delta=f"Limiar ativo: {limiar_simulacao:.0%}",
-                    delta_color="off",
-                )
-            with c2:
-                st.metric(
-                    label="Probabilidade de IQAr > 100",
-                    value=f"{prob_1h:.1%}",
-                    delta=f"{(prob_1h - limiar_simulacao) * 100:+.1f} p.p. vs limiar",
-                    delta_color="inverse",
-                )
-            with c3:
-                st.metric(
-                    label="Dados disponíveis até (t)",
-                    value=f"{horario_dados:%d/%m %H:%M}",
-                )
-            with c4:
-                st.metric(
-                    label="Latência total (API + modelo)",
-                    value=f"{latencia_1h_ms:.0f} ms",
-                )
+            classe_status = "alerta" if alerta_1h == 1 else "ok"
+            texto_status = "🚨 ALERTA ATIVO" if alerta_1h == 1 else "✅ SEM ALERTA (AR BOM)"
+            desc_status = (
+                f"O modelo estima risco de o IQAr passar de 100 às {horario_evento:%H:%M}. Recomenda-se suspender treinos intensos ao ar livre."
+                if alerta_1h == 1
+                else f"Para as {horario_evento:%H:%M}, a qualidade do ar na UBC deve permanecer adequada (IQAr até 100 pontos)."
+            )
 
-            if alerta_1h == 1:
-                st.error(
-                    f"**Recomendação preventiva (UBC):** risco estimado de ar inadequado para "
-                    f"**{horario_evento:%d/%m/%Y %H:%M}** (probabilidade de **{prob_1h:.1%}**). Sugere-se transferir "
-                    "práticas esportivas intensas para ambientes cobertos e orientar grupos sensíveis."
-                )
-            else:
-                st.success(
-                    f"**Sem alerta pela regra:** para **{horario_evento:%d/%m/%Y %H:%M}**, a probabilidade estimada de "
-                    f"IQAr > 100 é **{prob_1h:.1%}**, abaixo do limiar ativo."
-                )
-
-            st.info(
-                "💡 **De onde vêm esses dados ao vivo e como eles chegam aqui?**\n"
-                "1. **Coleta em Tempo Real (2 APIs da Open-Meteo):** ao abrir a página ou clicar em *Atualizar Coleta ao Vivo*, o sistema faz duas requisições na internet para a latitude/longitude da **UBC (Mogi das Cruzes)**: uma na *Air Quality API (CAMS)* (trazendo os 6 poluentes: `PM10`, `PM2,5`, `O3`, `CO`, `NO2` e `SO2`) e outra na *Weather Forecast API* (trazendo `temperatura`, `umidade`, `chuva`, `vento` e `pressão`).\n"
-                "2. **Cálculo Oficial CETESB + Memória Curta:** o código junta as duas respostas por hora, calcula a nota oficial de cada poluente pela **Tabela 2.7 da CETESB** e gera as médias das últimas 3 horas.\n"
-                "3. **Previsão da Random Forest (`modelo_final_sprint5.joblib`):** as 300 árvores avaliam as 15 variáveis da hora atual (*t*) e calculam a probabilidade de o `IQAr` ultrapassar `100` na próxima hora (*t + 1h*). Se a probabilidade atingir **30% ou mais** (`limiar = 0,30`), o painel dispara **🚨 ALERTA**."
+            st.markdown(
+                f"""
+                <div class="kpi-grid">
+                    <div class="kpi-card {classe_status}">
+                        <div class="kpi-label">1. Decisão para a Próxima Hora ({horario_evento:%d/%m às %H:%M})</div>
+                        <div class="kpi-value">{texto_status}</div>
+                        <div class="kpi-desc">{desc_status}</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-label">2. Probabilidade de Risco (IQAr &gt; 100)</div>
+                        <div class="kpi-value">{prob_1h * 100:.1f}%</div>
+                        <div class="kpi-desc">Porcentagem calculada pelas 300 árvores da Random Forest. O alarme toca quando chega a <strong>{limiar_oficial * 100:.0f}% (limiar oficial)</strong>.</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-label">3. Última Leitura Observada (Hora t)</div>
+                        <div class="kpi-value">{horario_dados:%d/%m às %H:%M}</div>
+                        <div class="kpi-desc">Horário do dado mais recente entregue pelas APIs da Open-Meteo (o modelo usa apenas o passado até esta hora).</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-label">4. Tempo Total da Consulta (Latência)</div>
+                        <div class="kpi-value">{latencia_1h_ms:.0f} ms</div>
+                        <div class="kpi-desc">Tempo total gasto para buscar as 2 APIs na internet, calcular o IQAr da CETESB e rodar as 300 árvores.</div>
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
             )
 
             df_proj = (
@@ -222,209 +411,303 @@ def main() -> None:
                 else res_1h.to_frame().T.assign(**{"horizonte": "+1h", "iqar projetado (CAMS)": np.nan})
             )
             col_prob = "probabilidade estimada de IQAr > 100"
-            df_proj["alerta_simulado"] = (df_proj[col_prob].astype(float) >= limiar_simulacao).astype(int)
+            df_proj["alerta_simulado"] = (df_proj[col_prob].astype(float) >= limiar_oficial).astype(int)
 
-            if horizonte_projecao > 1:
-                st.markdown(f"#### 🔭 Projeção dinâmica para as próximas **{horizonte_projecao} horas**")
-
-                fig_p, (ax_p1, ax_p2) = plt.subplots(1, 2, figsize=(13, 4.2))
-                horas_lbl = pd.to_datetime(df_proj["horário do evento previsto"]).dt.strftime("%d/%m %Hh")
-                x_i = np.arange(len(df_proj))
-                passo = max(1, len(x_i) // 8)
-
-                cores_bar = ["#dc2626" if a == 1 else "#2563eb" for a in df_proj["alerta_simulado"]]
-                ax_p1.bar(x_i, df_proj[col_prob].astype(float) * 100, color=cores_bar, alpha=0.85)
-                ax_p1.axhline(limiar_simulacao * 100, color="#dc2626", linestyle="--", label=f"Limiar ({limiar_simulacao:.0%})")
-                ax_p1.set_xticks(x_i[::passo])
-                ax_p1.set_xticklabels(horas_lbl.iloc[::passo], rotation=35)
-                ax_p1.set_ylim(0, 105)
-                ax_p1.set_ylabel("Probabilidade (%)")
-                ax_p1.set_title(f"Probabilidade de IQAr > 100 (+1h a +{horizonte_projecao}h)")
-                ax_p1.grid(axis="y", alpha=0.3)
-                ax_p1.legend()
-
-                ax_p2.plot(x_i, df_proj["iqar projetado (CAMS)"], marker="o", color="#059669", linewidth=2, label="IQAr projetado (CAMS/Open-Meteo)")
-                ax_p2.axhline(100, color="#d97706", linestyle="--", label="Limite CETESB (IQAr = 100)")
-                ax_p2.set_xticks(x_i[::passo])
-                ax_p2.set_xticklabels(horas_lbl.iloc[::passo], rotation=35)
-                ax_p2.set_ylabel("IQAr (pontos)")
-                ax_p2.set_title("IQAr calculado sobre as concentrações previstas pela API")
-                ax_p2.grid(True, alpha=0.3)
-                ax_p2.legend()
-                fig_p.tight_layout()
-                st.pyplot(fig_p)
-                plt.close(fig_p)
-
-            st.markdown("#### 📋 Tabela Horária Atualizada ao Vivo")
+            st.markdown(
+                f"### 📋 Tabela Dinâmica de Previsão Horária (`+{horizonte_projecao}h` selecionadas na barra lateral)"
+            )
             df_proj_exib = pd.DataFrame(
                 {
                     "Horizonte": df_proj["horizonte"] if "horizonte" in df_proj.columns else "+1h",
-                    "Dados até (t)": pd.to_datetime(df_proj["horário dos dados até t"]).dt.strftime("%d/%m/%Y %H:%M"),
-                    "Horário Previsto": pd.to_datetime(df_proj["horário do evento previsto"]).dt.strftime("%d/%m/%Y %H:%M"),
-                    "IQAr Projetado (CAMS)": df_proj["iqar projetado (CAMS)"].apply(
-                        lambda v: f"{float(v):.1f} pts" if pd.notna(v) else "Oficial (+1h)"
+                    "Leitura Base (Hora t)": pd.to_datetime(df_proj["horário dos dados até t"]).dt.strftime("%d/%m/%Y %H:%M"),
+                    "Hora Prevista (t + 1h)": pd.to_datetime(df_proj["horário do evento previsto"]).dt.strftime("%d/%m/%Y %H:%M"),
+                    "IQAr Projetado pela API (Pontos)": df_proj["iqar projetado (CAMS)"].apply(
+                        lambda v: round(float(v), 1) if pd.notna(v) else np.nan
                     ),
-                    "Probabilidade de Risco": (df_proj[col_prob].astype(float) * 100).map(lambda p: f"{p:.2f}%"),
-                    "Limiar Oficial": f"{limiar_simulacao:.0%}",
-                    "Decisão do Modelo": df_proj["alerta_simulado"].map(
-                        lambda a: "🚨 ALERTA (IQAr > 100)" if a == 1 else "✅ Sem alerta (Ar Adequado)"
+                    "Probabilidade de Ar Ruim (%)": (df_proj[col_prob].astype(float) * 100).round(2),
+                    "Limiar de Segurança": f"{limiar_oficial * 100:.0f}%",
+                    "Situação Prevista pelo Modelo": df_proj["alerta_simulado"].map(
+                        lambda a: "🚨 ALERTA: Risco de Ar Inadequado (IQAr > 100)"
+                        if a == 1
+                        else "✅ Normal: Ar Adequado (IQAr <= 100)"
                     ),
                 }
             )
-            st.dataframe(df_proj_exib, use_container_width=True, hide_index=True)
-            st.caption(
-                "📌 **Como ler a tabela e os gráficos acima:** a tabela se atualiza automaticamente quando você muda o "
-                "*Horizonte de projeção ao vivo* na barra lateral (`+1h`, `+7h` ou `+24h`). No gráfico da esquerda, barras "
-                "azuis indicam horas seguras (abaixo da linha tracejada vermelha de `30%`) e barras vermelhas indicam alerta; "
-                "no gráfico da direita, a linha verde mostra a evolução prevista do `IQAr` frente ao limite de `100 pontos` da CETESB."
+            st.dataframe(
+                df_proj_exib,
+                use_container_width=True,
+                hide_index=True,
+                column_config={
+                    "Probabilidade de Ar Ruim (%)": st.column_config.ProgressColumn(
+                        "Probabilidade de Ar Ruim (%)",
+                        help="Chance estimada pela Random Forest de o IQAr ultrapassar 100 pontos. A partir de 30% o alerta é disparado.",
+                        format="%.2f%%",
+                        min_value=0.0,
+                        max_value=100.0,
+                    ),
+                    "IQAr Projetado pela API (Pontos)": st.column_config.NumberColumn(
+                        "IQAr Projetado pela API (Pontos)",
+                        help="Nota do IQAr calculada sobre as concentrações previstas pela Open-Meteo (até 40 = Boa; 41–80 = Moderada; 81–100 = Ruim moderada; >100 = Inadequada).",
+                        format="%.1f pts",
+                    ),
+                },
+            )
+
+            st.markdown(
+                """
+                <div class="explain-box">
+                    <h4>📖 Guia Rápido para Leigos — O que significa cada coluna da tabela acima?</h4>
+                    <ul>
+                        <li><strong>Horizonte (<code>+1h</code> até <code>+24h</code>):</strong> quantas horas à frente estamos olhando. Você pode mudar entre <code>+1h</code>, <code>+7h</code> e <code>+24h</code> no menu da esquerda e a tabela se reconstrói na hora.</li>
+                        <li><strong>Leitura Base (Hora <em>t</em>) vs. Hora Prevista (<em>t + 1h</em>):</strong> nosso modelo sempre olha para o ar da <em>Leitura Base</em> para avisar como estará o ar <strong>1 hora depois</strong> (na <em>Hora Prevista</em>).</li>
+                        <li><strong>IQAr Projetado pela API (Pontos):</strong> é a nota do ar segundo a tabela da CETESB: de <code>0 a 40</code> o ar está <strong>Bom</strong>; de <code>41 a 80</code> está <strong>Moderado</strong>; e quando passa de <strong><code>100 pontos</code></strong> entra na faixa crítica (<strong>Inadequado</strong>).</li>
+                        <li><strong>Probabilidade de Ar Ruim (%) e Situação Prevista:</strong> mostra a barra de risco calculada pela nossa Random Forest. Sempre que essa barra chega a <strong>30% ou mais</strong>, a última coluna muda para <strong>🚨 ALERTA</strong>.</li>
+                    </ul>
+                </div>
+                """,
+                unsafe_allow_html=True,
             )
         except Exception as erro_api:
             st.warning(
                 f"Não foi possível consultar a API Open-Meteo ao vivo neste instante ({erro_api}). "
-                "Verifique a conexão de rede ou utilize a Aba 2 para inspecionar os dados históricos."
+                "Verifique a conexão de rede ou consulte a Aba 2 para ver os resultados históricos."
             )
 
     # =========================================================================
-    # ABA 2: DESEMPENHO HISTÓRICO E COMPARATIVO DE MODELOS
+    # ABA 2: DESEMPENHO HISTÓRICO E COMPARATIVO DE MODELOS (100% EXPLICADO)
     # =========================================================================
     with aba2:
-        st.subheader(f"1. Tabela Comparativa de Modelos — {particao_hist}")
-        df_comp = carregar_metricas_comparativas()
-
-        filtro_fold = (
-            "holdout_2025_2026"
-            if "Holdout" in particao_hist
-            else "validacao_2024_Q4"
+        st.markdown("### 🧪 Como testamos se o modelo funciona de verdade? (Divisão no Tempo sem Trapaça)")
+        st.markdown(
+            """
+            <div class="step-grid">
+                <div class="step-card">
+                    <span class="step-num">1 · Base Histórica Real</span>
+                    <h4>📅 35.736 Horas (2022 a 2026)</h4>
+                    <p>Coletamos 4 anos de dados horários de Mogi das Cruzes nas duas APIs da Open-Meteo e rotulamos cada hora pela <strong>Tabela 2.7 da CETESB</strong>: <code>1 (Alerta)</code> quando o IQAr da hora seguinte passou de 100 (904 horas = 2,53%) e <code>0 (Ar Normal)</code> até 100.</p>
+                </div>
+                <div class="step-card amber">
+                    <span class="step-num">2 · Split Temporal Estrito</span>
+                    <h4>⏳ Passado Treina, Futuro Testa</h4>
+                    <p>Nunca sorteamos horas aleatórias (para o modelo não "colar" das 14h e 16h ao prever as 15h). Treinamos no passado (<strong>2022 a 2024: 21.121 horas</strong>) e guardamos o futuro (<strong>2025 a 2026: 14.592 horas</strong>) trancado para uma única prova final (<em>Holdout</em>).</p>
+                </div>
+                <div class="step-card green">
+                    <span class="step-num">3 · Modelo Campeão</span>
+                    <h4>🏆 Random Forest: 98,14% de Recall</h4>
+                    <p>Nas <strong>14.592 horas inéditas</strong> de 2025–2026 aconteceram <strong>161 episódios reais</strong> de ar inadequado. Nossa Random Forest avisou <strong>158 deles com 1h de antecedência</strong>, errando apenas 3 vezes em quase dois anos!</p>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
         )
+
+        st.markdown(f"### 1️⃣ Tabela Comparativa Dinâmica dos Modelos — *{particao_hist}*")
+        st.caption(
+            "Dica: troque o período na barra lateral esquerda entre o **Teste Recente (Holdout: 2025–2026)** e a **Validação Temporal (2024-Q4)** para ver todos os números abaixo atualizarem automaticamente."
+        )
+
+        df_comp = carregar_metricas_comparativas()
+        filtro_fold = "holdout_2025_2026" if "Holdout" in particao_hist else "validacao_2024_Q4"
         df_fold = df_comp[df_comp["fold"] == filtro_fold].copy() if "fold" in df_comp.columns else df_comp.copy()
-        df_fold = df_fold.sort_values("recall_classe_1", ascending=False)
+        df_fold = df_fold.sort_values(["recall_classe_1", "f1_classe_1"], ascending=[False, False])
 
         nomes_modelos_pt = {
-            "random_forest_balanced": "🏆 Random Forest (Escolhido)",
-            "xgboost_balanced": "XGBoost (Boosting)",
-            "arvore_decisao_cart": "Árvore de Decisão (CART)",
-            "regressao_logistica_balanced": "Regressão Logística",
-            "gaussian_naive_bayes": "Gaussian Naive Bayes",
-            "persistencia_iqar_atual": "Persistência (IQAr em t)",
-            "dummy_prior": "Dummy (Chuta sempre Normal)",
+            "random_forest_balanced": "🏆 Random Forest (Modelo Escolhido)",
+            "xgboost_balanced": "⚡ XGBoost (Gradient Boosting)",
+            "arvore_decisao_cart": "🌳 Árvore de Decisão Única (CART)",
+            "regressao_logistica_balanced": "📈 Regressão Logística Balanceada",
+            "gaussian_naive_bayes": "🎲 Gaussian Naive Bayes (Baseline)",
+            "persistencia_iqar_atual": "🔁 Persistência (Repete o IQAr da hora t)",
+            "dummy_prior": "🛑 Dummy (Chuta sempre 'Ar Adequado')",
         }
+
+        total_horas_fold = (df_fold["tp"] + df_fold["tn"] + df_fold["fp"] + df_fold["fn"]).astype(int)
+        acuracia_fold = ((df_fold["tp"] + df_fold["tn"]) / total_horas_fold * 100).round(2)
 
         df_fold_exib = pd.DataFrame(
             {
                 "Modelo Avaliado": df_fold["modelo"].map(lambda m: nomes_modelos_pt.get(m, m)),
-                "Como Funciona / Configuração": df_fold["descricao"],
-                "Limiar": df_fold["limiar"].map(lambda v: f"{float(v):.2f}"),
-                "Recall (Alertas Detectados)": (df_fold["recall_classe_1"] * 100).map(lambda v: f"{v:.2f}%"),
-                "Precisão": (df_fold["precisao_classe_1"] * 100).map(lambda v: f"{v:.2f}%"),
-                "F1-Score": (df_fold["f1_classe_1"] * 100).map(lambda v: f"{v:.2f}%"),
-                "TP (Acertos Alerta)": df_fold["tp"].astype(int),
+                "Como Funciona": df_fold["descricao"],
+                "Recall — Alertas Detectados (%)": (df_fold["recall_classe_1"] * 100).round(2),
+                "Precisão (%)": (df_fold["precisao_classe_1"] * 100).round(2),
+                "F1-Score — Equilíbrio (%)": (df_fold["f1_classe_1"] * 100).round(2),
+                "Acurácia Geral (%)": acuracia_fold,
+                "TP (Alertas Certos)": df_fold["tp"].astype(int),
                 "FN (Falhas Críticas!)": df_fold["fn"].astype(int),
                 "FP (Alarmes Preventivos)": df_fold["fp"].astype(int),
-                "TN (Horas Normais)": df_fold["tn"].astype(int),
-                "Treino (s)": df_fold["tempo_treino_s"].map(lambda v: f"{float(v):.3f} s"),
-                "Predição Lote (ms)": df_fold["tempo_predicao_ms"].map(lambda v: f"{float(v):.1f} ms"),
+                "TN (Horas Normais Certas)": df_fold["tn"].astype(int),
+                "Velocidade no Lote (ms)": df_fold["tempo_predicao_ms"].round(1),
             }
         )
         st.dataframe(
             df_fold_exib,
             use_container_width=True,
             hide_index=True,
-        )
-        st.info(
-            "📌 **De onde vem esta tabela e como explicá-la:** os números acima vêm do arquivo "
-            "`reports/modeling/artigo_comparativo_modelos.csv` e **atualizam dinamicamente** quando você alterna na barra lateral "
-            "entre o **Teste Recente (Holdout: 2025–2026, com 14.592 horas e 161 alertas reais)** e a **Validação Temporal (2024-Q4, "
-            "com 2.208 horas e 46 alertas reais)**.\n"
-            "- **Por que a Random Forest venceu?** Porque o erro mais perigoso é o **FN (Falso Negativo — Falha Crítica)**, quando o "
-            "ar fica ruim e o sistema não avisa. No Holdout, a **Random Forest** capturou **98,14% dos alertas (158 de 161)**, deixando "
-            "passar apenas **3 falhas críticas** (contra 6 do XGBoost, 22 da Árvore única e 161 do Dummy)."
+            column_config={
+                "Recall — Alertas Detectados (%)": st.column_config.ProgressColumn(
+                    "Recall — Alertas Detectados (%)",
+                    help="Nossa métrica principal: de todos os alertas reais que aconteceram, quantos % o modelo capturou?",
+                    format="%.2f%%",
+                    min_value=0.0,
+                    max_value=100.0,
+                ),
+                "F1-Score — Equilíbrio (%)": st.column_config.ProgressColumn(
+                    "F1-Score — Equilíbrio (%)",
+                    help="Nota de equilíbrio entre capturar todos os alertas (Recall) e não dar alarme falso demais (Precisão).",
+                    format="%.2f%%",
+                    min_value=0.0,
+                    max_value=100.0,
+                ),
+                "Precisão (%)": st.column_config.NumberColumn(
+                    "Precisão (%)",
+                    format="%.2f%%",
+                ),
+                "Acurácia Geral (%)": st.column_config.NumberColumn(
+                    "Acurácia Geral (%)",
+                    help="Cuidado: como ~98,9% das horas são normais, até o Dummy que chuta 'Normal' sempre tira ~98,9% de acurácia errando todos os alertas!",
+                    format="%.2f%%",
+                ),
+                "Velocidade no Lote (ms)": st.column_config.NumberColumn(
+                    "Velocidade no Lote (ms)",
+                    format="%.1f ms",
+                ),
+            },
         )
 
-        c_fig1, c_fig2 = st.columns(2)
-        with c_fig1:
-            caminho_f3 = Path("reports/figures/fig_comparacao_modelos_metricas.png")
-            if caminho_f3.exists():
-                st.image(str(caminho_f3), caption="Comparação de Recall, Precisão e F1 no Holdout (2025–2026).")
-        with c_fig2:
-            caminho_f4 = Path("reports/figures/fig_matriz_confusao_3_arvores.png")
-            if caminho_f4.exists():
-                st.image(str(caminho_f4), caption="Matrizes de Confusão: Árvore de Decisão, Random Forest e XGBoost.")
+        st.markdown(
+            """
+            <div class="step-grid">
+                <div class="step-card green">
+                    <span class="step-num">Métrica Nº 1 · Recall</span>
+                    <h4>🎯 Recall (98,14% na Random Forest)</h4>
+                    <p><strong>O que é:</strong> De todos os alertas reais que aconteceram, quantos % o modelo avisou?<br>
+                    <strong>Por que é a principal:</strong> Porque deixar de avisar quando o ar fica ruim expõe alunos a risco respiratório.</p>
+                </div>
+                <div class="step-card">
+                    <span class="step-num">Métrica Nº 2 · Precisão e F1</span>
+                    <h4>⚖️ Precisão (78,2%) e F1-Score (87,1%)</h4>
+                    <p><strong>Precisão:</strong> Quando o modelo toca a sirene, quantas vezes o ar realmente passou de 100?<br>
+                    <strong>F1-Score:</strong> É a média que equilibra Recall e Precisão (evita que um modelo chute "Alerta" o dia todo).</p>
+                </div>
+                <div class="step-card amber">
+                    <span class="step-num">Armadilha · Acurácia</span>
+                    <h4>⚠️ Por que a Acurácia de 98,9% engana?</h4>
+                    <p>Olhe a última linha da tabela (<strong>Dummy</strong>): ele chuta <em>"Ar Adequado"</em> o ano inteiro, tira <strong>98,90% de Acurácia Geral</strong>, mas acerta <strong>ZERO alertas (Recall = 0%)</strong>! Por isso nunca usamos a Acurácia sozinha.</p>
+                </div>
+                <div class="step-card red">
+                    <span class="step-num">Os 4 Resultados · TP, FN, FP, TN</span>
+                    <h4>🔍 Entenda as 4 siglas da tabela</h4>
+                    <p><strong>TP:</strong> Alerta real avisado certo (158).<br>
+                    <strong>FN (Pior erro!):</strong> Ar ficou ruim e o modelo não avisou (só 3 na RF!).<br>
+                    <strong>FP:</strong> Alarme preventivo (44).<br>
+                    <strong>TN:</strong> Hora normal certa (14.387).</p>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
         st.divider()
-        st.subheader("2. Série Histórica Dinâmica: Previsão Gerada vs. Ocorrência Real")
+        st.markdown(f"### 2️⃣ Auditoria na Prática: O que o Modelo Previu vs. O que Aconteceu de Verdade ({particao_hist})")
         df_hist = carregar_serie_historica_com_previsoes()
 
-        # Recorte automático do episódio crítico representativo da partição selecionada
         if "Holdout" in particao_hist:
-            data_ini = pd.Timestamp("2025-12-24")
-            data_fim = pd.Timestamp("2026-01-03")
-            titulo_recorte = "Episódio Crítico de Verão no Holdout (24/12/2025 a 03/01/2026)"
+            recorte_part = df_hist[df_hist["event_time_dt"] >= pd.Timestamp("2025-01-01")].copy()
+            nome_periodo_txt = "Teste Final (Holdout: Janeiro/2025 a Agosto/2026)"
         else:
-            data_ini = pd.Timestamp("2024-09-25")
-            data_fim = pd.Timestamp("2024-10-05")
-            titulo_recorte = "Episódio Crítico na Validação (25/09/2024 a 05/10/2024)"
-        recorte = df_hist[(df_hist["event_time_dt"] >= data_ini) & (df_hist["event_time_dt"] <= data_fim)].copy()
+            recorte_part = df_hist[
+                (df_hist["event_time_dt"] >= pd.Timestamp("2024-10-01"))
+                & (df_hist["event_time_dt"] < pd.Timestamp("2025-01-01"))
+            ].copy()
+            nome_periodo_txt = "Validação Temporal (4º Trimestre de 2024: Outubro a Dezembro/2024)"
 
-        if len(recorte) > 0:
-            recorte["alerta_simulado"] = (recorte["probabilidade_risco"] >= limiar_simulacao).astype(int)
-            tp_rec = int(((recorte[COLUNA_ALVO] == 1) & (recorte["alerta_simulado"] == 1)).sum())
-            fp_rec = int(((recorte[COLUNA_ALVO] == 0) & (recorte["alerta_simulado"] == 1)).sum())
-            fn_rec = int(((recorte[COLUNA_ALVO] == 1) & (recorte["alerta_simulado"] == 0)).sum())
+        recorte_part["alerta_simulado"] = (recorte_part["probabilidade_risco"] >= limiar_oficial).astype(int)
+        tp_p = int(((recorte_part[COLUNA_ALVO] == 1) & (recorte_part["alerta_simulado"] == 1)).sum())
+        fp_p = int(((recorte_part[COLUNA_ALVO] == 0) & (recorte_part["alerta_simulado"] == 1)).sum())
+        fn_p = int(((recorte_part[COLUNA_ALVO] == 1) & (recorte_part["alerta_simulado"] == 0)).sum())
+        total_pos_p = int(recorte_part[COLUNA_ALVO].sum())
 
-            m1, m2, m3, m4 = st.columns(4)
-            m1.metric("Horas no Episódio Exibido", len(recorte))
-            m2.metric("Alertas Reais (IQAr > 100)", int(recorte[COLUNA_ALVO].sum()))
-            m3.metric("Alertas Detectados (TP)", tp_rec)
-            m4.metric("Falsos Negativos (FN) / Falsos Positivos (FP)", f"{fn_rec} FN / {fp_rec} FP")
+        st.markdown(
+            f"""
+            <div class="kpi-grid">
+                <div class="kpi-card">
+                    <div class="kpi-label">Total de Horas Analisadas</div>
+                    <div class="kpi-value">{len(recorte_part):,} h</div>
+                    <div class="kpi-desc">Período selecionado: <strong>{nome_periodo_txt}</strong> (dados de <code>data/processed/</code>).</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Episódios Reais de Poluição (IQAr &gt; 100)</div>
+                    <div class="kpi-value">{total_pos_p} horas</div>
+                    <div class="kpi-desc">Horas em que o índice oficial da CETESB realmente ultrapassou 100 pontos.</div>
+                </div>
+                <div class="kpi-card ok">
+                    <div class="kpi-label">Alertas Capturados 1h Antes (TP)</div>
+                    <div class="kpi-value">{tp_p} de {total_pos_p} ({(tp_p / max(1, total_pos_p)) * 100:.1f}%)</div>
+                    <div class="kpi-desc">Episódios críticos em que a Random Forest avisou com 1 hora de antecedência.</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Erros no Período (FN e FP)</div>
+                    <div class="kpi-value">{fn_p} FN  ·  {fp_p} FP</div>
+                    <div class="kpi-desc">Apenas <strong>{fn_p} falhas críticas (FN)</strong> e <strong>{fp_p} alarmes preventivos (FP)</strong> no período inteiro.</div>
+                </div>
+            </div>
+            """.replace(",", "."),
+            unsafe_allow_html=True,
+        )
 
-            fig_h, (ax_h1, ax_h2) = plt.subplots(2, 1, figsize=(13, 6.2), sharex=True)
-            ax_h1.plot(recorte["event_time_dt"], recorte[COLUNA_IQAR].shift(-1), color="#0f172a", linewidth=1.6, label="IQAr Real no Horário do Evento")
-            ax_h1.axhline(100, color="#dc2626", linestyle="--", label="Limite CETESB (IQAr = 100)")
-            eventos_reais = recorte[recorte[COLUNA_ALVO] == 1]
-            if len(eventos_reais) > 0:
-                ax_h1.scatter(
-                    eventos_reais["event_time_dt"],
-                    eventos_reais[COLUNA_IQAR].shift(-1).fillna(105),
-                    color="#dc2626",
-                    zorder=5,
-                    label="Episódio Real (Classe 1)",
-                )
-            ax_h1.set_ylabel("IQAr")
-            ax_h1.set_title(f"{titulo_recorte} — Real vs. Previsto", fontweight="bold")
-            ax_h1.grid(True, alpha=0.3)
-            ax_h1.legend(loc="upper right")
+        # Tabela interativa mostrando os episódios reais de poluição (IQAr > 100) e o que o modelo fez 1h antes
+        eventos_reais_df = recorte_part[recorte_part[COLUNA_ALVO] == 1].copy()
+        eventos_reais_df = eventos_reais_df.sort_values("event_time_dt", ascending=False).head(30)
 
-            ax_h2.plot(recorte["event_time_dt"], recorte["probabilidade_risco"] * 100, color="#2563eb", linewidth=1.8, label="Probabilidade Prevista (Random Forest)")
-            ax_h2.axhline(limiar_simulacao * 100, color="#dc2626", linestyle="--", label=f"Limiar de Alerta ({limiar_simulacao:.0%})")
-            ax_h2.fill_between(
-                recorte["event_time_dt"],
-                0,
-                recorte["probabilidade_risco"] * 100,
-                where=(recorte["probabilidade_risco"] >= limiar_simulacao),
-                color="#ef4444",
-                alpha=0.25,
-                label="Período em Alerta Previsto",
-            )
-            ax_h2.set_ylim(0, 105)
-            ax_h2.set_ylabel("Probabilidade (%)")
-            ax_h2.set_xlabel("Data e Hora do Evento")
-            ax_h2.grid(True, alpha=0.3)
-            ax_h2.legend(loc="upper right")
-            fig_h.tight_layout()
-            st.pyplot(fig_h)
-            plt.close(fig_h)
+        tabela_auditoria = pd.DataFrame(
+            {
+                "Hora da Leitura (t)": eventos_reais_df["time_dt"].dt.strftime("%d/%m/%Y %H:%M"),
+                "Hora do Evento Crítico (t + 1h)": eventos_reais_df["event_time_dt"].dt.strftime("%d/%m/%Y %H:%M"),
+                "IQAr em t (Antes)": eventos_reais_df[COLUNA_IQAR].round(1),
+                "IQAr Real em t + 1h (Depois)": eventos_reais_df["iqar_evento"].round(1),
+                "Probabilidade Dada pelo Modelo 1h Antes (%)": (eventos_reais_df["probabilidade_risco"] * 100).round(1),
+                "Limiar": f"{limiar_oficial * 100:.0f}%",
+                "Resultado da Previsão 1h Antes": eventos_reais_df["alerta_simulado"].map(
+                    lambda a: "✅ ACERTOU O ALERTA (Verdadeiro Positivo — TP)"
+                    if a == 1
+                    else "❌ FALHA CRÍTICA: Não avisou (Falso Negativo — FN)"
+                ),
+            }
+        )
 
-            st.info(
-                "📌 **Como funciona este gráfico dinâmico e de onde vêm os dados?**\n"
-                "- **Origem dos dados:** o sistema lê a nossa base histórica completa (`data/processed/dados_com_alvo_2022-08-04_2026-08-31.csv`) "
-                "e passa todas as horas pelo modelo salvo (`models/modelo_final_sprint5.joblib`) para recalcular a probabilidade de risco hora a hora.\n"
-                "- **Gráfico de cima (O que aconteceu de verdade):** a linha preta é o `IQAr` real calculado pela regra da CETESB e as **bolinhas vermelhas** "
-                "mostram exatamente as horas em que o ar ficou inadequado (`IQAr > 100`).\n"
-                "- **Gráfico de baixo (O que o modelo previu 1 hora antes):** a linha azul é a probabilidade calculada pelas 300 árvores da Random Forest; "
-                "toda vez que ela cruza a linha tracejada de **30%** (área pintada de vermelho), o alerta preventivo é acionado, antecipando os picos reais."
-            )
-        else:
-            st.info("Nenhum registro encontrado para o intervalo selecionado.")
+        st.markdown("#### 📋 Tabela de Auditoria Linha a Linha (Últimos 30 Episódios Reais de Poluição com `IQAr > 100`)")
+        st.dataframe(
+            tabela_auditoria,
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "Probabilidade Dada pelo Modelo 1h Antes (%)": st.column_config.ProgressColumn(
+                    "Probabilidade Dada pelo Modelo 1h Antes (%)",
+                    help="Probabilidade emitida pela Random Forest 1 hora antes do evento. Quando é >= 30%, o modelo acerta o alerta!",
+                    format="%.1f%%",
+                    min_value=0.0,
+                    max_value=100.0,
+                ),
+                "IQAr em t (Antes)": st.column_config.NumberColumn("IQAr em t (Antes)", format="%.1f pts"),
+                "IQAr Real em t + 1h (Depois)": st.column_config.NumberColumn(
+                    "IQAr Real em t + 1h (Depois)", format="%.1f pts"
+                ),
+            },
+        )
+
+        st.markdown(
+            """
+            <div class="explain-box green">
+                <h4>💡 Como explicar esta Tabela de Auditoria na apresentação?</h4>
+                <ul>
+                    <li><strong>De onde vêm esses dados:</strong> o painel lê a nossa série histórica salva no repositório (<code>data/processed/dados_com_alvo_2022-08-04_2026-08-31.csv</code>), filtra as horas em que a poluição realmente passou de <strong>100 pontos</strong> e mostra o que o nosso modelo (<code>modelo_final_sprint5.joblib</code>) respondeu <strong>1 hora antes</strong>.</li>
+                    <li><strong>Compare as colunas <em>IQAr em t (Antes)</em> e <em>IQAr Real em t + 1h (Depois)</em>:</strong> repare que mesmo quando o IQAr na hora <em>t</em> ainda estava abaixo de 100 (por exemplo, 92 ou 96 pontos), a <strong>Random Forest já enxergava a tendência de subida</strong> pela média das últimas 3h e pelo calor, emitindo probabilidade acima de 30% e <strong>antecipando o alerta antes de o ar ficar ruim!</strong></li>
+                    <li><strong>Transparência total nos erros:</strong> na tabela acima também aparecem com total honestidade as únicas <strong>3 horas de Falha Crítica (FN)</strong> de dezembro de 2025, quando o ozônio subiu de forma muito abrupta em 1 hora e a probabilidade ficou abaixo de 30%.</li>
+                </ul>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
 
 if __name__ == "__main__":

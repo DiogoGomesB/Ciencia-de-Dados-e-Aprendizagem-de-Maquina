@@ -1,10 +1,10 @@
 """Dashboard interativo Streamlit — Trilha B: Qualidade do Ar (UBC / Mogi das Cruzes).
 
-Interface única e coerente (mesma paleta do artigo em docs/index.html), pensada para público leigo:
-1. Aba "Previsão ao vivo": resultado primeiro (cartões), depois como ele foi calculado e a tabela
-   das próximas horas (+1h oficial, +7h e +24h experimentais).
-2. Aba "Resultados do teste": seletor de período (Holdout 2025–2026 ou Validação 2024-Q4), tabela
-   comparativa dos modelos, explicação das métricas e auditoria linha a linha dos episódios reais.
+Interface moderna em tema escuro (Dark Slate), visualmente limpa e orientada a gráficos:
+1. Aba "Previsão ao Vivo": status imediato do ar na próxima hora (+1h), gráficos visuais de
+   projeção horária (+1h, +7h e +24h), tabela com barras de probabilidade e explicações compactas.
+2. Aba "Resultados do Teste": comparativo visual entre modelos, matrizes de confusão, gráfico
+   dinâmico de série temporal (IQAr Real vs. Probabilidade Prevista) e auditoria de episódios reais.
 """
 
 from __future__ import annotations
@@ -13,6 +13,7 @@ import time
 from pathlib import Path
 
 import joblib
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import streamlit as st
@@ -34,165 +35,174 @@ st.set_page_config(
 
 COL_PROB = "probabilidade estimada de IQAr > 100"
 
-
 # =============================================================================
-# ESTILO VISUAL ÚNICO (mesma paleta do artigo: azul #2563eb, verde #059669, âmbar #d97706)
+# ESTILO VISUAL — TEMA ESCURO MODERNO (Dark Slate & Clean Dashboard)
 # =============================================================================
 CSS = """
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
 :root {
-  --primary: #2563eb;
-  --primary-dark: #1d4ed8;
-  --primary-subtle: #eff6ff;
-  --green: #059669;
-  --green-subtle: #ecfdf5;
-  --amber: #d97706;
-  --amber-subtle: #fffbeb;
-  --red: #dc2626;
-  --red-subtle: #fef2f2;
-  --purple: #7c3aed;
-  --purple-subtle: #f5f3ff;
-  --text: #0f172a;
-  --muted: #475569;
-  --light: #64748b;
-  --border: #e2e8f0;
-  --surface: #ffffff;
-  --page: #f8fafc;
-  --radius: 14px;
-  --shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px -12px rgba(15, 23, 42, 0.12);
+  --bg-page: #0b0f19;
+  --bg-surface: #111827;
+  --bg-card: #131d2e;
+  --border: #1e293b;
+  --border-subtle: #273549;
+  --primary: #3b82f6;
+  --primary-glow: rgba(59, 130, 246, 0.25);
+  --green: #10b981;
+  --green-glow: rgba(16, 185, 129, 0.2);
+  --amber: #f59e0b;
+  --amber-glow: rgba(245, 158, 11, 0.2);
+  --red: #ef4444;
+  --red-glow: rgba(239, 68, 68, 0.2);
+  --purple: #8b5cf6;
+  --text-main: #f8fafc;
+  --text-muted: #cbd5e1;
+  --text-light: #94a3b8;
+  --radius: 12px;
 }
 
 html, body, [class*="css"], .stMarkdown, .stDataFrame, button, input, label {
   font-family: 'Inter', -apple-system, 'Segoe UI', Roboto, sans-serif !important;
 }
 
-.block-container { padding-top: 1.4rem; padding-bottom: 3rem; max-width: 1240px; }
+.stApp {
+  background-color: var(--bg-page);
+  color: var(--text-main);
+}
+
+.block-container {
+  padding-top: 1.2rem;
+  padding-bottom: 2.8rem;
+  max-width: 1240px;
+}
+
 #MainMenu, footer { visibility: hidden; }
 header[data-testid="stHeader"] { background: transparent; }
 
-/* ---------- Barra lateral ---------- */
+/* ---------- Barra Lateral ---------- */
 section[data-testid="stSidebar"] {
-  background: var(--surface);
+  background-color: var(--bg-surface) !important;
   border-right: 1px solid var(--border);
 }
 section[data-testid="stSidebar"] .block-container { padding-top: 1rem; }
-.side-brand { font-size: 1.15rem; font-weight: 800; color: var(--text); margin: 0.2rem 0 0.1rem 0; }
-.side-sub { font-size: 0.8rem; color: var(--light); margin-bottom: 0.9rem; }
+.side-brand { font-size: 1.25rem; font-weight: 800; color: #ffffff; margin: 0.2rem 0 0.1rem 0; letter-spacing: -0.01em; }
+.side-sub { font-size: 0.8rem; color: var(--text-light); margin-bottom: 0.9rem; line-height: 1.4; }
 .side-card {
-  background: var(--page); border: 1px solid var(--border); border-radius: 12px;
-  padding: 0.8rem 0.9rem; margin-bottom: 0.8rem; font-size: 0.84rem; color: var(--muted); line-height: 1.5;
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px;
+  padding: 0.8rem 0.9rem; margin-bottom: 0.8rem; font-size: 0.82rem; color: var(--text-muted); line-height: 1.5;
 }
-.side-card b { color: var(--text); }
-.side-title { font-size: 0.72rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--light); margin-bottom: 0.45rem; }
-.scale-row { display: flex; align-items: center; gap: 0.5rem; margin: 0.22rem 0; }
+.side-card b { color: var(--text-main); }
+.side-title { font-size: 0.72rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--primary); margin-bottom: 0.45rem; }
+.scale-row { display: flex; align-items: center; gap: 0.5rem; margin: 0.25rem 0; }
 .scale-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
 
-/* ---------- Abas (estilo pílula) ---------- */
+/* ---------- Abas (estilo pílula moderna) ---------- */
 .stTabs [data-baseweb="tab-list"] {
-  gap: 0.4rem; background: var(--surface); border: 1px solid var(--border);
+  gap: 0.4rem; background: var(--bg-surface); border: 1px solid var(--border);
   border-radius: 999px; padding: 0.3rem; width: fit-content; margin-bottom: 1.1rem;
 }
 .stTabs [data-baseweb="tab"] {
-  height: auto; padding: 0.5rem 1.1rem; border-radius: 999px;
-  font-weight: 600; font-size: 0.92rem; color: var(--muted); background: transparent;
+  height: auto; padding: 0.5rem 1.2rem; border-radius: 999px;
+  font-weight: 600; font-size: 0.92rem; color: var(--text-light); background: transparent; border: none;
 }
-.stTabs [aria-selected="true"] { background: var(--primary) !important; color: #ffffff !important; }
+.stTabs [data-baseweb="tab"]:hover { color: var(--text-main); }
+.stTabs [aria-selected="true"] { background: var(--primary) !important; color: #ffffff !important; box-shadow: 0 4px 12px var(--primary-glow); }
 .stTabs [data-baseweb="tab-highlight"], .stTabs [data-baseweb="tab-border"] { display: none; }
 
-/* ---------- Botões e seletores ---------- */
+/* ---------- Botões e Seletores ---------- */
 .stButton > button {
-  border-radius: 10px; font-weight: 600; padding: 0.55rem 1rem;
-  box-shadow: 0 4px 12px -6px rgba(37, 99, 235, 0.55);
+  background: var(--primary) !important; color: #ffffff !important;
+  border: none !important; border-radius: 9px; font-weight: 600; padding: 0.55rem 1.1rem;
+  box-shadow: 0 4px 14px var(--primary-glow); transition: all 0.2s ease;
 }
+.stButton > button:hover { opacity: 0.92; transform: translateY(-1px); }
+
 div[role="radiogroup"] { gap: 0.5rem; flex-wrap: wrap; }
 div[role="radiogroup"] > label {
-  background: var(--surface); border: 1px solid var(--border); border-radius: 999px;
-  padding: 0.35rem 0.9rem 0.35rem 0.6rem; margin-right: 0 !important;
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 999px;
+  padding: 0.35rem 0.95rem 0.35rem 0.7rem; margin-right: 0 !important; color: var(--text-muted);
 }
-div[role="radiogroup"] > label:has(input:checked) { border-color: var(--primary); background: var(--primary-subtle); }
-.stRadio > label p { font-weight: 600; color: var(--text); }
-
-/* ---------- Tabelas ---------- */
-[data-testid="stDataFrame"] {
-  border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden;
-  box-shadow: var(--shadow); background: var(--surface);
+div[role="radiogroup"] > label:has(input:checked) {
+  border-color: var(--primary); background: rgba(59, 130, 246, 0.15); color: #ffffff;
 }
+.stRadio > label p { font-weight: 600; color: var(--text-main); }
 
-/* ---------- Cabeçalho (hero) ---------- */
+/* ---------- Hero Header ---------- */
 .hero {
-  background: linear-gradient(120deg, #0f172a 0%, #1e3a8a 55%, #0f766e 100%);
-  color: #ffffff; border-radius: 20px; padding: 1.7rem 2rem; margin-bottom: 0.9rem;
-  box-shadow: 0 18px 40px -20px rgba(15, 23, 42, 0.55);
+  background: linear-gradient(135deg, #0b1120 0%, #172554 50%, #0f766e 100%);
+  color: #ffffff; border-radius: 16px; padding: 1.4rem 1.8rem; margin-bottom: 0.8rem;
+  border: 1px solid rgba(255, 255, 255, 0.08); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
 }
-.hero-tags { display: flex; flex-wrap: wrap; gap: 0.45rem; margin-bottom: 0.8rem; }
+.hero-tags { display: flex; flex-wrap: wrap; gap: 0.45rem; margin-bottom: 0.65rem; }
 .hero-tag {
-  background: rgba(255, 255, 255, 0.12); border: 1px solid rgba(255, 255, 255, 0.22);
-  padding: 0.2rem 0.7rem; border-radius: 999px; font-size: 0.76rem; font-weight: 600; color: #e2e8f0;
+  background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.18);
+  padding: 0.18rem 0.65rem; border-radius: 999px; font-size: 0.74rem; font-weight: 600; color: #e2e8f0;
 }
-.hero h1 { font-size: 1.85rem; font-weight: 800; letter-spacing: -0.02em; margin: 0 0 0.4rem 0; color: #ffffff; padding: 0; }
-.hero p { margin: 0; color: #cbd5e1; font-size: 0.98rem; line-height: 1.55; max-width: 860px; }
-.hero code { background: rgba(255, 255, 255, 0.14); color: #ffffff; padding: 0.05rem 0.35rem; border-radius: 5px; }
+.hero h1 { font-size: 1.65rem; font-weight: 800; letter-spacing: -0.02em; margin: 0 0 0.35rem 0; color: #ffffff; padding: 0; }
+.hero p { margin: 0; color: #cbd5e1; font-size: 0.92rem; line-height: 1.5; max-width: 920px; }
 
-/* ---------- Faixas de aviso / explicação ---------- */
-.note {
-  border-radius: 12px; padding: 0.95rem 1.15rem; margin: 0.8rem 0 1.1rem 0;
-  font-size: 0.9rem; line-height: 1.6; color: var(--text);
-  background: var(--primary-subtle); border: 1px solid #bfdbfe; border-left: 5px solid var(--primary);
+/* ---------- Faixa de Alerta Discreta ---------- */
+.disclaimer-banner {
+  background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.25);
+  border-left: 4px solid var(--amber); border-radius: 10px; padding: 0.65rem 0.95rem;
+  margin: 0.5rem 0 1rem 0; font-size: 0.84rem; color: #fde68a; line-height: 1.45;
 }
-.note.amber { background: var(--amber-subtle); border-color: #fde68a; border-left-color: var(--amber); color: #78350f; }
-.note.green { background: var(--green-subtle); border-color: #a7f3d0; border-left-color: var(--green); }
-.note h4 { margin: 0 0 0.4rem 0; font-size: 0.98rem; font-weight: 700; color: var(--text); }
-.note ul { margin: 0.2rem 0 0 1.1rem; padding: 0; }
-.note li { margin-bottom: 0.3rem; }
 
-/* ---------- Títulos de seção ---------- */
-.sec { margin: 1.6rem 0 0.7rem 0; }
-.sec .eyebrow { font-size: 0.72rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--primary); }
-.sec h3 { font-size: 1.3rem; font-weight: 800; color: var(--text); margin: 0.15rem 0 0.2rem 0; padding: 0; letter-spacing: -0.01em; }
-.sec p { margin: 0; color: var(--muted); font-size: 0.92rem; line-height: 1.5; }
+/* ---------- Títulos de Seção ---------- */
+.sec { margin: 1.2rem 0 0.6rem 0; }
+.sec .eyebrow { font-size: 0.7rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--primary); }
+.sec h3 { font-size: 1.2rem; font-weight: 800; color: var(--text-main); margin: 0.1rem 0 0.15rem 0; padding: 0; letter-spacing: -0.01em; }
+.sec p { margin: 0; color: var(--text-light); font-size: 0.88rem; line-height: 1.45; }
 
-/* ---------- Cartões explicativos ---------- */
-.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.85rem; margin: 0.4rem 0 0.9rem 0; }
-.card {
-  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
-  padding: 1rem 1.1rem; box-shadow: var(--shadow); position: relative; overflow: hidden;
+/* ---------- Cartões de KPI ---------- */
+.grid-kpi { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 0.75rem; margin: 0.4rem 0 0.8rem 0; }
+.kpi-card {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 0.9rem 1rem; position: relative; overflow: hidden;
 }
-.card::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: var(--primary); }
-.card.green::before { background: var(--green); }
-.card.amber::before { background: var(--amber); }
-.card.purple::before { background: var(--purple); }
-.card.red::before { background: var(--red); }
-.tag {
-  display: inline-block; font-size: 0.7rem; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase;
-  padding: 0.15rem 0.55rem; border-radius: 999px; margin-bottom: 0.45rem;
-  background: var(--primary-subtle); color: var(--primary-dark);
-}
-.card.green .tag { background: var(--green-subtle); color: #047857; }
-.card.amber .tag { background: var(--amber-subtle); color: #b45309; }
-.card.purple .tag { background: var(--purple-subtle); color: #6d28d9; }
-.card.red .tag { background: var(--red-subtle); color: #b91c1c; }
-.card h4 { margin: 0 0 0.35rem 0; font-size: 1rem; font-weight: 700; color: var(--text); }
-.card p { margin: 0; font-size: 0.86rem; color: var(--muted); line-height: 1.5; }
-.card code, .note code { background: #f1f5f9; color: #0f172a; padding: 0.05rem 0.3rem; border-radius: 5px; font-size: 0.85em; }
+.kpi-card::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--primary); }
+.kpi-card.ok::before { background: var(--green); }
+.kpi-card.ok { background: linear-gradient(180deg, rgba(16, 185, 129, 0.08) 0%, var(--bg-card) 60%); }
+.kpi-card.ok .value { color: #34d399; }
+.kpi-card.alerta::before { background: var(--red); }
+.kpi-card.alerta { background: linear-gradient(180deg, rgba(239, 68, 68, 0.12) 0%, var(--bg-card) 60%); }
+.kpi-card.alerta .value { color: #f87171; }
+.kpi-card .label { font-size: 0.72rem; font-weight: 700; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.04em; }
+.kpi-card .value { font-size: 1.5rem; font-weight: 800; color: var(--text-main); margin: 0.15rem 0 0.25rem 0; letter-spacing: -0.01em; }
+.kpi-card .desc { font-size: 0.8rem; color: var(--text-muted); line-height: 1.4; }
 
-/* ---------- Cartões de números (KPI) ---------- */
-.kpi .label { font-size: 0.74rem; font-weight: 700; color: var(--light); text-transform: uppercase; letter-spacing: 0.04em; }
-.kpi .value { font-size: 1.6rem; font-weight: 800; color: var(--text); margin: 0.2rem 0 0.3rem 0; letter-spacing: -0.01em; }
-.kpi .desc { font-size: 0.82rem; color: var(--muted); line-height: 1.45; }
-.kpi.ok { background: linear-gradient(180deg, var(--green-subtle) 0%, #ffffff 70%); }
-.kpi.ok::before { background: var(--green); }
-.kpi.ok .value { color: #047857; }
-.kpi.alerta { background: linear-gradient(180deg, var(--red-subtle) 0%, #ffffff 70%); }
-.kpi.alerta::before { background: var(--red); }
-.kpi.alerta .value { color: #b91c1c; }
+/* ---------- Cartões Explicativos ---------- */
+.grid-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.75rem; margin: 0.5rem 0; }
+.exp-card {
+  background: var(--bg-surface); border: 1px solid var(--border); border-radius: 10px;
+  padding: 0.85rem 0.95rem; font-size: 0.84rem; color: var(--text-muted); line-height: 1.5;
+}
+.exp-card h4 { margin: 0 0 0.3rem 0; font-size: 0.92rem; font-weight: 700; color: var(--text-main); }
+.exp-card p { margin: 0; font-size: 0.82rem; color: var(--text-light); line-height: 1.45; }
+.exp-card .badge {
+  display: inline-block; font-size: 0.68rem; font-weight: 700; text-transform: uppercase;
+  padding: 0.1rem 0.45rem; border-radius: 999px; margin-bottom: 0.35rem;
+  background: rgba(59, 130, 246, 0.18); color: #60a5fa;
+}
+
+/* ---------- Dataframe ---------- */
+[data-testid="stDataFrame"] {
+  border: 1px solid var(--border) !important; border-radius: var(--radius) !important;
+  background: var(--bg-surface) !important; overflow: hidden;
+}
+
+/* ---------- Expander ---------- */
+.streamlit-expanderHeader {
+  background-color: var(--bg-card) !important; border-radius: 10px !important;
+  border: 1px solid var(--border) !important; color: var(--text-main) !important; font-weight: 600 !important;
+}
 </style>
 """
 
 
 def _html(conteudo: str) -> None:
-    """Renderiza HTML removendo indentação (evita o Markdown tratar o HTML como bloco de código)."""
     linhas = [linha.strip() for linha in conteudo.splitlines() if linha.strip()]
     st.markdown("\n".join(linhas), unsafe_allow_html=True)
 
@@ -202,27 +212,13 @@ def _secao(etiqueta: str, titulo: str, subtitulo: str = "") -> None:
     _html(f'<div class="sec"><div class="eyebrow">{etiqueta}</div><h3>{titulo}</h3>{sub}</div>')
 
 
-def _cartoes(itens: list[tuple[str, str, str, str]]) -> None:
-    """Grade de cartões explicativos: (cor, etiqueta, título, texto)."""
-    blocos = "".join(
-        f'<div class="card {cor}"><span class="tag">{etq}</span><h4>{tit}</h4><p>{txt}</p></div>'
-        for cor, etq, tit, txt in itens
-    )
-    _html(f'<div class="grid">{blocos}</div>')
-
-
 def _kpis(itens: list[tuple[str, str, str, str]]) -> None:
-    """Grade de cartões numéricos: (classe, rótulo, valor, descrição)."""
     blocos = "".join(
-        f'<div class="card kpi {cls}"><div class="label">{rot}</div>'
+        f'<div class="kpi-card {cls}"><div class="label">{rot}</div>'
         f'<div class="value">{val}</div><div class="desc">{desc}</div></div>'
         for cls, rot, val, desc in itens
     )
-    _html(f'<div class="grid">{blocos}</div>')
-
-
-def _nota(conteudo: str, cor: str = "") -> None:
-    _html(f'<div class="note {cor}">{conteudo}</div>')
+    _html(f'<div class="grid-kpi">{blocos}</div>')
 
 
 def _int_br(valor: float) -> str:
@@ -258,19 +254,18 @@ def carregar_serie_historica_com_previsoes() -> pd.DataFrame:
     df = adicionar_resumos_curto_prazo(df, ("ozone", "pm2_5"))
     df["time_dt"] = pd.to_datetime(df["time"])
     df["event_time_dt"] = df["time_dt"] + pd.Timedelta(hours=1)
+    df["iqar_evento"] = df[COLUNA_IQAR].shift(-1)
     df_validos = df[df[COLUNA_ALVO].notna()].copy()
     df_validos[COLUNA_ALVO] = df_validos[COLUNA_ALVO].astype(int)
 
     artefato = carregar_artefato_modelo()
     probs = artefato["pipeline"].predict_proba(df_validos[list(FEATURES_SPRINT4)])[:, 1]
     df_validos["probabilidade_risco"] = probs
-    df_validos["iqar_evento"] = df_validos[COLUNA_IQAR].shift(-1)
     return df_validos
 
 
 @st.cache_data(ttl=300, show_spinner="Consultando as APIs da Open-Meteo...")
 def consultar_previsao_ao_vivo() -> tuple[pd.Series, float, pd.Timestamp]:
-    """Consulta as 2 APIs e roda o modelo. Guarda o resultado por 5 minutos."""
     inicio = time.perf_counter()
     resultado = prever_proxima_hora().iloc[0]
     latencia_ms = (time.perf_counter() - inicio) * 1000.0
@@ -283,14 +278,14 @@ def consultar_projecao(horas: int) -> pd.DataFrame:
 
 
 # =============================================================================
-# APLICAÇÃO
+# APLICAÇÃO PRINCIPAL
 # =============================================================================
 def main() -> None:
     st.markdown(CSS, unsafe_allow_html=True)
     artefato = carregar_artefato_modelo()
     limiar = float(artefato["decision_threshold"])
 
-    # ---------------------------------------------------------------- Barra lateral
+    # ---------------------------------------------------------------- Barra Lateral
     with st.sidebar:
         logo_path = Path("docs/assets/logo.png")
         if logo_path.exists():
@@ -304,33 +299,36 @@ def main() -> None:
         _html(
             f"""
             <div class="side-card">
-            <div class="side-title">Ficha do modelo</div>
+            <div class="side-title">Ficha Técnica do Modelo</div>
             <b>Algoritmo:</b> Random Forest (300 árvores)<br>
-            <b>O que prevê:</b> se o IQAr passará de 100 na próxima hora<br>
-            <b>Limiar de alerta:</b> {limiar * 100:.0f}% de probabilidade<br>
-            <b>Teste 2025–2026:</b> avisou 158 de 161 episódios (98,14%)
+            <b>Alvo:</b> se IQAr passará de 100 na próxima hora (t+1h)<br>
+            <b>Limiar de decisão:</b> {limiar * 100:.0f}% de probabilidade<br>
+            <b>Recall no teste final:</b> 98,14% (158 de 161 alertas)
             </div>
             """
         )
         _html(
             """
             <div class="side-card">
-            <div class="side-title">Escala do IQAr (CETESB)</div>
-            <div class="scale-row"><span class="scale-dot" style="background:#16a34a"></span><b>0–40</b>&nbsp;Boa</div>
+            <div class="side-title">Escala de Qualidade do Ar (CETESB)</div>
+            <div class="scale-row"><span class="scale-dot" style="background:#10b981"></span><b>0–40</b>&nbsp;Boa</div>
             <div class="scale-row"><span class="scale-dot" style="background:#eab308"></span><b>41–80</b>&nbsp;Moderada</div>
             <div class="scale-row"><span class="scale-dot" style="background:#f97316"></span><b>81–120</b>&nbsp;Ruim</div>
-            <div class="scale-row"><span class="scale-dot" style="background:#dc2626"></span><b>121–200</b>&nbsp;Muito ruim</div>
-            <div class="scale-row"><span class="scale-dot" style="background:#7e22ce"></span><b>&gt; 200</b>&nbsp;Péssima</div>
-            <div style="margin-top:0.45rem">O projeto considera <b>ar inadequado</b> quando o IQAr passa de <b>100</b>.</div>
+            <div class="scale-row"><span class="scale-dot" style="background:#ef4444"></span><b>121–200</b>&nbsp;Muito ruim</div>
+            <div class="scale-row"><span class="scale-dot" style="background:#8b5cf6"></span><b>&gt; 200</b>&nbsp;Péssima</div>
+            <div style="margin-top:0.4rem; font-size:0.78rem; color:#94a3b8">
+            Condição <b>Inadequada</b>: <code>IQAr &gt; 100</code>
+            </div>
             </div>
             """
         )
         st.markdown(
-            "[📄 Artigo técnico](https://diogogomesb.github.io/Ciencia-de-Dados-e-Aprendizagem-de-Maquina/)  \n"
-            "[💻 Repositório no GitHub](https://github.com/DiogoGomesB/Ciencia-de-Dados-e-Aprendizagem-de-Maquina)"
+            "[📄 Artigo Técnico](https://diogogomesb.github.io/Ciencia-de-Dados-e-Aprendizagem-de-Maquina/)  \n"
+            "[💻 Código no GitHub](https://github.com/DiogoGomesB/Ciencia-de-Dados-e-Aprendizagem-de-Maquina)  \n"
+            "[📋 RFC do Projeto](https://github.com/DiogoGomesB/Ciencia-de-Dados-e-Aprendizagem-de-Maquina/blob/main/docs/RFC.md)"
         )
 
-    # ---------------------------------------------------------------- Cabeçalho
+    # ---------------------------------------------------------------- Hero Header
     _html(
         """
         <div class="hero">
@@ -338,23 +336,26 @@ def main() -> None:
         <span class="hero-tag">🎓 Sistemas de Informação · UBC 2026/2</span>
         <span class="hero-tag">🌬️ Trilha B — Qualidade do Ar</span>
         <span class="hero-tag">🌲 Random Forest · 300 árvores</span>
-        <span class="hero-tag">📏 Regra oficial: Tabela 2.7 da CETESB</span>
+        <span class="hero-tag">📏 Tabela 2.7 da CETESB</span>
         </div>
-        <h1>ArPrev — Aviso de ar inadequado com 1 hora de antecedência</h1>
-        <p>Consultamos dados abertos de poluentes e clima para o campus da <strong>Universidade Braz Cubas</strong>
-        e estimamos se o Índice de Qualidade do Ar (<code>IQAr</code>) vai passar de <strong>100 pontos</strong>
-        na próxima hora — o limite a partir do qual a CETESB considera o ar inadequado.</p>
+        <h1>ArPrev — Antecipação de Condições Inadequadas de Ar</h1>
+        <p>Monitoramento contínuo sobre o campus da <strong>Universidade Braz Cubas</strong> em Mogi das Cruzes.
+        Consultamos as APIs abertas da Open-Meteo em tempo real e calculamos a probabilidade de o Índice de Qualidade
+        do Ar (<code>IQAr</code>) ultrapassar <strong>100 pontos</strong> com 1 hora de antecedência.</p>
         </div>
         """
     )
-    _nota(
-        "⚠️ <strong>Uso responsável:</strong> as previsões são <strong>estimativas experimentais</strong> de um modelo "
-        "de aprendizado de máquina sobre dados de grade aberta (Open-Meteo / CAMS) e <strong>não substituem</strong> "
-        "os boletins oficiais da CETESB ou da Defesa Civil.",
-        "amber",
+    _html(
+        """
+        <div class="disclaimer-banner">
+        ⚠️ <strong>Aviso de uso responsável:</strong> as previsões são estimativas experimentais obtidas por modelos
+        de aprendizado de máquina sobre dados de grade aberta (CAMS / Open-Meteo) e não substituem os relatórios
+        oficiais da CETESB ou alertas da Defesa Civil.
+        </div>
+        """
     )
 
-    aba1, aba2 = st.tabs(["📡  Previsão ao vivo", "📊  Resultados do teste"])
+    aba1, aba2 = st.tabs(["📡 Previsão ao Vivo", "📊 Resultados do Teste"])
 
     # =========================================================================
     # ABA 1 — PREVISÃO AO VIVO
@@ -363,9 +364,9 @@ def main() -> None:
         col_tit, col_btn = st.columns([4, 1], vertical_alignment="bottom")
         with col_tit:
             _secao(
-                "Agora no campus",
+                "Monitoramento ao Vivo",
                 "Como estará o ar na próxima hora?",
-                "Resultado calculado com os dados mais recentes das APIs da Open-Meteo.",
+                "Inferência gerada pelo modelo Random Forest sobre a leitura mais recente das APIs.",
             )
         with col_btn:
             if st.button("🔄 Atualizar agora", type="primary", width="stretch"):
@@ -379,79 +380,45 @@ def main() -> None:
             horario_dados = pd.Timestamp(res_1h["horário dos dados até t"])
             horario_evento = pd.Timestamp(res_1h["horário do evento previsto"])
 
+            # 4 KPIs principais
             _kpis(
                 [
                     (
                         "alerta" if alerta_1h else "ok",
-                        f"Previsão para {horario_evento:%d/%m às %H:%M}",
-                        "🚨 Alerta" if alerta_1h else "✅ Ar adequado",
+                        f"Previsão ({horario_evento:%d/%m às %H:%M})",
+                        "🚨 Alerta" if alerta_1h else "✅ Ar Adequado",
                         (
-                            "Risco de o IQAr passar de 100. Recomenda-se levar treinos intensos para local coberto."
+                            "Risco iminente de IQAr > 100. Recomenda-se remanejar atividades físicas ao ar livre."
                             if alerta_1h
-                            else "O modelo não espera que o IQAr passe de 100 na próxima hora."
+                            else "Condição dentro dos padrões adequados de saúde."
                         ),
                     ),
                     (
                         "",
-                        "Probabilidade de ar inadequado",
+                        "Probabilidade de Risco",
                         _pct_br(prob_1h, 1),
-                        f"Chance calculada pelas 300 árvores. O alerta só dispara a partir de <strong>{limiar * 100:.0f}%</strong>.",
+                        f"Votação das 300 árvores. O alerta dispara a partir de <strong>{limiar * 100:.0f}%</strong>.",
                     ),
                     (
                         "",
-                        "Último dado usado (hora t)",
+                        "Último Dado Usado (t)",
                         f"{horario_dados:%d/%m · %H:%M}",
-                        "Hora mais recente já fechada nas APIs. O modelo usa só o que já aconteceu até aqui.",
+                        "Hora fechada mais recente recebida da API. O modelo não usa dados futuros.",
                     ),
                     (
                         "",
-                        "Tempo da consulta",
+                        "Tempo de Resposta",
                         f"{latencia_ms:.0f} ms",
-                        f"Buscar as 2 APIs, calcular o IQAr e rodar o modelo. Consultado às {consultado_em:%H:%M}; "
-                        "refaz sozinho a cada 5 min ou no botão.",
+                        f"Consulta às 2 APIs, cálculo CETESB e inferência. Atualizado às {consultado_em:%H:%M}.",
                     ),
                 ]
             )
 
-            _secao("Por trás do resultado", "Como chegamos nesse número (4 passos)")
-            _cartoes(
-                [
-                    (
-                        "",
-                        "Passo 1 · Coleta",
-                        "🌐 Duas APIs abertas",
-                        "A <strong>API de Qualidade do Ar</strong> traz 6 poluentes (ozônio, PM2,5, PM10, CO, NO2, SO2) "
-                        "e a <strong>API de Clima</strong> traz temperatura, umidade, chuva, vento e pressão, para a "
-                        "localização da UBC.",
-                    ),
-                    (
-                        "amber",
-                        "Passo 2 · Regra CETESB",
-                        "📏 Nota do ar (IQAr)",
-                        "Cada poluente vira uma nota pela <strong>Tabela 2.7 da CETESB</strong> (média de 24h, 8h ou 1h). "
-                        "O IQAr da hora é a <strong>pior</strong> das 6 notas.",
-                    ),
-                    (
-                        "purple",
-                        "Passo 3 · 15 pistas",
-                        "🧩 Poluentes + clima + tendência",
-                        "As 6 notas, as 5 variáveis de clima e 4 resumos das últimas horas (médias de 3h e variações de 2h "
-                        "de ozônio e PM2,5) formam a linha que o modelo lê.",
-                    ),
-                    (
-                        "green",
-                        "Passo 4 · Decisão",
-                        "🌲 300 árvores votam",
-                        f"O modelo salvo calcula a probabilidade de o IQAr passar de 100 na hora seguinte. "
-                        f"Com <strong>{limiar * 100:.0f}% ou mais</strong>, o painel mostra <strong>🚨 Alerta</strong>.",
-                    ),
-                ]
-            )
-
+            # Seletor de Horizonte
             _secao(
-                "Planejamento",
-                "Próximas horas",
-                "Escolha quantas horas à frente quer ver. A tabela abaixo se atualiza na hora.",
+                "Planejamento Temporal",
+                "Projeção Dinâmica das Próximas Horas",
+                "Selecione o horizonte desejado para atualizar os gráficos visuais e a tabela abaixo.",
             )
             horizonte = st.radio(
                 "Horizonte da previsão",
@@ -460,46 +427,82 @@ def main() -> None:
                 horizontal=True,
                 label_visibility="collapsed",
                 format_func=lambda h: {
-                    1: "⏱️ +1 hora · oficial",
-                    7: "🌤️ +7 horas · experimental",
-                    24: "📅 +24 horas · experimental",
+                    1: "⏱️ +1 hora · Oficial (só dados medidos)",
+                    7: "🌤️ +7 horas · Experimental (turno)",
+                    24: "📅 +24 horas · Experimental (dia completo)",
                 }[h],
-            )
-            _cartoes(
-                [
-                    (
-                        "green",
-                        "+1 hora · oficial",
-                        "⏱️ Só dados que já aconteceram",
-                        "Usa medições até a hora atual para prever a hora seguinte. É o horizonte que foi testado "
-                        "(98,14% dos alertas capturados em 2025–2026).",
-                    ),
-                    (
-                        "amber",
-                        "+7 horas · experimental",
-                        "🌤️ O próximo turno",
-                        "As APIs também entregam a <strong>previsão</strong> de poluentes e clima. Aplicamos a mesma "
-                        "regra da CETESB e o mesmo modelo hora a hora, até 7 horas à frente.",
-                    ),
-                    (
-                        "purple",
-                        "+24 horas · experimental",
-                        "📅 O dia inteiro",
-                        "Mesmo cálculo para as próximas 24 horas. É experimental porque também depende de a previsão "
-                        "do tempo da API acertar — quanto mais longe, maior a incerteza.",
-                    ),
-                ]
             )
 
             if horizonte == 1:
                 df_proj = res_1h.to_frame().T.assign(**{"horizonte": "+1h", "iqar projetado (CAMS)": np.nan})
             else:
                 df_proj = consultar_projecao(horizonte).copy()
+
             probs_proj = df_proj[COL_PROB].astype(float)
             alertas_proj = probs_proj >= limiar
-            # A projeção (+7h/+24h) chama a hora t de "horário base da janela"; a previsão +1h, de "horário dos dados até t".
             col_hora_t = "horário dos dados até t" if "horário dos dados até t" in df_proj.columns else "horário base da janela"
 
+            # ------------------------------------------------ Gráficos Visuais da Projeção
+            if horizonte > 1:
+                fig_p, (ax_p1, ax_p2) = plt.subplots(1, 2, figsize=(12, 3.6), facecolor="#111827")
+                for ax in (ax_p1, ax_p2):
+                    ax.set_facecolor("#0b0f19")
+                    ax.tick_params(colors="#94a3b8", labelsize=8.5)
+                    for s in ax.spines.values():
+                        s.set_color("#1e293b")
+                    ax.grid(True, color="#1e293b", linestyle="--", alpha=0.6)
+
+                horas_lbl = pd.to_datetime(df_proj["horário do evento previsto"]).dt.strftime("%d/%m %Hh")
+                x_i = np.arange(len(df_proj))
+                passo = max(1, len(x_i) // 8)
+
+                # Gráfico 1: Probabilidade
+                cores_bar = ["#ef4444" if a else "#3b82f6" for a in alertas_proj]
+                ax_p1.bar(x_i, probs_proj * 100, color=cores_bar, alpha=0.85, width=0.65)
+                ax_p1.axhline(limiar * 100, color="#ef4444", linestyle="--", linewidth=1.5, label=f"Limiar de Alerta ({limiar * 100:.0f}%)")
+                ax_p1.set_xticks(x_i[::passo])
+                ax_p1.set_xticklabels(horas_lbl.iloc[::passo], rotation=30, ha="right")
+                ax_p1.set_ylim(0, 105)
+                ax_p1.set_ylabel("Probabilidade (%)", color="#cbd5e1", fontsize=9)
+                ax_p1.set_title(f"Probabilidade Prevista de Risco (+1h a +{horizonte}h)", color="#f8fafc", fontsize=10.5, fontweight="bold")
+                ax_p1.legend(facecolor="#1e293b", edgecolor="#334155", labelcolor="#f8fafc", fontsize=8.5)
+
+                # Gráfico 2: IQAr projetado (CAMS)
+                iqar_proj = pd.to_numeric(df_proj["iqar projetado (CAMS)"], errors="coerce")
+                ax_p2.plot(x_i, iqar_proj, marker="o", markersize=3.5, color="#10b981", linewidth=1.8, label="IQAr projetado (API)")
+                ax_p2.axhline(100, color="#f59e0b", linestyle="--", linewidth=1.5, label="Limite CETESB (IQAr = 100)")
+                ax_p2.fill_between(x_i, 100, np.maximum(100, iqar_proj.fillna(0)), color="#ef4444", alpha=0.25, label="Faixa Inadequada")
+                ax_p2.set_xticks(x_i[::passo])
+                ax_p2.set_xticklabels(horas_lbl.iloc[::passo], rotation=30, ha="right")
+                ax_p2.set_ylabel("IQAr (pontos)", color="#cbd5e1", fontsize=9)
+                ax_p2.set_title(f"Projeção do IQAr pela API (+1h a +{horizonte}h)", color="#f8fafc", fontsize=10.5, fontweight="bold")
+                ax_p2.legend(facecolor="#1e293b", edgecolor="#334155", labelcolor="#f8fafc", fontsize=8.5)
+
+                fig_p.tight_layout()
+                st.pyplot(fig_p)
+                plt.close(fig_p)
+            else:
+                # Termômetro visual de probabilidade para +1h
+                fig_1h, ax_g = plt.subplots(figsize=(11, 1.8), facecolor="#111827")
+                ax_g.set_facecolor("#0b0f19")
+                ax_g.tick_params(colors="#94a3b8", labelsize=8.5)
+                for s in ax_g.spines.values():
+                    s.set_color("#1e293b")
+                ax_g.grid(True, axis="x", color="#1e293b", linestyle="--", alpha=0.6)
+
+                cor_bar = "#ef4444" if alerta_1h else "#10b981"
+                ax_g.barh([0], [prob_1h * 100], color=cor_bar, height=0.45, alpha=0.9, label=f"Probabilidade Atual ({prob_1h * 100:.1f}%)")
+                ax_g.axvline(limiar * 100, color="#ef4444", linestyle="--", linewidth=1.8, label=f"Limiar de Alerta ({limiar * 100:.0f}%)")
+                ax_g.set_xlim(0, 100)
+                ax_g.set_yticks([])
+                ax_g.set_xlabel("Probabilidade Estimada de IQAr > 100 (%)", color="#cbd5e1", fontsize=9)
+                ax_g.set_title(f"Termômetro de Risco para a Próxima Hora ({horario_evento:%d/%m às %H:%M})", color="#f8fafc", fontsize=10.5, fontweight="bold")
+                ax_g.legend(loc="upper right", facecolor="#1e293b", edgecolor="#334155", labelcolor="#f8fafc", fontsize=8.5)
+                fig_1h.tight_layout()
+                st.pyplot(fig_1h)
+                plt.close(fig_1h)
+
+            # ------------------------------------------------ Tabela Horária
             tabela = pd.DataFrame(
                 {
                     "Horizonte": df_proj["horizonte"].astype(str),
@@ -507,124 +510,174 @@ def main() -> None:
                     "Hora prevista (t + 1h)": pd.to_datetime(df_proj["horário do evento previsto"]).dt.strftime("%d/%m %H:%M"),
                     "IQAr previsto pela API": pd.to_numeric(df_proj["iqar projetado (CAMS)"], errors="coerce").round(1),
                     "Probabilidade de ar inadequado": (probs_proj * 100).round(2),
-                    "Situação": np.where(alertas_proj, "🚨 Alerta (IQAr > 100)", "✅ Ar adequado"),
+                    "Situação": np.where(alertas_proj, "🚨 Alerta (IQAr > 100)", "✅ Ar Adequado"),
                 }
             )
             st.dataframe(
                 tabela,
                 width="stretch",
                 hide_index=True,
-                height=min(420, 38 + 35 * len(tabela)),
+                height=min(380, 38 + 35 * len(tabela)),
                 column_config={
                     "Probabilidade de ar inadequado": st.column_config.ProgressColumn(
                         "Probabilidade de ar inadequado",
-                        help=f"Chance estimada pelo modelo. O alerta dispara a partir de {limiar * 100:.0f}%.",
+                        help=f"Probabilidade estimada pelo modelo Random Forest. Dispara alerta a partir de {limiar * 100:.0f}%.",
                         format="%.2f%%",
                         min_value=0.0,
                         max_value=100.0,
                     ),
                     "IQAr previsto pela API": st.column_config.NumberColumn(
                         "IQAr previsto pela API",
-                        help="Nota do IQAr calculada sobre as concentrações previstas pela Open-Meteo. "
-                        "Na linha +1h fica vazia porque ela usa só dados já medidos.",
+                        help="Índice IQAr calculado sobre as concentrações previstas pela Open-Meteo. Na linha +1h fica vazio porque usa medições reais já fechadas.",
                         format="%.1f",
                     ),
                 },
             )
-            _nota(
+
+            # ------------------------------------------------ Detalhes Técnicos (Expander)
+            with st.expander("ℹ️ Como funciona a previsão e de onde vêm os dados (clique para abrir)", expanded=False):
+                _html(
+                    f"""
+                    <div class="grid-cards">
+                    <div class="exp-card">
+                    <span class="badge">Passo 1 · Coleta</span>
+                    <h4>🌐 Duas APIs Abertas</h4>
+                    <p>A API de Qualidade do Ar traz os 6 poluentes da CETESB (ozônio, PM2,5, PM10, CO, NO2, SO2) e a API de Clima
+                    traz temperatura, umidade, vento, chuva e pressão para a coordenada da UBC.</p>
+                    </div>
+                    <div class="exp-card">
+                    <span class="badge">Passo 2 · CETESB</span>
+                    <h4>📏 Regra da Tabela 2.7</h4>
+                    <p>Cada poluente recebe uma nota pela sua média regulamentar (24h para partículas, 8h para O3 e CO, 1h para NO2 e SO2).
+                    O IQAr da hora é determinado pela pior das 6 notas.</p>
+                    </div>
+                    <div class="exp-card">
+                    <span class="badge">Passo 3 · Features</span>
+                    <h4>🧩 15 Pistas Temporais</h4>
+                    <p>As 6 notas de poluentes, 5 variáveis climáticas e 4 resumos de tendência (médias de 3h e variações de 2h de ozônio e PM2,5)
+                    formam a linha de entrada de cada hora.</p>
+                    </div>
+                    <div class="exp-card">
+                    <span class="badge">Passo 4 · Decisão</span>
+                    <h4>🌲 300 Árvores Votam</h4>
+                    <p>A Random Forest calcula a probabilidade calibrada de o IQAr passar de 100 na hora seguinte. Com <strong>{limiar * 100:.0f}% ou mais</strong>,
+                    o painel aciona o estado de alerta preventivo.</p>
+                    </div>
+                    </div>
+                    <div style="font-size:0.82rem; color:#94a3b8; margin-top:0.6rem; line-height:1.45;">
+                    💡 <strong>Entenda os Horizontes:</strong> a linha <code>+1h oficial</code> usa apenas dados reais já medidos até a hora <em>t</em>.
+                    As linhas <code>+7h</code> e <code>+24h</code> são experimentais: aplicam o modelo hora a hora sobre as projeções climáticas da Open-Meteo.
+                    </div>
+                    """
+                )
+
+        except Exception as erro_api:  # noqa: BLE001
+            _html(
+                f"""
+                <div class="disclaimer-banner">
+                ⚠️ Não foi possível consultar a API Open-Meteo no momento (<code>{erro_api}</code>).
+                Clique no botão <strong>Atualizar agora</strong> em alguns instantes ou consulte a aba <strong>Resultados do Teste</strong>.
+                </div>
                 """
-                <h4>📖 Como ler a tabela</h4>
-                <ul>
-                <li><strong>Dado usado (hora t) → Hora prevista (t + 1h):</strong> cada linha usa os dados de uma hora
-                para dizer como estará o ar na hora seguinte.</li>
-                <li><strong>IQAr previsto pela API:</strong> a nota do ar calculada sobre a previsão da Open-Meteo
-                (até 40 = boa; 41–80 = moderada; acima de 100 = inadequada).</li>
-                <li><strong>Probabilidade de ar inadequado:</strong> a barra mostra a chance calculada pelo modelo.
-                Quando ela chega ao limiar, a coluna <em>Situação</em> vira <strong>🚨 Alerta</strong>.</li>
-                </ul>
-                """
-            )
-        except Exception as erro_api:  # noqa: BLE001 — mostrar o erro ao usuário em vez de quebrar a página
-            _nota(
-                f"⚠️ Não foi possível consultar a Open-Meteo agora (<code>{erro_api}</code>). "
-                "Tente o botão <strong>Atualizar agora</strong> em instantes ou veja a aba <strong>Resultados do teste</strong>.",
-                "amber",
             )
 
     # =========================================================================
     # ABA 2 — RESULTADOS DO TESTE
     # =========================================================================
     with aba2:
-        _secao(
-            "Avaliação",
-            "O modelo funciona de verdade?",
-            "Treinamos com o passado e testamos com um período que o modelo nunca viu.",
-        )
-        _cartoes(
-            [
-                (
-                    "",
-                    "1 · Base histórica",
-                    "📅 35.736 horas (2022–2026)",
-                    "Cada hora recebeu o gabarito pela regra da CETESB: <code>1</code> quando o IQAr da hora seguinte "
-                    "passou de 100 (2,53% das horas) e <code>0</code> nas demais.",
-                ),
-                (
-                    "amber",
-                    "2 · Divisão no tempo",
-                    "⏳ Passado treina, futuro testa",
-                    "Nada de sortear horas: o treino vai até 2024 (21.121 h) e 2025–2026 (14.592 h) ficou guardado "
-                    "para uma prova final, aberta uma única vez.",
-                ),
-                (
-                    "green",
-                    "3 · Resultado",
-                    "🏆 158 de 161 alertas",
-                    "No teste final houve 161 horas de ar inadequado. A Random Forest avisou 158 delas com 1 hora de "
-                    "antecedência e deixou passar 3.",
-                ),
-            ]
-        )
+        col_t2, col_r2 = st.columns([3, 2], vertical_alignment="bottom")
+        with col_t2:
+            _secao(
+                "Avaliação e Desempenho",
+                "Validação dos Modelos no Passado",
+                "Comparativo entre os algoritmos testados com divisão estritamente temporal (sem vazamento).",
+            )
+        with col_r2:
+            periodo = st.radio(
+                "Período de avaliação",
+                options=["holdout_2025_2026", "validacao_2024_Q4"],
+                horizontal=True,
+                label_visibility="collapsed",
+                format_func=lambda p: {
+                    "holdout_2025_2026": "🎯 Teste Final · 2025–2026",
+                    "validacao_2024_Q4": "🧪 Validação · out–dez/2024",
+                }[p],
+            )
 
-        periodo = st.radio(
-            "Período avaliado",
-            options=["holdout_2025_2026", "validacao_2024_Q4"],
-            horizontal=True,
-            format_func=lambda p: {
-                "holdout_2025_2026": "🎯 Teste final · 2025–2026",
-                "validacao_2024_Q4": "🧪 Validação · out–dez/2024",
-            }[p],
-        )
         nome_periodo = (
-            "teste final (jan/2025 a ago/2026)" if periodo == "holdout_2025_2026" else "validação (out a dez/2024)"
+            "teste final (jan/2025 a ago/2026)" if periodo == "holdout_2025_2026" else "validação temporal (out a dez/2024)"
         )
 
-        # ------------------------------------------------ Tabela comparativa
-        _secao("Comparação", "Qual modelo errou menos?", f"Números do período de {nome_periodo}.")
         df_comp = carregar_metricas_comparativas()
         df_fold = df_comp[df_comp["fold"] == periodo].copy() if "fold" in df_comp.columns else df_comp.copy()
         df_fold = df_fold.sort_values(["recall_classe_1", "f1_classe_1"], ascending=[False, False])
 
+        rf = df_fold[df_fold["modelo"] == "random_forest_balanced"]
+        if not rf.empty:
+            rf_row = rf.iloc[0]
+            positivos = int(rf_row["tp"] + rf_row["fn"])
+            total_h = int(rf_row["tp"] + rf_row["tn"] + rf_row["fp"] + rf_row["fn"])
+            tp_rf = int(rf_row["tp"])
+            fn_rf = int(rf_row["fn"])
+            fp_rf = int(rf_row["fp"])
+
+            _kpis(
+                [
+                    ("", "Horas Avaliadas", f"{_int_br(total_h)} h", f"Período de {nome_periodo}."),
+                    ("", "Episódios Reais (IQAr > 100)", f"{positivos} h", "Momentos em que o ar ficou inadequado de verdade."),
+                    (
+                        "ok",
+                        "Alertas Avisados 1h Antes",
+                        f"{tp_rf} de {positivos}",
+                        f"<strong>{_pct_br(rf_row['recall_classe_1'], 1)}</strong> de Recall. Capturou quase a totalidade dos riscos.",
+                    ),
+                    (
+                        "alerta" if fn_rf > 0 else "ok",
+                        "Erros no Período",
+                        f"{fn_rf} FN · {fp_rf} FP",
+                        f"{fn_rf} alertas não emitidos (falhas críticas) e {fp_rf} alarmes por cautela.",
+                    ),
+                ]
+            )
+
+        # ------------------------------------------------ Figuras Visuais do Pipeline
+        _secao(
+            "Evidências Visuais",
+            "Métricas Comparativas e Matrizes de Confusão",
+            "Gráficos gerados durante a execução do pipeline de modelagem.",
+        )
+        c_fig1, c_fig2 = st.columns(2)
+        with c_fig1:
+            caminho_f3 = Path("reports/figures/fig_comparacao_modelos_metricas.png")
+            if caminho_f3.exists():
+                st.image(str(caminho_f3), caption="Recall, Precisão e F1-Score: Random Forest vs. Baselines no Holdout.")
+        with c_fig2:
+            caminho_f4 = Path("reports/figures/fig_matriz_confusao_3_arvores.png")
+            if caminho_f4.exists():
+                st.image(str(caminho_f4), caption="Matrizes de Confusão: Árvore de Decisão CART, Random Forest e XGBoost.")
+
+        # ------------------------------------------------ Tabela Comparativa de Modelos
+        _secao("Tabela Comparativa", "Qual modelo errou menos?", f"Desempenho detalhado para o período de {nome_periodo}.")
         nomes = {
             "random_forest_balanced": "🏆 Random Forest (escolhido)",
             "xgboost_balanced": "XGBoost",
-            "arvore_decisao_cart": "Árvore de Decisão",
+            "arvore_decisao_cart": "Árvore de Decisão CART",
             "regressao_logistica_balanced": "Regressão Logística",
             "gaussian_naive_bayes": "Naive Bayes",
-            "persistencia_iqar_atual": "Persistência (repete a hora atual)",
-            "dummy_prior": "Dummy (sempre diz 'ar adequado')",
+            "persistencia_iqar_atual": "Persistência (repete hora atual)",
+            "dummy_prior": "Dummy (sempre chuta ar adequado)",
         }
         total = df_fold["tp"] + df_fold["tn"] + df_fold["fp"] + df_fold["fn"]
         tabela_comp = pd.DataFrame(
             {
                 "Modelo": df_fold["modelo"].map(lambda m: nomes.get(m, m)),
-                "Recall · alertas avisados": (df_fold["recall_classe_1"] * 100).round(2),
+                "Recall (Alertas Detectados)": (df_fold["recall_classe_1"] * 100).round(2),
                 "Precisão": (df_fold["precisao_classe_1"] * 100).round(2),
                 "F1-Score": (df_fold["f1_classe_1"] * 100).round(2),
-                "Acurácia geral": ((df_fold["tp"] + df_fold["tn"]) / total * 100).round(2),
-                "✅ Alertas certos (TP)": df_fold["tp"].astype(int),
-                "❌ Alertas perdidos (FN)": df_fold["fn"].astype(int),
-                "⚠️ Alarmes a mais (FP)": df_fold["fp"].astype(int),
+                "Acurácia Geral": ((df_fold["tp"] + df_fold["tn"]) / total * 100).round(2),
+                "✅ Alertas Certos (TP)": df_fold["tp"].astype(int),
+                "❌ Falhas Críticas (FN)": df_fold["fn"].astype(int),
+                "⚠️ Alarmes por Cautela (FP)": df_fold["fp"].astype(int),
             }
         )
         st.dataframe(
@@ -632,161 +685,172 @@ def main() -> None:
             width="stretch",
             hide_index=True,
             column_config={
-                "Recall · alertas avisados": st.column_config.ProgressColumn(
-                    "Recall · alertas avisados",
-                    help="De todos os episódios reais de ar inadequado, quantos % o modelo avisou.",
+                "Recall (Alertas Detectados)": st.column_config.ProgressColumn(
+                    "Recall (Alertas Detectados)",
+                    help="De todos os episódios reais de IQAr > 100, quantos % o modelo avisou com 1h de antecedência.",
                     format="%.2f%%",
                     min_value=0.0,
                     max_value=100.0,
                 ),
                 "F1-Score": st.column_config.ProgressColumn(
                     "F1-Score",
-                    help="Equilíbrio entre avisar todos os alertas e não dar alarme falso demais.",
+                    help="Média harmônica entre Recall e Precisão.",
                     format="%.2f%%",
                     min_value=0.0,
                     max_value=100.0,
                 ),
                 "Precisão": st.column_config.NumberColumn("Precisão", format="%.2f%%"),
-                "Acurácia geral": st.column_config.NumberColumn(
-                    "Acurácia geral",
-                    help="Engana quando quase todas as horas são normais: veja a linha do Dummy.",
+                "Acurácia Geral": st.column_config.NumberColumn(
+                    "Acurácia Geral",
+                    help="Atenção: em classes raras a acurácia é ilusória (veja como o Dummy atinge quase 99% sem avisar nenhum alerta).",
                     format="%.2f%%",
                 ),
             },
         )
 
-        # Cartões de métricas com os números do período escolhido
-        rf = df_fold[df_fold["modelo"] == "random_forest_balanced"]
-        dummy = df_fold[df_fold["modelo"] == "dummy_prior"]
-        if not rf.empty:
-            rf = rf.iloc[0]
-            positivos = int(rf["tp"] + rf["fn"])
-            avisos = int(rf["tp"] + rf["fp"])
-            texto_dummy = "O Dummy diz 'ar adequado' em todas as horas."
-            if not dummy.empty:
-                d = dummy.iloc[0]
-                acc_dummy = (d["tp"] + d["tn"]) / (d["tp"] + d["tn"] + d["fp"] + d["fn"])
-                texto_dummy = (
-                    f"O Dummy diz 'ar adequado' em todas as horas e mesmo assim tem "
-                    f"<strong>{_pct_br(acc_dummy)}</strong> de acurácia — com <strong>0 alertas avisados</strong>. "
-                    "Por isso não usamos a acurácia para escolher o modelo."
-                )
-            _cartoes(
-                [
-                    (
-                        "green",
-                        "Métrica principal",
-                        f"🎯 Recall: {_pct_br(rf['recall_classe_1'])}",
-                        f"De {positivos} horas de ar inadequado, a Random Forest avisou {int(rf['tp'])}. "
-                        "Perder um alerta é o pior erro: expõe alunos sem aviso.",
-                    ),
-                    (
-                        "",
-                        "Confiança no alarme",
-                        f"⚖️ Precisão: {_pct_br(rf['precisao_classe_1'])}",
-                        f"Dos {avisos} alarmes dados, {int(rf['tp'])} eram ar inadequado de verdade. "
-                        f"O <strong>F1-Score ({_pct_br(rf['f1_classe_1'])})</strong> equilibra Recall e Precisão.",
-                    ),
-                    ("amber", "Armadilha", "⚠️ Por que não a acurácia?", texto_dummy),
-                    (
-                        "red",
-                        "Os 4 resultados",
-                        "🔍 TP, FN, FP e TN",
-                        f"<strong>TP</strong> alerta certo ({int(rf['tp'])}) · <strong>FN</strong> alerta perdido "
-                        f"({int(rf['fn'])}) · <strong>FP</strong> alarme a mais ({int(rf['fp'])}) · "
-                        f"<strong>TN</strong> hora normal certa ({_int_br(rf['tn'])}).",
-                    ),
-                ]
-            )
-
-        # ------------------------------------------------ Auditoria linha a linha
+        # ------------------------------------------------ Gráfico Dinâmico: Real vs. Previsto
         _secao(
-            "Auditoria",
-            "O que o modelo disse 1 hora antes de cada episódio real",
-            "Todas as horas em que o IQAr realmente passou de 100 no período escolhido.",
+            "Série Temporal Dinâmica",
+            "Previsão Gerada 1h Antes vs. Ocorrência Real",
+            "Comportamento hora a hora durante o episódio mais crítico do período selecionado.",
         )
         df_hist = carregar_serie_historica_com_previsoes()
         if periodo == "holdout_2025_2026":
-            filtro = df_hist["event_time_dt"] >= pd.Timestamp("2025-01-01")
+            data_ini = pd.Timestamp("2025-12-24")
+            data_fim = pd.Timestamp("2026-01-03")
+            titulo_recorte = "Episódio Crítico de Verão no Holdout (24/12/2025 a 03/01/2026)"
         else:
-            filtro = (df_hist["event_time_dt"] >= pd.Timestamp("2024-10-01")) & (
+            data_ini = pd.Timestamp("2024-09-25")
+            data_fim = pd.Timestamp("2024-10-05")
+            titulo_recorte = "Episódio Crítico na Validação (25/09/2024 a 05/10/2024)"
+
+        recorte = df_hist[(df_hist["event_time_dt"] >= data_ini) & (df_hist["event_time_dt"] <= data_fim)].copy()
+
+        if len(recorte) > 0:
+            recorte["alerta_emitido"] = (recorte["probabilidade_risco"] >= limiar).astype(int)
+            fig_h, (ax_h1, ax_h2) = plt.subplots(2, 1, figsize=(12, 5.4), sharex=True, facecolor="#111827")
+            for ax in (ax_h1, ax_h2):
+                ax.set_facecolor("#0b0f19")
+                ax.tick_params(colors="#94a3b8", labelsize=8.5)
+                for s in ax.spines.values():
+                    s.set_color("#1e293b")
+                ax.grid(True, color="#1e293b", linestyle="--", alpha=0.6)
+
+            # Subplot 1: IQAr Real
+            ax_h1.plot(recorte["event_time_dt"], recorte["iqar_evento"], color="#38bdf8", linewidth=1.6, label="IQAr Real no Evento (t+1h)")
+            ax_h1.axhline(100, color="#f59e0b", linestyle="--", linewidth=1.5, label="Limite CETESB (IQAr = 100)")
+            ev_reais = recorte[recorte[COLUNA_ALVO] == 1]
+            if len(ev_reais) > 0:
+                ax_h1.scatter(
+                    ev_reais["event_time_dt"],
+                    ev_reais["iqar_evento"].fillna(105),
+                    color="#ef4444",
+                    s=28,
+                    zorder=5,
+                    label="Episódio Real (IQAr > 100)",
+                )
+            ax_h1.set_ylabel("IQAr (pontos)", color="#cbd5e1", fontsize=9)
+            ax_h1.set_title(f"{titulo_recorte} — Ocorrência Real", color="#f8fafc", fontsize=10.5, fontweight="bold")
+            ax_h1.legend(loc="upper right", facecolor="#1e293b", edgecolor="#334155", labelcolor="#f8fafc", fontsize=8)
+
+            # Subplot 2: Probabilidade Prevista
+            ax_h2.plot(recorte["event_time_dt"], recorte["probabilidade_risco"] * 100, color="#818cf8", linewidth=1.8, label="Probabilidade (Random Forest)")
+            ax_h2.axhline(limiar * 100, color="#ef4444", linestyle="--", linewidth=1.5, label=f"Limiar de Alerta ({limiar * 100:.0f}%)")
+            ax_h2.fill_between(
+                recorte["event_time_dt"],
+                0,
+                recorte["probabilidade_risco"] * 100,
+                where=(recorte["probabilidade_risco"] >= limiar),
+                color="#ef4444",
+                alpha=0.3,
+                label="Período em Alerta Preventivo (1h Antes)",
+            )
+            ax_h2.set_ylim(0, 105)
+            ax_h2.set_ylabel("Probabilidade (%)", color="#cbd5e1", fontsize=9)
+            ax_h2.set_xlabel("Data e Hora do Evento", color="#cbd5e1", fontsize=9)
+            ax_h2.legend(loc="upper right", facecolor="#1e293b", edgecolor="#334155", labelcolor="#f8fafc", fontsize=8)
+
+            fig_h.tight_layout()
+            st.pyplot(fig_h)
+            plt.close(fig_h)
+
+        # ------------------------------------------------ Auditoria dos Episódios Reais
+        _secao(
+            "Auditoria de Episódios",
+            "O que o modelo previu 1 hora antes de cada episódio real",
+            "Horas em que o IQAr realmente ultrapassou 100 pontos, com as falhas (FN) destacadas no topo.",
+        )
+        if periodo == "holdout_2025_2026":
+            filtro_aud = df_hist["event_time_dt"] >= pd.Timestamp("2025-01-01")
+        else:
+            filtro_aud = (df_hist["event_time_dt"] >= pd.Timestamp("2024-10-01")) & (
                 df_hist["event_time_dt"] < pd.Timestamp("2025-01-01")
             )
-        recorte = df_hist[filtro].copy()
-        recorte["alerta"] = recorte["probabilidade_risco"] >= limiar
+        recorte_aud = df_hist[filtro_aud].copy()
+        recorte_aud["alerta"] = recorte_aud["probabilidade_risco"] >= limiar
+        eventos_aud = recorte_aud[recorte_aud[COLUNA_ALVO] == 1].copy()
+        eventos_aud = eventos_aud.sort_values(["alerta", "event_time_dt"], ascending=[True, False])
 
-        reais = recorte[COLUNA_ALVO] == 1
-        tp_p = int((reais & recorte["alerta"]).sum())
-        fn_p = int((reais & ~recorte["alerta"]).sum())
-        fp_p = int((~reais & recorte["alerta"]).sum())
-        total_reais = int(reais.sum())
-
-        eventos = recorte[reais].copy()
-        antecipados = int(((eventos[COLUNA_IQAR] <= 100) & eventos["alerta"]).sum())
-
-        _kpis(
-            [
-                ("", "Horas analisadas", f"{_int_br(len(recorte))} h", f"Período de {nome_periodo}."),
-                ("", "Episódios reais (IQAr > 100)", f"{total_reais} h", "Horas em que o ar ficou inadequado de verdade."),
-                (
-                    "ok",
-                    "Avisados 1 hora antes",
-                    f"{tp_p} de {total_reais}",
-                    f"{_pct_br(tp_p / max(1, total_reais), 1)} dos episódios. Em {antecipados} deles o IQAr ainda "
-                    "estava em até 100 na hora do aviso.",
-                ),
-                (
-                    "alerta" if fn_p else "ok",
-                    "Erros no período",
-                    f"{fn_p} FN · {fp_p} FP",
-                    f"{fn_p} alerta(s) perdido(s) e {fp_p} alarme(s) a mais.",
-                ),
-            ]
-        )
-
-        eventos = eventos.sort_values(["alerta", "event_time_dt"], ascending=[True, False])
         tabela_aud = pd.DataFrame(
             {
-                "Resultado": np.where(eventos["alerta"], "✅ Avisou (TP)", "❌ Não avisou (FN)"),
-                "Hora do aviso (t)": eventos["time_dt"].dt.strftime("%d/%m/%Y %H:%M"),
-                "Hora do episódio (t + 1h)": eventos["event_time_dt"].dt.strftime("%d/%m/%Y %H:%M"),
-                "IQAr na hora do aviso": eventos[COLUNA_IQAR].round(1),
-                "IQAr no episódio": eventos["iqar_evento"].round(1),
-                "Probabilidade dada 1h antes": (eventos["probabilidade_risco"] * 100).round(1),
+                "Resultado": np.where(eventos_aud["alerta"], "✅ Avisou 1h antes (TP)", "❌ Não avisou (FN)"),
+                "Hora do Aviso (t)": eventos_aud["time_dt"].dt.strftime("%d/%m/%Y %H:%M"),
+                "Hora do Episódio (t+1h)": eventos_aud["event_time_dt"].dt.strftime("%d/%m/%Y %H:%M"),
+                "IQAr na Hora do Aviso": eventos_aud[COLUNA_IQAR].round(1),
+                "IQAr no Episódio Real": eventos_aud["iqar_evento"].round(1),
+                "Probabilidade dada 1h antes": (eventos_aud["probabilidade_risco"] * 100).round(1),
             }
         )
         st.dataframe(
             tabela_aud,
             width="stretch",
             hide_index=True,
-            height=min(440, 38 + 35 * max(1, len(tabela_aud))),
+            height=min(380, 38 + 35 * max(1, len(tabela_aud))),
             column_config={
                 "Probabilidade dada 1h antes": st.column_config.ProgressColumn(
                     "Probabilidade dada 1h antes",
-                    help=f"O alerta dispara a partir de {limiar * 100:.0f}%.",
+                    help=f"Probabilidade estimada na hora t. O alerta dispara a partir de {limiar * 100:.0f}%.",
                     format="%.1f%%",
                     min_value=0.0,
                     max_value=100.0,
                 ),
-                "IQAr na hora do aviso": st.column_config.NumberColumn(format="%.1f"),
-                "IQAr no episódio": st.column_config.NumberColumn(format="%.1f"),
+                "IQAr na Hora do Aviso": st.column_config.NumberColumn(format="%.1f"),
+                "IQAr no Episódio Real": st.column_config.NumberColumn(format="%.1f"),
             },
         )
-        _nota(
-            f"""
-            <h4>💡 Como ler a auditoria</h4>
-            <ul>
-            <li><strong>De onde vêm os dados:</strong> a série histórica do repositório
-            (<code>data/processed/</code>) passa pelo mesmo modelo salvo (<code>modelo_final_sprint5.joblib</code>),
-            hora a hora.</li>
-            <li><strong>Erros primeiro:</strong> as linhas <strong>❌ Não avisou</strong> aparecem no topo, para
-            mostrar com transparência onde o modelo falhou ({fn_p} no período).</li>
-            <li><strong>Antecipação:</strong> compare as duas colunas de IQAr. Quando o IQAr ainda estava em até 100
-            na hora do aviso e o modelo já alertou, ele percebeu a subida antes de o ar ficar ruim.</li>
-            </ul>
-            """,
-            "green",
-        )
+
+        # ------------------------------------------------ Metodologia Explicada (Expander)
+        with st.expander("ℹ️ Metodologia: Split Temporal, Acurácia vs. Recall e Tipos de Erro (clique para abrir)", expanded=False):
+            _html(
+                """
+                <div class="grid-cards">
+                <div class="exp-card">
+                <span class="badge">Conceito 1</span>
+                <h4>⏳ Split Temporal (Sem Shuffle)</h4>
+                <p>Em dados no tempo não se pode sortear horas: o passado treina (2022–2024) e o futuro testa (2025–2026).
+                Isso simula o mundo real e impede qualquer vazamento de informação do futuro para o passado.</p>
+                </div>
+                <div class="exp-card">
+                <span class="badge">Conceito 2</span>
+                <h4>⚠️ A Armadilha da Acurácia</h4>
+                <p>Como menos de 3% das horas são de ar inadequado, um modelo "bobo" (Dummy) que nunca avisa nada tem <strong>98,90% de acurácia</strong>,
+                mas deixa 100% dos alunos desprotegidos. Por isso avaliamos o <strong>Recall da Classe 1</strong>.</p>
+                </div>
+                <div class="exp-card">
+                <span class="badge">Conceito 3</span>
+                <h4>🎯 Foco em Saúde Pública</h4>
+                <p><strong>Falso Negativo (FN):</strong> ar ficou ruim e o modelo calou (aluno exposto — erro gravíssimo).<br>
+                <strong>Falso Positivo (FP):</strong> alerta preventivo preventivo sem o ar passar de 100 (treino transferido por cautela).</p>
+                </div>
+                <div class="exp-card">
+                <span class="badge">Conceito 4</span>
+                <h4>🏆 Por que a Random Forest?</h4>
+                <p>Atingiu <strong>98,14% de Recall</strong> e <strong>F1 de 87,05%</strong> no Holdout de 14.592 horas,
+                deixando passar apenas 3 falhas contra 6 do XGBoost e 22 da Árvore de Decisão individual.</p>
+                </div>
+                </div>
+                """
+            )
 
 
 if __name__ == "__main__":

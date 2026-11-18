@@ -692,6 +692,21 @@ def main() -> None:
                 }[p],
             )
 
+        descricoes_periodo = {
+            "holdout_2025_2026": (
+                "🎯 <strong>Prova Final Cega (Holdout 2025–2026):</strong> Avaliação sobre <strong>14.592 horas "
+                "consecutivas</strong> (1 ano e 8 meses) que ficaram trancadas durante todo o desenvolvimento. "
+                "O modelo nunca tinha visto nenhum desses dados e capturou <strong>158 de 161 alertas reais (98,14% de Recall)</strong>, "
+                "deixando passar apenas 3 falhas críticas."
+            ),
+            "validacao_2024_Q4": (
+                "🧪 <strong>Simulado Intermediário (Validação 2024-Q4):</strong> Avaliação sobre <strong>2.208 horas</strong> "
+                "(outubro a dezembro de 2024). Serviu como teste prévio para calibrar o limiar de decisão em 30% e selecionar "
+                "o melhor algoritmo antes de abrir a prova final."
+            ),
+        }
+        _html(f'<div class="dynamic-badge">{descricoes_periodo[periodo]}</div>')
+
         nome_periodo = (
             "teste final (jan/2025 a ago/2026)" if periodo == "holdout_2025_2026" else "validação temporal (out a dez/2024)"
         )
@@ -743,6 +758,16 @@ def main() -> None:
             caminho_f4 = Path("reports/figures/fig_matriz_confusao_3_arvores.png")
             if caminho_f4.exists():
                 st.image(str(caminho_f4), caption="Matrizes de Confusão: Árvore de Decisão CART, Random Forest e XGBoost.")
+
+        _html(
+            """
+            <div style="font-size:0.83rem; color:#94a3b8; background:var(--bg-card); border:1px solid var(--border); border-radius:9px; padding:0.65rem 0.95rem; margin-top:0.4rem; line-height:1.5;">
+            💡 <strong>Como ler os gráficos acima:</strong><br>
+            • <strong>Gráfico da Esquerda (Barras de Métricas):</strong> O que mais importa para a saúde pública é a barra azul de <strong>Recall</strong> (quantos % dos episódios perigosos o modelo capturou). Repare que o modelo Dummy tem barra zero de Recall (não avisa nada), enquanto a Random Forest lidera com 98,14%.<br>
+            • <strong>Gráfico da Direita (Matrizes de Confusão):</strong> Os quadrantes <strong>verdes (TP)</strong> mostram os acertos de ar perigoso; os <strong>amarelos (FP)</strong> são alarmes por cautela; e os <strong>vermelhos (FN)</strong> são as falhas críticas (ar perigoso sem aviso). A Random Forest teve apenas <strong>3 falhas vermelhas</strong>, contra 6 do XGBoost e 22 da Árvore de Decisão individual.
+            </div>
+            """
+        )
 
         # ------------------------------------------------ Tabela Comparativa de Modelos
         _secao("Tabela Comparativa", "Qual modelo errou menos?", f"Desempenho detalhado para o período de {nome_periodo}.")
@@ -862,6 +887,16 @@ def main() -> None:
             st.pyplot(fig_h)
             plt.close(fig_h)
 
+            _html(
+                """
+                <div style="font-size:0.83rem; color:#94a3b8; background:var(--bg-card); border:1px solid var(--border); border-radius:9px; padding:0.65rem 0.95rem; margin-top:0.4rem; line-height:1.5;">
+                💡 <strong>Como ler a série temporal acima:</strong><br>
+                • <strong>Gráfico Superior (O que aconteceu de verdade):</strong> A linha azul claro mostra o valor real do <code>IQAr</code> medido no campus. A linha amarela tracejada marca o limite regulamentar da CETESB (100 pontos). As <strong>bolinhas vermelhas</strong> destacam os momentos em que o ar de fato ficou inadequado.<br>
+                • <strong>Gráfico Inferior (O que a Random Forest previu 1 hora antes):</strong> A linha roxa mostra a probabilidade de risco calculada pelas 300 árvores. Note que <strong>sempre antes de as bolinhas vermelhas estourarem no gráfico de cima, a linha roxa já cruzou a linha de alerta de 30%</strong> (área sombreada vermelha), dando 1 hora cheia de antecedência para agir!
+                </div>
+                """
+            )
+
         # ------------------------------------------------ Auditoria dos Episódios Reais
         _secao(
             "Auditoria de Episódios",
@@ -906,35 +941,70 @@ def main() -> None:
                 "IQAr no Episódio Real": st.column_config.NumberColumn(format="%.1f"),
             },
         )
+        _html(
+            """
+            <div style="font-size:0.83rem; color:#94a3b8; background:var(--bg-card); border:1px solid var(--border); border-radius:9px; padding:0.65rem 0.95rem; margin-top:0.5rem; line-height:1.5;">
+            🔍 <strong>Como ler a auditoria linha a linha:</strong><br>
+            • <strong>Transparência com as falhas:</strong> As linhas <strong>❌ Não avisou 1h antes (FN)</strong> aparecem obrigatoriamente no topo para auditoria direta (foram apenas 3 falhas em todo o Holdout de 14.592 horas).<br>
+            • <strong>Antecipação comprovada:</strong> Compare a coluna <em>IQAr na Hora do Aviso</em> com <em>IQAr no Episódio Real</em>. Em dezenas de episódios, o IQAr ainda estava abaixo de 100 (ar normal) no momento do aviso, provando que o modelo antecipa o pico antes de o ar piorar.
+            </div>
+            """
+        )
 
         # ------------------------------------------------ Metodologia Explicada (Expander)
-        with st.expander("ℹ️ Metodologia: Split Temporal, Acurácia vs. Recall e Tipos de Erro (clique para abrir)", expanded=False):
+        with st.expander("ℹ️ Metodologia e Conceitos: Split Temporal, Acurácia vs. Recall e Tipos de Erro (clique para abrir)", expanded=False):
             _html(
-                """
-                <div class="grid-cards">
-                <div class="exp-card">
-                <span class="badge">Conceito 1</span>
-                <h4>⏳ Split Temporal (Sem Shuffle)</h4>
-                <p>Em dados no tempo não se pode sortear horas: o passado treina (2022–2024) e o futuro testa (2025–2026).
-                Isso simula o mundo real e impede qualquer vazamento de informação do futuro para o passado.</p>
+                f"""
+                <div class="exp-grid-2">
+                <div class="exp-card-deep oficial">
+                <h4><span>⏳ Split Temporal (Sem Shuffle)</span><span class="badge" style="background:rgba(59,130,246,0.18); color:#60a5fa">Metodologia</span></h4>
+                <p><strong>De onde vêm os dados históricos:</strong> Analisamos <strong>35.736 horas consecutivas</strong> (de 04/08/2022 a 31/08/2026) sobre Mogi das Cruzes.</p>
+                <p><strong>Como o tempo foi dividido:</strong></p>
+                <ul>
+                <li><strong>Treino (21.121 h · 2022 a set/2024):</strong> O passado utilizado pelos algoritmos para aprender padrões atmosféricos e correlações físico-químicas.</li>
+                <li><strong>Validação (2.208 h · out a dez/2024):</strong> Simulado intermediário para calibrar hiperparâmetros e fixar o limiar de decisão em 30%.</li>
+                <li><strong>Teste Final Cego / Holdout (14.592 h · jan/2025 a ago/2026):</strong> Prova final guardada a sete chaves, aberta uma única vez para medir a eficácia real.</li>
+                </ul>
+                <p><strong>Por que o sorteio aleatório é proibido?</strong> Em problemas como fotos de cães e gatos, pode-se sortear dados à vontade. Porém, em séries temporais de clima, sortear horas causaria <strong>vazamento de dados (data leakage)</strong>: o modelo treinaria com as 14h de uma terça e tentaria prever as 15h da mesma terça. Isso seria "colar na prova", criando uma ilusão de perfeição. O Split Temporal garante que o modelo só aprende com o passado e prevê o futuro inédito.</p>
                 </div>
-                <div class="exp-card">
-                <span class="badge">Conceito 2</span>
-                <h4>⚠️ A Armadilha da Acurácia</h4>
-                <p>Como menos de 3% das horas são de ar inadequado, um modelo "bobo" (Dummy) que nunca avisa nada tem <strong>98,90% de acurácia</strong>,
-                mas deixa 100% dos alunos desprotegidos. Por isso avaliamos o <strong>Recall da Classe 1</strong>.</p>
+
+                <div class="exp-card-deep experimental">
+                <h4><span>⚠️ A Armadilha da Acurácia Geral</span><span class="badge" style="background:rgba(239,68,68,0.18); color:#f87171">Métrica Crítica</span></h4>
+                <p><strong>O paradoxo do ar limpo:</strong> Em Mogi das Cruzes, felizmente, em mais de <strong>97,5% do tempo o ar é adequado</strong> (IQAr ≤ 100). Apenas em 2,53% das horas o ar fica inadequado (evento raro e perigoso).</p>
+                <p><strong>O modelo "Dummy" (Preguiçoso):</strong></p>
+                <ul>
+                <li>Se criarmos um modelo bobo que simplesmente chuta <em>"Ar Adequado"</em> em todas as 14.592 horas do teste, ele acertará 14.431 horas normais e terá impressionantes <strong>98,90% de Acurácia Geral</strong>!</li>
+                <li>Porém, ele deixará passar <strong>161 de 161 episódios de poluição (0% de Recall)</strong>. Alunos asmáticos fariam treinos ao ar livre sob ar tóxico sem receber nenhum aviso.</li>
+                </ul>
+                <p><strong>Por que escolhemos o Recall da Classe 1?</strong> O Recall mede: <em>"De todos os episódios em que o ar realmente ficou perigoso, quantos % o modelo conseguiu avisar com antecedência?"</em>. A Random Forest atingiu <strong>98,14% de Recall</strong>, avisando 158 de 161 episódios reais, com <strong>F1-Score de 87,05%</strong> (equilíbrio contra alarmes em excesso).</p>
                 </div>
-                <div class="exp-card">
-                <span class="badge">Conceito 3</span>
-                <h4>🎯 Foco em Saúde Pública</h4>
-                <p><strong>Falso Negativo (FN):</strong> ar ficou ruim e o modelo calou (aluno exposto — erro gravíssimo).<br>
-                <strong>Falso Positivo (FP):</strong> alerta preventivo preventivo sem o ar passar de 100 (treino transferido por cautela).</p>
+
+                <div class="exp-card-deep">
+                <h4><span>🏥 Impacto Prático na Saúde Pública</span><span class="badge" style="background:rgba(16,185,129,0.18); color:#34d399">Interpretação</span></h4>
+                <p>O que significa cada tipo de resultado no mundo real:</p>
+                <ul>
+                <li><strong>✅ Verdadeiro Positivo (TP = 158): "Proteção Efetiva"</strong><br>
+                O modelo avisou 1 hora antes e o ar realmente passou de 100. Alunos foram encaminhados para a quadra coberta e janelas foram fechadas a tempo.</li>
+                <li><strong>❌ Falso Negativo (FN = 3): "Falha Crítica (Pior Erro)"</strong><br>
+                O ar ficou perigoso e o modelo não avisou. Expõe pessoas vulneráveis sem aviso. Minimizamos esse erro ao máximo (apenas 3 falhas em 14.592 horas).</li>
+                <li><strong>⚠️ Falso Positivo (FP = 44): "Alarme por Cautela"</strong><br>
+                O modelo emitiu alerta, mas o IQAr parou em 85 ou 95 (quase 100). O treino foi transferido por precaução. Em saúde humana, o excesso de zelo é infinitamente preferível à negligência.</li>
+                <li><strong>🛡️ Verdadeiro Negativo (TN = 14.387): "Rotina Normal"</strong><br>
+                Dia com ar limpo em que o sistema permaneceu em silêncio, sem alarmes falsos desnecessários.</li>
+                </ul>
                 </div>
-                <div class="exp-card">
-                <span class="badge">Conceito 4</span>
-                <h4>🏆 Por que a Random Forest?</h4>
-                <p>Atingiu <strong>98,14% de Recall</strong> e <strong>F1 de 87,05%</strong> no Holdout de 14.592 horas,
-                deixando passar apenas 3 falhas contra 6 do XGBoost e 22 da Árvore de Decisão individual.</p>
+
+                <div class="exp-card-deep">
+                <h4><span>🌲 Por que a Random Forest Venceu?</span><span class="badge" style="background:rgba(139,92,246,0.18); color:#a78bfa">Algoritmo Escolhido</span></h4>
+                <p>Comparativo didático entre as 7 abordagens avaliadas:</p>
+                <ul>
+                <li><strong>Dummy:</strong> 0% de Recall (inútil para saúde).</li>
+                <li><strong>Persistência:</strong> repete a hora atual; chega sempre 1 hora atrasada (não antecipa picos rápidos).</li>
+                <li><strong>Regressão Logística & Naive Bayes:</strong> modelos lineares simples que não capturam inversões térmicas complexas.</li>
+                <li><strong>Árvore de Decisão Individual (CART):</strong> sofre com alta variância e perdeu 22 alertas (86,34% de Recall).</li>
+                <li><strong>XGBoost:</strong> excelente modelo, mas ainda perdeu 6 alertas críticos (96,27% de Recall).</li>
+                <li><strong>Random Forest (300 árvores):</strong> venceu ao combinar 300 árvores de decisão independentes (bagging). O comitê cancela os ruídos individuais, atingindo <strong>98,14% de Recall</strong> e <strong>F1 de 87,05%</strong>, com estabilidade máxima.</li>
+                </ul>
                 </div>
                 </div>
                 """
